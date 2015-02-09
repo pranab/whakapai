@@ -1,17 +1,27 @@
 *.class
 *.log
 
-# sbt specific
-.cache/
-.history/
-.lib/
-dist/*
-target/
-lib_managed/
-src_managed/
-project/boot/
-project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
 .worksheet
+
+spark/.classpath
+spark/.project
+spark/project/project
+spark/project/target
+spark/target
+spark/lib_managed
+spark/src_managed
+spark/project/boot
+spark/tmp
+.history
+spark/dist
+.DS_Store
+.cache
+spark/bin
+.class
+.ivy2
+.lib
+spark/project/plugins/project/
+
