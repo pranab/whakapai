@@ -16,6 +16,8 @@ libraryDependencies ++=Seq(
   "org.apache.commons" % "commons-lang3" % "3.0",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.3.3",
   "com.fasterxml.jackson.module" % "jackson-module-scala_2.10" % "2.3.3",
+  "org.apache.lucene" % "lucene-core" % "4.4.0",
+  "org.apache.lucene" % "lucene-analyzers-common" % "4.4.0",
   "junit" % "junit" % "4.7" % "test",
   "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
   "mawazo" %% "hoidla" % "1.0"

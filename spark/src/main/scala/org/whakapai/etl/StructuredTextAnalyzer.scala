@@ -27,15 +27,19 @@ import org.hoidla.window.SizeBoundWindow
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.SparkContext
-
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.util.Version;
 
 object StructuredTextAnalyzer {
   /**
  * @param args
  */
   def main(args: Array[String]) {
-	val Array(master: String, configFile: String) = args.length match {
-		case x: Int if x == 2 => args.take(2)
+	val Array(master: String, inputPath: String, configFile: String) = args.length match {
+		case x: Int if x == 3 => args.take(2)
 		case _ => throw new IllegalArgumentException("missing command line args")
 	}
 	
@@ -43,11 +47,26 @@ object StructuredTextAnalyzer {
 	System.setProperty("config.file", configFile)
 	val config = ConfigFactory.load()
 	
-	val conf = new SparkConf()
+	val sparkConf = new SparkConf()
 		.setMaster(master)
-		.setAppName("LevelSimilarity")
+		.setAppName("StructuredTextAnalyzer")
 		.set("spark.executor.memory", "1g")
-
+	val sparkCntxt = new SparkContext(sparkConf)
+	val fieldDelimRegex = config.getString("field.delim.regex")
+	val country  = config.getString("text.country")
+	val lang = config.getString("text.language")
+	
+	val analyzer = lang match {
+	  case "en" => new EnglishAnalyzer(Version.LUCENE_44)
+	  case _ =>  throw new IllegalArgumentException("unsupported language:" + lang)
+	  
+	}
+	    
+	val file = sparkCntxt.textFile(inputPath)
+	file.map(l => {
+	  
+	})
+	
   }
 	
 }
