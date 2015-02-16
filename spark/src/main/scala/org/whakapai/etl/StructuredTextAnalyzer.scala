@@ -46,8 +46,8 @@ object StructuredTextAnalyzer {
  * @param args
  */
   def main(args: Array[String]) {
-	val Array(master: String, inputPath: String, configFile: String) = args.length match {
-		case x: Int if x == 3 => args.take(3)
+	val Array(master: String, inputPath: String, outputPath: String, configFile: String) = args.length match {
+		case x: Int if x == 4 => args.take(4)
 		case _ => throw new IllegalArgumentException("missing command line args")
 	}
 	
@@ -60,6 +60,15 @@ object StructuredTextAnalyzer {
 		.setAppName("StructuredTextAnalyzer")
 		.set("spark.executor.memory", "1g")
 	val sparkCntxt = new SparkContext(sparkConf)
+	
+	//add jars
+	sparkCntxt.addJar(config.getString("sifarish.jar"))
+	sparkCntxt.addJar(config.getString("jackson.core.jar"))
+	sparkCntxt.addJar(config.getString("jackson.module.jar"))
+	sparkCntxt.addJar(config.getString("lucene.core.jar"))
+	sparkCntxt.addJar(config.getString("lucene.analyzers.common.jar"))
+	sparkCntxt.addJar(config.getString("commons.lang.jar"))
+
 	val fieldDelimRegex = config.getString("field.delim.regex")
 	val country  = config.getString("text.country")
 	val lang = config.getString("text.language")
@@ -76,10 +85,12 @@ object StructuredTextAnalyzer {
     val schemaString = scala.io.Source.fromFile(filePath).mkString
     val schema = fromJson[SingleTypeSchema](schemaString)
 	    
+    //process
     val filedDelim = config.getString("field.delim.regex")
 	val file = sparkCntxt.textFile(inputPath)
-	file.map(l => {
+	val processed = file.map(l => {
 	  val items = l.split(filedDelim)
+	  var processedItems = List[String]()
 	  for ((item, index) <- items.zipWithIndex) {
 	    val field = schema.getEntity().getFieldByOrdinal(index)
 	    
@@ -96,10 +107,13 @@ object StructuredTextAnalyzer {
 	        case Field.TEXT_TYPE_PHONE_NUM => countryFormat.phoneNumFormat(item, format)
 	        case _ => tokenize(item, analyzer)
 	      }
-	      
+	      processedItems = processedItem :: processedItems
 	    }
 	  }
+	  processedItems = processedItems.reverse
+	  processedItems.mkString(filedDelim)
 	})
+	processed.saveAsTextFile(outputPath)
 	
   }
   
