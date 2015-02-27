@@ -15,32 +15,32 @@
  * permissions and limitations under the License.
  */
 
-package org.ruscello.similarity
+package org.whakapai.etl
 
-import scala.collection.JavaConversions._
-import org.apache.spark.SparkConf
-import org.apache.spark.streaming.StreamingContext
-import org.apache.spark.streaming.Seconds
-import com.typesafe.config.ConfigFactory
-import org.apache.spark.streaming.dstream.PairDStreamFunctions
-import org.hoidla.window.SizeBoundWindow
-import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.dstream.DStream
-import org.apache.spark.SparkContext
+import java.io.StringReader
+
+import scala.Array.canBuildFrom
+
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.en.EnglishAnalyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.util.Version
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.sifarish.feature.SingleTypeSchema
-import java.io.FileInputStream
-import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.sifarish.util.Field
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
 import org.sifarish.etl.CountryStandardFormat
-import java.io.StringReader
+import org.sifarish.feature.SingleTypeSchema
+import org.sifarish.util.Field
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
+import com.typesafe.config.ConfigFactory
+
+/**
+ * Normalizes various structured text field to bring everything into a canonical
+ * format
+ * @author pranab
+ *
+ */
 object StructuredTextAnalyzer {
   /**
  * @param args
