@@ -21,12 +21,14 @@ import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import com.typesafe.config.ConfigFactory
 
+import org.whakapai.common.JobConfiguration
+
 /**
  * Blocking based deduplicator
  * @author pranab
  *
  */
-object BlockingBasedDeduplicator {
+object BlockingBasedDeduplicator extends JobConfiguration {
 
   def main(args: Array[String]): Unit = {
 	val Array(master: String, inputPath: String, outputPath: String, configFile: String) = args.length match {
@@ -34,23 +36,14 @@ object BlockingBasedDeduplicator {
 		case _ => throw new IllegalArgumentException("missing command line args")
 	}
 	
-	//load configuration
-	System.setProperty("config.file", configFile)
-	val config = ConfigFactory.load()
-	
-	val sparkConf = new SparkConf()
-		.setMaster(master)
-		.setAppName("StructuredTextAnalyzer")
-		.set("spark.executor.memory", "1g")
+	//configuration and spark context
+	val config = createConfig(configFile)
+	val sparkConf = createSparkConf(master, "Blocking based similarity")
 	val sparkCntxt = new SparkContext(sparkConf)
-		
+	
 	//add jars
-	sparkCntxt.addJar(config.getString("sifarish.jar"))
-	sparkCntxt.addJar(config.getString("jackson.core.jar"))
-	sparkCntxt.addJar(config.getString("jackson.module.jar"))
-	sparkCntxt.addJar(config.getString("lucene.core.jar"))
-	sparkCntxt.addJar(config.getString("lucene.analyzers.common.jar"))
-	sparkCntxt.addJar(config.getString("commons.lang.jar"))
+	addJars(sparkCntxt, config, "sifarish.jar", "jackson.core.jar", "jackson.module.jar", "lucene.core.jar",
+	    "lucene.analyzers.common.jar", "commons.lang.jar")
 		
 	//config params
 	val bucketFieldOrdinals = config.getIntList("bucket.field.ordinals")
