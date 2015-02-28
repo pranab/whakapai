@@ -28,7 +28,7 @@ import org.whakapai.common.JobConfiguration
  * @author pranab
  *
  */
-object BlockingBasedDeduplicator extends JobConfiguration {
+object AttributeBasedSimilarity extends JobConfiguration {
 
   def main(args: Array[String]): Unit = {
 	val Array(master: String, inputPath: String, outputPath: String, configFile: String) = args.length match {
