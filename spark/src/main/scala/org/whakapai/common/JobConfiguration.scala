@@ -30,6 +30,14 @@ import org.apache.spark.SparkContext
  */
 trait JobConfiguration {
   
+	def getCommandLineArgs(args: Array[String]) : Array[String] = {
+		val argArray = args.length match {
+			case x: Int if x == 4 => args.take(4)
+			case _ => throw new IllegalArgumentException("missing command line args")
+		}
+	    argArray
+	}
+	
 	def createConfig(configFile : String) : Config = {
 		System.setProperty("config.file", configFile)
 		ConfigFactory.load()

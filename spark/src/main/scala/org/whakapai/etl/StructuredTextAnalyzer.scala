@@ -18,9 +18,7 @@
 package org.whakapai.etl
 
 import java.io.StringReader
-
 import scala.Array.canBuildFrom
-
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.en.EnglishAnalyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
@@ -30,10 +28,10 @@ import org.apache.spark.SparkContext
 import org.sifarish.etl.CountryStandardFormat
 import org.sifarish.feature.SingleTypeSchema
 import org.sifarish.util.Field
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
 import com.typesafe.config.ConfigFactory
+import org.whakapai.common.JobConfiguration
 
 /**
  * Normalizes various structured text field to bring everything into a canonical
@@ -41,33 +39,21 @@ import com.typesafe.config.ConfigFactory
  * @author pranab
  *
  */
-object StructuredTextAnalyzer {
+object StructuredTextAnalyzer extends JobConfiguration {
   /**
  * @param args
  */
   def main(args: Array[String]) {
-	val Array(master: String, inputPath: String, outputPath: String, configFile: String) = args.length match {
-		case x: Int if x == 4 => args.take(4)
-		case _ => throw new IllegalArgumentException("missing command line args")
-	}
+    val Array(master: String, inputPath: String, outputPath: String, configFile: String) = getCommandLineArgs(args)
 	
-	//load configuration
-	System.setProperty("config.file", configFile)
-	val config = ConfigFactory.load()
-	
-	val sparkConf = new SparkConf()
-		.setMaster(master)
-		.setAppName("StructuredTextAnalyzer")
-		.set("spark.executor.memory", "1g")
+	//configuration and spark context
+	val config = createConfig(configFile)
+	val sparkConf = createSparkConf(master, "StructuredTextAnalyzer")
 	val sparkCntxt = new SparkContext(sparkConf)
 	
 	//add jars
-	sparkCntxt.addJar(config.getString("sifarish.jar"))
-	sparkCntxt.addJar(config.getString("jackson.core.jar"))
-	sparkCntxt.addJar(config.getString("jackson.module.jar"))
-	sparkCntxt.addJar(config.getString("lucene.core.jar"))
-	sparkCntxt.addJar(config.getString("lucene.analyzers.common.jar"))
-	sparkCntxt.addJar(config.getString("commons.lang.jar"))
+	addJars(sparkCntxt, config, "sifarish.jar", "jackson.core.jar", "jackson.module.jar", "lucene.core.jar",
+	    "lucene.analyzers.common.jar", "commons.lang.jar")
 
 	val fieldDelimRegex = config.getString("field.delim.regex")
 	val country  = config.getString("text.country")
@@ -98,12 +84,23 @@ object StructuredTextAnalyzer {
 	      val format =  field.getTextDataSubTypeFormat()
 	      val processedItem = field.getDataSubType() match {
 	        case Field.TEXT_TYPE_PERSON_NAME => countryFormat.personNameFormat(item)
-	        case Field.TEXT_TYPE_STREET_ADDRESS => countryFormat.caseFormat(item, format)
+	        case Field.TEXT_TYPE_STREET_ADDRESS => {
+	            val newItem = countryFormat.caseFormat(item, format)
+	        	countryFormat.streetAddressFormat(newItem)
+	        }
+	        case Field.TEXT_TYPE_STREET_ADDRESS_ONE => {
+	            val newItem = countryFormat.caseFormat(item, format)
+	        	countryFormat.streetAddressOneFormat(newItem)
+	        }
+	        case Field.TEXT_TYPE_STREET_ADDRESS_TWO => {
+	            val newItem = countryFormat.caseFormat(item, format)
+	        	countryFormat.streetAddressTwoFormat(newItem)
+	        }
 	        case Field.TEXT_TYPE_CITY => countryFormat.caseFormat(item, format)
 	        case Field.TEXT_TYPE_STATE => countryFormat.stateFormat(item)
 	        case Field.TEXT_TYPE_ZIP => countryFormat.caseFormat(item, format)
 	        case Field.TEXT_TYPE_COUNTRY => countryFormat.caseFormat(item, format)
-	        case Field.TEXT_TYPE_EMAIL_ADDR => countryFormat.caseFormat(item, format)
+	        case Field.TEXT_TYPE_EMAIL_ADDR => countryFormat.emailFormat(item, format)
 	        case Field.TEXT_TYPE_PHONE_NUM => countryFormat.phoneNumFormat(item, format)
 	        case _ => tokenize(item, analyzer)
 	      }

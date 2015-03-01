@@ -31,10 +31,7 @@ import org.whakapai.common.JobConfiguration
 object AttributeBasedSimilarity extends JobConfiguration {
 
   def main(args: Array[String]): Unit = {
-	val Array(master: String, inputPath: String, outputPath: String, configFile: String) = args.length match {
-		case x: Int if x == 4 => args.take(4)
-		case _ => throw new IllegalArgumentException("missing command line args")
-	}
+    val Array(master: String, inputPath: String, outputPath: String, configFile: String) = getCommandLineArgs(args)
 	
 	//configuration and spark context
 	val config = createConfig(configFile)
@@ -48,6 +45,7 @@ object AttributeBasedSimilarity extends JobConfiguration {
 	//config params
 	val bucketFieldOrdinals = config.getIntList("bucket.field.ordinals")
 	val concatenateBucketFields = config.getBoolean("concatenate.bucket.fields")
+	val recordWiseSimilarity = config.getBoolean("record.wise.similarity")
 		
   }
 
