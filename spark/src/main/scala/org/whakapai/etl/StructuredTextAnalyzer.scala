@@ -26,6 +26,7 @@ import org.apache.lucene.util.Version
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.sifarish.etl.CountryStandardFormat
+import org.sifarish.etl.StructuredTextNormalizer
 import org.sifarish.feature.SingleTypeSchema
 import org.sifarish.util.Field
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -52,13 +53,16 @@ object StructuredTextAnalyzer extends JobConfiguration {
 	val sparkCntxt = new SparkContext(sparkConf)
 	
 	//add jars
-	addJars(sparkCntxt, config, "sifarish.jar", "jackson.core.jar", "jackson.module.jar", "lucene.core.jar",
+	addJars(sparkCntxt, config, "sifarish.jar", "jackson.core.jar", "jackson.mapper.jar", "lucene.core.jar",
 	    "lucene.analyzers.common.jar", "commons.lang.jar")
 
 	val fieldDelimRegex = config.getString("field.delim.regex")
 	val country  = config.getString("text.country")
 	val lang = config.getString("text.language")
-	val countryFormat = CountryStandardFormat.createCountryStandardFormat(country)
+    val normSchemaFilePath = config.getString("normalizer.schema.file.path")
+    val normSchemaString = scala.io.Source.fromFile(normSchemaFilePath).mkString
+    val normSchema = fromJson[StructuredTextNormalizer](normSchemaString)
+	val countryFormat = CountryStandardFormat.createCountryStandardFormat(country, normSchema)
 	
 	val analyzer = lang match {
 	  case "en" => new EnglishAnalyzer(Version.LUCENE_44)
@@ -67,8 +71,8 @@ object StructuredTextAnalyzer extends JobConfiguration {
 	}
 	
 	//data schema
-    val filePath = config.getString("raw.schema.file.path")
-    val schemaString = scala.io.Source.fromFile(filePath).mkString
+    val schemaFilePath = config.getString("data.schema.file.path")
+    val schemaString = scala.io.Source.fromFile(schemaFilePath).mkString
     val schema = fromJson[SingleTypeSchema](schemaString)
 	    
     //process
