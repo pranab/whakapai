@@ -52,9 +52,6 @@ object StructuredTextAnalyzer extends JobConfiguration {
 	val sparkConf = createSparkConf(master, "StructuredTextAnalyzer")
 	val sparkCntxt = new SparkContext(sparkConf)
 	
-	//add jars
-	addJars(sparkCntxt, config, "sifarish.jar", "jackson.core.jar", "jackson.mapper.jar", "lucene.core.jar",
-	    "lucene.analyzers.common.jar", "commons.lang.jar")
 
 	val fieldDelimRegex = config.getString("field.delim.regex")
 	val country  = config.getString("text.country")
@@ -86,26 +83,27 @@ object StructuredTextAnalyzer extends JobConfiguration {
 	    
 	    if (null != field && field.getDataType().equals(Field.DATA_TYPE_TEXT)) {
 	      val format =  field.getTextDataSubTypeFormat()
+	      val noPuncItem = countryFormat.removePunctuations(item)
 	      val processedItem = field.getDataSubType() match {
-	        case Field.TEXT_TYPE_PERSON_NAME => countryFormat.personNameFormat(item)
+	        case Field.TEXT_TYPE_PERSON_NAME => countryFormat.personNameFormat(noPuncItem)
 	        case Field.TEXT_TYPE_STREET_ADDRESS => {
-	            val newItem = countryFormat.caseFormat(item, format)
+	            val newItem = countryFormat.caseFormat(noPuncItem, format)
 	        	countryFormat.streetAddressFormat(newItem)
 	        }
 	        case Field.TEXT_TYPE_STREET_ADDRESS_ONE => {
-	            val newItem = countryFormat.caseFormat(item, format)
+	            val newItem = countryFormat.caseFormat(noPuncItem, format)
 	        	countryFormat.streetAddressOneFormat(newItem)
 	        }
 	        case Field.TEXT_TYPE_STREET_ADDRESS_TWO => {
-	            val newItem = countryFormat.caseFormat(item, format)
+	            val newItem = countryFormat.caseFormat(noPuncItem, format)
 	        	countryFormat.streetAddressTwoFormat(newItem)
 	        }
-	        case Field.TEXT_TYPE_CITY => countryFormat.caseFormat(item, format)
-	        case Field.TEXT_TYPE_STATE => countryFormat.stateFormat(item)
-	        case Field.TEXT_TYPE_ZIP => countryFormat.caseFormat(item, format)
-	        case Field.TEXT_TYPE_COUNTRY => countryFormat.caseFormat(item, format)
+	        case Field.TEXT_TYPE_CITY => countryFormat.caseFormat(noPuncItem, format)
+	        case Field.TEXT_TYPE_STATE => countryFormat.stateFormat(noPuncItem)
+	        case Field.TEXT_TYPE_ZIP => countryFormat.caseFormat(noPuncItem, format)
+	        case Field.TEXT_TYPE_COUNTRY => countryFormat.caseFormat(noPuncItem, format)
 	        case Field.TEXT_TYPE_EMAIL_ADDR => countryFormat.emailFormat(item, format)
-	        case Field.TEXT_TYPE_PHONE_NUM => countryFormat.phoneNumFormat(item, format)
+	        case Field.TEXT_TYPE_PHONE_NUM => countryFormat.phoneNumFormat(noPuncItem, format)
 	        case _ => tokenize(item, analyzer)
 	      }
 	      processedItems = processedItem :: processedItems

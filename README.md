@@ -29,6 +29,11 @@ Here are the planned features for now.
 2. Various free form and structured text matching algorithms
 3. Various dedup or record linkage algorithms 
 
+## Data preprocessing for predictive modeling
+1. Various stats for feature attributes
+2. Assigning scores to feature variables indicative of a feature's effectiveness in predicting 
+the response variable. Can be used for feature reduction.
+
 ## Data storage
 1. For batch ETL processing, HDFS or file system data input and output 
 2. For realtime ETL processing, Kafka for data input and HDFS or file system data output 
