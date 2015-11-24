@@ -30,19 +30,45 @@ import org.apache.spark.SparkContext
  */
 trait JobConfiguration {
   
+  /**
+ * @param args
+ * @return
+ */
+def configFileFromCommandLine(args: Array[String]) : String = {
+    val confifFilePath = args.length match {
+			case x: Int if x == 1 => args(0)
+			case _ => throw new IllegalArgumentException("invalid number of  command line args, expecting 1")
+	}
+    confifFilePath
+  }
+
+	/**
+	 * @param args
+	 * @return
+	 */
 	def getCommandLineArgs(args: Array[String]) : Array[String] = {
 		val argArray = args.length match {
 			case x: Int if x == 4 => args.take(4)
-			case _ => throw new IllegalArgumentException("missing command line args")
+			case _ => throw new IllegalArgumentException("invalid number of  command line args, expecting 4")
 		}
 	    argArray
 	}
 	
+	/**
+	 * @param configFile
+	 * @return
+	 */
 	def createConfig(configFile : String) : Config = {
 		System.setProperty("config.file", configFile)
 		ConfigFactory.load()
 	}
 	
+	/**
+	 * @param master
+	 * @param appName
+	 * @param executorMemory
+	 * @return
+	 */
 	def createSparkConf(master : String, appName : String, executorMemory : String = "1g") : SparkConf =  {
 	  new SparkConf()
 		.setMaster(master)
@@ -50,6 +76,11 @@ trait JobConfiguration {
 		.set("spark.executor.memory", executorMemory)
 	}
 	
+	/**
+	 * @param sparkCntxt
+	 * @param config
+	 * @param paramNames
+	 */
 	def addJars(sparkCntxt : SparkContext, config : Config, paramNames : String*) {
 	  paramNames.foreach(param => {  
 	    sparkCntxt.addJar(config.getString(param))
