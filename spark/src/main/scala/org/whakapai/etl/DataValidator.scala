@@ -26,6 +26,9 @@ import com.typesafe.config.Config
 import org.chombo.validator.Validator
 import org.chombo.util.ProcessorAttributeSchema
 import org.chombo.util.NumericalAttrStatsManager
+import org.chombo.util.MedianStatsManager
+import scala.collection.JavaConverters._
+import scala.collection.mutable.HashMap
 
 /**
 @author pranab
@@ -33,9 +36,12 @@ import org.chombo.util.NumericalAttrStatsManager
 * */
 object DataValidator extends JobConfiguration  {
   var statsManager: Option[NumericalAttrStatsManager] = None
-  //var validationContext : Map[String, Object] = Map()
+  var medStatManager : Option[MedianStatsManager] = None
   val validationContext = new java.util.HashMap[String, Object]()
-  
+  val mutValidators : scala.collection.mutable.HashMap[Int, Array[Validator]]   = scala.collection.mutable.HashMap()
+  lazy val validators :  Map[Int, Array[Validator]]   = mutValidators.toMap
+    
+    
  /**
  * @param args
  * @return
@@ -55,17 +61,32 @@ object DataValidator extends JobConfiguration  {
 	   
 	   //initialize stats manager
 	   getAttributeStats(config.getString("app.stats.file.path"))
-	   
-	   //simple configuration based
+	   getAttributeMeds(config.getString("app.med.stats.file.path"), config.getString("app.mad.stats.file.path"), 
+	       Utility.intArrayFromString(config.getString("app.id.ordinals"), ",") )
+	  
+
+	   //simple validators  
+	   var foundSimpleValidators = false
 	   ordinals.foreach(ord => {
 		   val  key = "app.validator." + ord
 		   if (config.hasPath(key)) {
 			   val validatorTag = config.getString(key)
 			   val valTags = validatorTag.split(tagSep);
-			   
+			   createValidators(config, valTags, ord, validationSchema, mutValidators)
+			   foundSimpleValidators = true
 		   }
-		   
 	   })
+	   
+	   //complex validators
+	   if (!foundSimpleValidators) {
+	      validationSchema.getAttributes().asScala.foreach( attr  => {
+	    	  	if (null != attr.getValidators()) {
+	    	  		val validatorTags =  attr.getValidators().asScala.toArray
+	    	  		createValidators(config, validatorTags, attr.getOrdinal(), validationSchema, mutValidators)
+	    	  	}
+	      })
+	   }
+	   
 	   
    }
    
@@ -76,23 +97,33 @@ object DataValidator extends JobConfiguration  {
  * @param validatorConfig
  * @param validationSchema
  */
-private  def createValidators( config : Config , valTags : Array[String],   ord : Int, validatorConfig : Config,
-       validationSchema :  ProcessorAttributeSchema)  {
+private  def createValidators( config : Config , valTags : Array[String],   ord : Int,
+       validationSchema :  ProcessorAttributeSchema, mutValidators : scala.collection.mutable.HashMap[Int, Array[Validator]])  {
 	   val validatorList =  List[Validator]()
 	   val  prAttr = validationSchema.findAttributeByOrdinal(ord)
-	   
+	   val validatorConfig = config.atPath("app")
 	   val validators = valTags.map(tag => {
 		    val validator = tag match {
 		     case "zscoreBasedRange" => {
-		       ValidatorFactory.create(tag, prAttr, validationContext)
+		    	 getAttributeStats(config.getString("app.stats.file.path"))
+		    	 ValidatorFactory.create(tag, prAttr, validationContext)
 		     }
 		     
 		     case "robustZscoreBasedRange" => {
+		    	 getAttributeMeds(config.getString("app.med.stats.file.path"), config.getString("app.mad.stats.file.path"), 
+		    			 Utility.intArrayFromString(config.getString("app.id.ordinals"), ",") )		       
+		    	 ValidatorFactory.create(tag, prAttr,validationContext)
 		     }
 		    
+		     case tag:String => {
+		       ValidatorFactory.create(tag, prAttr,  validatorConfig)
+		     }
 		   }
 		   validator 
 	   })
+	   
+	   //add validators to map
+	   mutValidators += ord -> validators
    }
 
   /**
@@ -106,7 +137,19 @@ private  def createValidators( config : Config , valTags : Array[String],   ord 
     }
     
     //validationContext.
+     validationContext.clear()
     validationContext.put("stats",  statsManager.get)
   }
    
+  private def getAttributeMeds(medFilePath : String, madFilePath:String, idOrdinals : Array[Int] ) {
+    medStatManager = medStatManager match{
+     	case None => Some(  new MedianStatsManager(medFilePath, madFilePath,  
+        			",",  idOrdinals))
+     	case Some(s) => medStatManager
+    }
+    
+    //validationContext.
+    validationContext.clear()
+    validationContext.put("stats",  medStatManager.get)
+  }
 }
