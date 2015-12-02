@@ -20,6 +20,7 @@ libraryDependencies ++=Seq(
   "org.apache.lucene" % "lucene-analyzers-common" % "4.4.0",
   "junit" % "junit" % "4.7" % "test",
   "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
+  //"org.scala-lang" % "scala-reflect" % "2.10.4",
   "mawazo" %% "sifarish" % "1.0",
   "mawazo" %% "chombo" % "1.0"
 )

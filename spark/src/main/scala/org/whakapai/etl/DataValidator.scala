@@ -52,9 +52,13 @@ object DataValidator extends JobConfiguration  {
 	   val sparkConf = createSparkConf("app.data validation", config)
 	   val sparkCntxt = new SparkContext(sparkConf)
 	   
+	   
+	   val fieldDelimIn = config.getString("app.field.delim.in")
+	   val fieldDelimOut = config.getString("app.field.delim.out")
+	   val valTagSeparator = config.getString("app.val.tag.separator")
 	   val filterInvalidRecords = config.getBoolean("app.filter.invalid.records")
 	   val validationSchema = Utility.getProcessingSchema( config.getString("app.schema.file.path")) 
-	   val validatorConfig = Utility.getHoconConfig(config.getString("app.hconf.file.path"))
+	   val validatorConfig = config.atPath("app")
 	   ValidatorFactory.initialize( config.getString( "app,custom.valid.factory.class"), validatorConfig )
 	   val ordinals =  validationSchema.getAttributeOrdinals()
 	   val tagSep = config.getString( "app,vaidator.tag.separator")
@@ -87,7 +91,41 @@ object DataValidator extends JobConfiguration  {
 	      })
 	   }
 	   
-	   
+	  val data = sparkCntxt.textFile(inputPath)
+	  
+	  //apply validators to each field in each line to create RDD of tagged records
+	  val taggedData = data.map(line => {
+	    val items = line.split(fieldDelimIn)
+	    val itemsZipped = items.zipWithIndex
+	    
+	    //apply all validators for the field
+	    val taggedItems = itemsZipped.map(z => {
+	    	val valList = validators.get(z._2).get
+	    	val valStatuses = valList.map(validator => {
+	    		val status = validator.isValid(z._1)
+	    		(validator.getTag(), status)
+	    	})
+	    	
+	    	//only failed validators
+	    	val failedValidators = valStatuses.filter(s => {
+	    	  !s._2
+	    	}).map(vs => vs._1)
+	    
+	    	val field = if (failedValidators.isEmpty)
+	    		z._1
+	    	else 
+	    	  z._1 + valTagSeparator + failedValidators.mkString(fieldDelimOut)
+	    	  
+	    	field
+	    })
+	 
+	    taggedItems.mkString(fieldDelimOut)
+	  })
+	 taggedData.cache
+	 
+	 //filter valid data
+	 val validData = taggedData.filter(line => !line.contains(valTagSeparator))
+	  
    }
    
    /**
