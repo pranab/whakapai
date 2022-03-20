@@ -30,9 +30,10 @@ Here are the planned features for now.
 3. Various dedup or record linkage algorithms 
 
 ## Data preprocessing for predictive modeling
-1. Various stats for feature attributes
+1. Various statistical of feature attributes
 2. Assigning scores to feature variables indicative of a feature's effectiveness in predicting 
-the response variable. Can be used for feature reduction.
+the response variable, which is useful for feature reduction.
+3. Data normalization of feature attributes  based on statistical properties
 
 ## Data storage
 1. For batch ETL processing, HDFS or file system data input and output 
