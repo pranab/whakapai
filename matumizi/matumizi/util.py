@@ -165,6 +165,7 @@ def selectRandomSubListFromList(ldata, num):
 		ldata : list data
 		num : output list size
 	"""
+	assertLesser(num, len(ldata), "size of sublist to be sampled greater than or equal to main list")
 	i = randint(0, len(ldata)-1)
 	sel = ldata[i]
 	selSet = {i}
@@ -1175,7 +1176,7 @@ def takeThird(elems):
 	"""
 	return elems[2]
 
-def addToKeyedCounter(dCounter, key, count):
+def addToKeyedCounter(dCounter, key, count=1):
 	"""
 	add to to keyed counter
 
@@ -2092,7 +2093,28 @@ def fileLineCount(fPath):
 		for i, li in enumerate(f):
 			pass
 	return (i + 1)
-		
+
+def getAlphaNumCharCount(sdata):
+	""" 
+	number of alphabetic and numeric charcters in a string 
+
+	Parameters
+		sdata : string data
+	"""
+	acount = 0
+	ncount = 0
+	ocount = 0
+	assertEqual(type(sdata), str, "input must be string")
+	for c in sdata:
+		if c.isnumeric():
+			ncount += 1
+		elif c.isalpha():
+			acount += 1
+		else:
+			ocount += 1
+	r = (acount, ncount, ocount)
+	return r	
+			
 class StepFunction:
 	"""
 	step function
