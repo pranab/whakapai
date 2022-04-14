@@ -1,45 +1,24 @@
 # whakapai
-This project is about Big Data ETL processing on spark. I have various Map reduce jobs in different 
-projects, essentially performing ETL processing. My plan is to consolidate them under one 
-project and have them running on Spark. I will be adding new ETL spark jobs also as I go along.
+Various Data Science Python packages to be available on Pypi
 
-This project is meant for large data volume ETL processing. Unlike many other ETL tools, there
-won't be any visual tool for manual processing of data. It will use traditional ETL processing logic 
-and machine learning where necessary. 
+Here are the packages. Only one is available now. More will be available soon
 
-Here are the planned features for now.
+## Data Exploration (matumizi)
+About 100 data exploration functions pulled from various open source libraries  along with 
+few hundred other utility function
 
+## Stochatic Optimization
+Coming soon
 
-## Data validation
-1. Field level validation with regular expression and custom groovy logic
-2. Inter field level or record level validation with custom groovy logic
-3. Isolation of invalid records and merge back after correction
+## Simulation
+Coming soon
 
-## Outlier detection
-1. Field level
-2. Record level
-3. Various statistical and proximity based algorithms
+## No Code PyTorch framework
+Coming soon
 
-## Missing data processing
-1. Isolating records with missing fields
-1. Replace missing fields with imputation
+## No Code Scikit framework
+Coming soon
 
-## Deduplication or record linkage
-1. Normalizing structured text field according to country
-2. Various free form and structured text matching algorithms
-3. Various dedup or record linkage algorithms 
+## Anomaly Detection
+Coming soon
 
-## Data preprocessing for predictive modeling
-1. Various statistical of feature attributes
-2. Assigning scores to feature variables indicative of a feature's effectiveness in predicting 
-the response variable, which is useful for feature reduction.
-3. Data normalization of feature attributes  based on statistical properties
-
-## Data storage
-1. For batch ETL processing, HDFS or file system data input and output 
-2. For realtime ETL processing, Kafka for data input and HDFS or file system data output 
-
-## Data format
-1. Flat record
-2. JSON
-3. XML
