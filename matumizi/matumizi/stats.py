@@ -21,7 +21,7 @@ import time
 import math
 import numpy as np
 import statistics 
-from util import *
+from .util import *
 
 """
 histogram class

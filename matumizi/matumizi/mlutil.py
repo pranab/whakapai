@@ -29,8 +29,8 @@ from decimal import Decimal
 import statistics
 import jprops
 from Levenshtein import distance as ld
-from util import *
-from sampler import *
+from .util import *
+from .sampler import *
 
 class Configuration:
 	"""

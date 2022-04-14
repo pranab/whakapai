@@ -42,10 +42,10 @@ from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import hurst
-from util import *
-from mlutil import *
-from sampler import *
-from stats import *
+from .util import *
+from .mlutil import *
+from .sampler import *
+from .stats import *
 
 """
 Load  data from a CSV file, data frame, numpy array or list
