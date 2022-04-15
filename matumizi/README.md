@@ -21,7 +21,10 @@ https://test.pypi.org/project/matumizi/0.0.1/
 
 3. Code usage example
 
-Here is some example code that uses all 5 modules
+Here is some example code that uses all 5 modules. You can find lots of examples in 
+[another repo](https://github.com/pranab/avenir/tree/master/python/app) of mine. There the 
+imports are direct and not through the package matmizi
+
 
 	import sys
 	import math
