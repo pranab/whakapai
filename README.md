@@ -6,8 +6,9 @@ please visit thye corresponding package directory.
 
 ## Data Exploration (matumizi)
 About 100 data exploration functions pulled from various open source libraries  along with 
-few hundred other utility function
-
+few hundred other utility function. More details in [package home directory](https://github.com/pranab/whakapai/tree/master/matumizi)
+ 
+ 
 ## Stochatic Optimization
 Coming soon
 
