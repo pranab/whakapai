@@ -11,8 +11,11 @@ Data Science utilities including following modules
 
 1. Install:
 
-
+Run
 pip3 install -i https://test.pypi.org/simple/ matumizi
+
+For installing latest, clone rep and run this at the project root directory
+pip3 install .
 
 
 2. Project page in testpypi
@@ -21,7 +24,8 @@ https://test.pypi.org/project/matumizi/0.0.1/
 
 3. Blogs posts
 
-[Data exploration](https://pkghosh.wordpress.com/2020/07/13/learn-about-your-data-with-about-seventy-data-exploration-functions-all-in-one-python-class/) has lot of details 
+[Data exploration module overview](https://pkghosh.wordpress.com/2020/07/13/learn-about-your-data-with-about-seventy-data-exploration-functions-all-in-one-python-class/) 
+Has lot of details on the DataExploration class and it's a good review of the package
 
 4. Code usage example
 
