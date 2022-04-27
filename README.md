@@ -16,7 +16,9 @@ Coming soon
 Coming soon
 
 ## No Code PyTorch framework
-Coming soon
+Support 4 PyTorch models  including MLP, LSTM, AutoEncoder and GCN. Will be adding VAe and Transformer
+For any model, all you have to do is to create a config file. No Python code needed. More details in 
+[package home directory](https://github.com/pranab/whakapai/tree/master/torvik)
 
 ## No Code Scikit framework
 Coming soon

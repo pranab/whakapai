@@ -23,19 +23,23 @@ https://test.pypi.org/project/torvik/0.0.1/
 
 3. Blogs posts
 
-[Duplicate data detection with feed forward networ](https://pkghosh.wordpress.com/2021/07/21/duplicate-data-detection-with-neural-network-and-contrastive-learning/)
-[Viral infection prediction witkh LSTM](https://pkghosh.wordpress.com/2020/08/18/predicting-individual-viral-infection-using-contact-data-with-lstm-neural-network/)
-[Service ticket anomaly detection with auto encoder](https://pkghosh.wordpress.com/2021/01/20/customer-service-quality-monitoring-with-autoencoder-based-anomalous-case-detection/)
+* [Duplicate data detection with feed forward networ](https://pkghosh.wordpress.com/2021/07/21/duplicate-data-detection-with-neural-network-and-contrastive-learning/)
+* [Viral infection prediction witkh LSTM](https://pkghosh.wordpress.com/2020/08/18/predicting-individual-viral-infection-using-contact-data-with-lstm-neural-network/)
+* [Service ticket anomaly detection with auto encoder](https://pkghosh.wordpress.com/2021/01/20/customer-service-quality-monitoring-with-autoencoder-based-anomalous-case-detection/)
 
 4. Code usage example
 
-Here is some example code that uses various modules. 
+Here is some example code that uses various modules. All you need to do is to create a configiration
+in properties file format for each model you want to train. Some example config files are in the
+config directory. The examples directory has code for few use cases, including code to generate 
+synthetic data
 
 	import sys
 	import math
 	from torvik.tnn import *
 	from torvik.lstm import *
 	from torvik.gcn import *
+	from torvik.ae import *
 	
 	#train feed forward network for classification
 	loModel = FeedForwardNetwork("tnn_lo.properties_")
@@ -49,9 +53,15 @@ Here is some example code that uses various modules.
 	classfi.predictLstm()
 	
 	#train and validate GCN
-	model = GraphConvoNetwork(args.cfile)
+	model = GraphConvoNetwork("gcn_em.properties_")
 	model.buildModel()
 	GraphConvoNetwork.trainModel(model)
 	GraphConvoNetwork.validateModel(model)
+	
+	#train and regenerate with auto encoder
+	auenc = AutoEncoder("ae_ticket.properties")
+	auenc.buildModel()
+	auenc.trainModel()
+	recs = auenc.regen()
 	
 	
