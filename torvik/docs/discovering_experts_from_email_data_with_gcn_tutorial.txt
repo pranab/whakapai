@@ -1,0 +1,36 @@
+This tutorial is fora Graph Convolution Neural Network(GCN) for predicting categories employees in 
+an organization using email data. It uses a no code framework based on PyTorch.
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.1
+
+
+Install node framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.1
+
+it's recommended that you copy emcom.py  and gcn_em.properties to a working directory and work 
+from there
+
+Generate data
+=============
+./emcom.py --op gen --nemp 1000 --nexp 200 --njun 300 --nclust 3 --nsm 1 --trsz 500 > em.txt
+
+where 
+no of employeess = 1000
+no of experts = 200
+no of juniors = 300
+no of clusters = 3
+no of subject matters = 1
+training data size = 500
+
+Feel free to change them
+
+Train GCN model
+===============
+./emcom.py --op train --cfile gcn_em.properties
+
+Make predictions
+================
+./emcom.py --op pred --cfile gcn_em.properties

@@ -126,7 +126,7 @@ class GraphConvoNetwork(nn.Module):
     		gconv = False
     		if ne == 6:
     			if lde[0] == "gconv":
-    				gconv == True
+    				gconv = True
     			lde = lde[1:]
     		
     		#num of units, activation, whether batch normalize, whether batch normalize after activation, dropout fraction
