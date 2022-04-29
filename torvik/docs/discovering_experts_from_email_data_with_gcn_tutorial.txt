@@ -8,10 +8,10 @@ pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.1
 
 
 Install node framework for PyTorch
-pip3 install -i https://test.pypi.org/simple/ torvik==0.0.1
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.2
 
 it's recommended that you copy emcom.py  and gcn_em.properties to a working directory and work 
-from there
+from there. You should create directory called model under your working directory
 
 Generate data
 =============

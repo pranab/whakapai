@@ -1,0 +1,57 @@
+This tutorial is for anaomaly detection for service time for an issue processing system  data using 
+auto encoder. 
+ 
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.1
+
+Install no code framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.2
+
+it's recommended that you copy ticket.py  and ae_ticket.properties to a working directory and work 
+from there. You should create directory called model under your working directory
+
+
+Create normal data for modeling
+===============================
+./ticket.py genx <num_issues> > cus_tr.txt
+
+where
+num_issues = number of issues e.g 2000
+
+
+Create test data
+================
+./ticket.py genx <num_issues> > cus.txt
+where
+num_issues = number of issues e.g 200
+
+insert outliers
+/ticket.py iolx  cus.txt <outlier_percentage> > cus_te.txt
+
+where
+<outlier_percentage = outlier percentage e.g 10
+
+Train Auto Encoder
+==================
+ ./ticket.py train  ae_ticket.properties
+ Make sure the following are set
+ train.model.save=True
+ 
+ Model hyper parameters are tuned manually. Feel free to change and experiment by editing the file
+ ae_ticket.properties
+ 
+ Test for regeneration error
+ ===========================
+ ./ticket.py regen ae_ticket.properties
+ A file called rol.txt has the output
+ 
+
+ 
+ 
+ 
+ 
+ 
+ 

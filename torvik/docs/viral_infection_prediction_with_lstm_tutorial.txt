@@ -1,0 +1,48 @@
+This tutorial is for viral infection prediction with LSTM using PyTorch
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.1
+
+Install no code framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.2
+
+it's recommended that you copy ctrace.py  and lstm_ct.properties to a working directory and work 
+from there. You should create directory called model under your working directory
+
+
+Generate Data
+=============
+-training data 
+./ctrace.py simu <num_rec>  y > ctr_tr.txt
+num_rec = number of records e.f if you choose 5000, tere will be 1000 sequence records
+because sequence is composed of 5 records
+
+-validation data 
+./ctrace.py simu <num_rec> y > ctr_va.txt
+
+-prediction data
+./ctrace.py simu <num_rec> n > ctr_pr.txt
+The 3rd command line argument is n, which means target value won't be generated
+since this data will be used for prediction
+
+Train model
+===========
+./ctrace.py train lstm_ct.properties
+
+The trained model could be saved by setting these parameters as follows
+common.model.directory=./model/lstm
+common.model.file=ctr.mod
+train.model.save=True
+
+Predict
+=======
+./ctrace.py pred  lstm_ct.properties
+
+The saved model could be used for prediction by setting this configuration parameter
+predict.use.saved.model=True
+
+Type of prediction (binary or probability) can be selected with this parameter
+predict.output=prob
+

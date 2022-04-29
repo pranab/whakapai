@@ -12,9 +12,9 @@ Will be adding Variational Auto Encoder(VAE) and Transformer in near future
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple/torvik
+pip3 install -i https://test.pypi.org/simple torvik==0.0.2
 
-For installing latest, clone rep and run this at the project root directory
+For installing latest, clone repo and run this at the project root directory
 pip3 install .
 
 
@@ -27,6 +27,7 @@ https://test.pypi.org/project/torvik/0.0.1/
 * [Duplicate data detection with feed forward networ](https://pkghosh.wordpress.com/2021/07/21/duplicate-data-detection-with-neural-network-and-contrastive-learning/)
 * [Viral infection prediction witkh LSTM](https://pkghosh.wordpress.com/2020/08/18/predicting-individual-viral-infection-using-contact-data-with-lstm-neural-network/)
 * [Service ticket anomaly detection with auto encoder](https://pkghosh.wordpress.com/2021/01/20/customer-service-quality-monitoring-with-autoencoder-based-anomalous-case-detection/)
+* [Subject matter expert dicovery with email text using GCN](https://pkghosh.wordpress.com/2022/04/28/discovering-subject-matter-experts-from-email-communication-data-using-graph-convolution-network/)
 
 4. Easy steps to use
 

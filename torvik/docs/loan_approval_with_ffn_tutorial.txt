@@ -1,0 +1,69 @@
+This tutorial is  for predicting  loan approval using a feed forward neural network
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.1
+
+Install no code framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.2
+
+it's recommended that you copy loan_approve.py  and tnn_lo.properties to a working directory and work 
+from there. You should create directory called model under your working directory
+
+
+Generate training data
+======================
+raw data
+./loan_approve.py genTwo <num_loans> <noise> <key_len>  extra > lo.txt
+
+where
+num_loans = num of loans e.g. 5000
+noise = noise level e.g 0.1
+key_len = key length e.g. 10
+
+encode categorical data
+./loan_approve.py encDummy lo.txt extra > lo_5000.txt
+
+
+Generate validation data
+========================
+raw data
+./loan_approve.py genTwo <num_loans> <noise> <key_len>  extra > lo.txt
+
+where
+nsamp = num of samples e.g. 500
+noise = noise level e.g 0.1
+key_len = key length e.g. 10
+
+encode categorical data
+./loan_approve.py encDummy lo.txt extra > lo_500.txt
+
+
+Generate prediction data
+========================
+raw data
+./loan_approve.py genTwo <num_loans> <noise> <key_len>  extra > lo.txt
+
+where
+nsamp = num of samples e.g. 250
+noise = noise level e.g 0.1
+key_len = key length e.g. 10
+
+encode categorical data
+./loan_approve.py encDummy lo.txt extra > lo_250.txt
+
+Train model
+===========
+Make sure you have the setting  train.model.save=True so that the trained model is saved
+./loan_approve.py nnTrain tnn_lo.properties
+
+Validate model
+==============
+./loan_approve.py nnVal tnn_lo.properties
+
+Vget prediction
+===============
+./loan_approve.py nnPred tnn_lo.properties
+
+
