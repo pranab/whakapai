@@ -199,8 +199,14 @@ class GraphConvoNetwork(nn.Module):
     			for r in range(2, len(items), 1):
     				ri = items[r].split(":")
     				#print(ri)
-    				ms = list(range(int(ri[0]), int(ri[1]), 1))
-    				mask.extend(ms)
+    				if len(ri) == 1:
+    					mask.append(int(ri[0]))
+    				elif len(ri) == 2:
+    					ms = list(range(int(ri[0]), int(ri[1])+1, 1))
+    					mask.extend(ms)
+    				else:
+    					exitWithMsg("invalid mask format")
+    					
     	#scale node features
     	if (self.config.getStringConfig("common.preprocessing")[0] == "scale"):
     		scalingMethod = self.config.getStringConfig("common.scaling.method")[0]
@@ -217,7 +223,7 @@ class GraphConvoNetwork(nn.Module):
     	
     	#maks
     	if mask is None:
-    		#trainiug data in the beginning
+    		#mask info from config
     		trStart = 0
     		vaStart = int(splits[0] * numLabeled)
     		teStart = vaStart + int(splits[1] * numLabeled)
@@ -227,16 +233,16 @@ class GraphConvoNetwork(nn.Module):
     		vaMask = [False] * numNodes
     		vaMask[vaStart:teStart] = [True] * (teStart - vaStart)
     		teMask = [False] * numNodes
-    		teMask[teStart:] = [True] * (numNodes - teStart)
+    		teMask[teStart:] = [True] * (numLabeled - teStart)
     	else:
-    		#training data anywhere
+    		#mask info in data
     		if crPredMask:
     			prMask = [True] * numNodes
     			for i in mask:
     				prMask[i] = False
     		self.prMask = torch.tensor(prMask, dtype=torch.bool)
     		
-    		nshuffle = int(len(mask) / 2)
+    		nshuffle = int(0.7 * len(mask))
     		shuffle(mask, nshuffle)
     		#print(mask)
     		lmask = len(mask)
@@ -364,6 +370,8 @@ class GraphConvoNetwork(nn.Module):
     	model.eval()
     	with torch.no_grad():
     		out = model()
+    		loss = model.lossFn(out[model.data.val_mask], model.data.y[model.data.val_mask])
+    		score = loss.item()
     		if verbose:
     			print(out)
     		yPred = out[model.data.val_mask].data.cpu().numpy()
@@ -371,10 +379,7 @@ class GraphConvoNetwork(nn.Module):
     		if verbose:
     			for pa in zip(yPred, yActual):
     				print(pa)
-    		#correct = yPred == yActual
-    		#score = int(correct.sum()) / int(model.data.val_mask.sum())
-    		
-    		score = perfMetric(model.lossFnStr, yActual, yPred, model.clabels)
+    		#score = perfMetric(model.lossFnStr, yActual, yPred, model.clabels)
     		
     	model.train()
     	return score

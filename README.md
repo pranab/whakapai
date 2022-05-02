@@ -14,7 +14,7 @@ few hundred other utility function. More details in
 ## Stochatic Optimization
 Coming soon
 
-## Simulation
+## Multi Arm Bandit
 Coming soon
 
 ## No Code PyTorch framework (torvik)

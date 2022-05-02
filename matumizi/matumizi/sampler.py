@@ -24,7 +24,6 @@ import numpy as np
 from scipy import stats
 from random import randint
 from .util import *
-
 from .stats import Histogram
 
 def randomFloat(low, high):

@@ -6,6 +6,7 @@ Data Science utilities including following modules
 * stats : various stats classes and functions
 * sampler : sampling from various statu=istical distributions
 * daexp : many data exploration functions consoloidating numpy, scipy, statsmodel and scikit
+* mcsim : monte carlo simulation
 
 ## Instructions
 
@@ -24,8 +25,8 @@ https://test.pypi.org/project/matumizi/0.0.1/
 
 3. Blogs posts
 
-[Data exploration module overview](https://pkghosh.wordpress.com/2020/07/13/learn-about-your-data-with-about-seventy-data-exploration-functions-all-in-one-python-class/) 
-Has lot of details on the DataExploration class and it's a good review of the package
+* [Data exploration module overview including usage examples](https://pkghosh.wordpress.com/2020/07/13/learn-about-your-data-with-about-seventy-data-exploration-functions-all-in-one-python-class/) 
+* [Monte Carlo simulation for project cost estimation](https://pkghosh.wordpress.com/2020/05/11/monte-carlo-simulation-library-in-python-with-project-cost-estimation-as-an-example/)
 
 4. Code usage example
 
