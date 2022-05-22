@@ -37,19 +37,20 @@ class Histogram:
     	"""
 		self.xmin = min
 		self.binWidth = binWidth
+		self.normalized = False
 	
 	@classmethod
-	def createInitialized(cls, min, binWidth, values):
+	def createInitialized(cls, xmin, binWidth, values):
 		"""
-    	create histogram instance
+    	create histogram instance with min domain, bin width and values
     	
 		Parameters
 			min : min x
 			binWidth : bin width
 			values : y values
     	"""
-		instance = cls(min, binWidth)
-		instance.xmax = min + binWidth * (len(values) - 1)
+		instance = cls(xmin, binWidth)
+		instance.xmax = xmin + binWidth * (len(values) - 1)
 		instance.ymin = 0
 		instance.bins = np.array(values)
 		instance.fmax = 0
@@ -59,20 +60,40 @@ class Histogram:
 		instance.ymin = 0.0
 		instance.ymax = instance.fmax
 		return instance
+
+	@classmethod
+	def createWithNumBins(cls, values, numBins=20):
+		"""
+    	create histogram instance values and no of bins
+    	
+		Parameters
+			values : y values
+			numBins : no of bins
+		"""
+		xmin = min(values)
+		xmax = max(values)
+		binWidth = (xmax + .01 - (xmin - .01)) / numBins
+		instance = cls(xmin, binWidth)
+		instance.xmax = xmax
+		instance.numBin = numBins
+		instance.bins = np.zeros(instance.numBin)
+		for v in values:
+			instance.add(v)
+		return instance
 	
 	@classmethod
-	def createUninitialized(cls, min, max, binWidth):
+	def createUninitialized(cls, xmin, xmax, binWidth):
 		"""
-    	create histogram instance with no y values
+    	create histogram instance with no y values using domain min , max and bin width
     	
 		Parameters
 			min : min x
 			max : max x
 			binWidth : bin width
     	"""
-		instance = cls(min, binWidth)
-		instance.xmax = max
-		instance.numBin = (max - min) / binWidth + 1
+		instance = cls(xmin, binWidth)
+		instance.xmax = xmax
+		instance.numBin = (xmax - xmin) / binWidth + 1
 		instance.bins = np.zeros(instance.numBin)
 		return instance
 	
@@ -89,7 +110,7 @@ class Histogram:
 		Parameters
 			value : value
     	"""
-		bin = (value - self.xmin) / self.binWidth
+		bin = int((value - self.xmin) / self.binWidth)
 		if (bin < 0 or  bin > self.numBin - 1):
 			print (bin)
 			raise ValueError("outside histogram range")
@@ -99,16 +120,27 @@ class Histogram:
 		"""
     	normalize  bin counts
     	"""
-		total = self.bins.sum()
-		self.bins = np.divide(self.bins, total)
-	
+		if not self.normalized:
+			total = self.bins.sum()
+			self.bins = np.divide(self.bins, total)
+			self.normalized = True
 	
 	def cumDistr(self):
 		"""
     	cumulative dists
     	"""
+		self.normalize()
 		self.cbins = np.cumsum(self.bins)
-	
+		return self.cbins
+		
+	def distr(self):
+		"""
+    	distr
+    	"""
+		self.normalize()
+		return self.bins
+
+		
 	def percentile(self, percent):
 		"""
     	return value corresponding to a percentile
@@ -142,6 +174,15 @@ class Histogram:
 		bin = int((x - self.xmin) / self.binWidth)
 		f = self.bins[bin]
 		return f
+
+	def bin(self, x):
+		"""
+    	return a bin index	
+     	
+		Parameters
+			x : x value
+   		"""
+		return int((x - self.xmin) / self.binWidth)
 	
 	def cumValue(self, x):
 		"""

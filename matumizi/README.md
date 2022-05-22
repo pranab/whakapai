@@ -21,7 +21,7 @@ pip3 install .
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/matumizi/0.0.1/
+https://test.pypi.org/project/matumizi/0.0.2/
 
 3. Blogs posts
 

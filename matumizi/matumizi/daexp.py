@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3
 
-# avenir-python: Machine Learning
 # Author: Pranab Ghosh
 # 
 # Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -662,7 +661,7 @@ class DataExplorer:
 
 	def getExtremeValue(self, ds,  ensamp, nsamp, polarity, doPlotDistr, nbins=20):
 		"""
-		get histogram
+		get extreme values
 		
 		Parameters
 			ds: data set name or list or numpy array
@@ -688,7 +687,7 @@ class DataExplorer:
 		return result
 
 
-	def getEntropy(self, ds,  nbins=10):
+	def getEntropy(self, ds,  nbins=20):
 		"""
 		get entropy
 		
@@ -703,7 +702,7 @@ class DataExplorer:
 		result = self.__printResult("entropy", entropy)
 		return result
 
-	def getRelEntropy(self, ds1,  ds2, nbins=10):
+	def getRelEntropy(self, ds1,  ds2, nbins=20):
 		"""
 		get relative entropy or KL divergence
 		
@@ -723,9 +722,9 @@ class DataExplorer:
 		result = self.__printResult("relEntropy", entropy)
 		return result
 
-	def getMutualInfo(self, ds1,  ds2, nbins=10):
+	def getAllNumMutualInfo(self, ds1,  ds2, nbins=20):
 		"""
-		get mutual information
+		get mutual information for both numeric data
 		
 		Parameters
 			ds1: data set name or list or numpy array
@@ -746,7 +745,7 @@ class DataExplorer:
 		return result
 
 
-	def getNumCatMutualInfo(self, nds, cds ,nbins=10):
+	def getNumCatMutualInfo(self, nds, cds ,nbins=20):
 		"""
 		get mutiual information between numeric and categorical data
 		
@@ -755,13 +754,14 @@ class DataExplorer:
 			cds: categoric data set name or list 
 			nbins: num of bins
 		"""
+		self.__printBanner("getting mutual information of numerical and categorical data", nds, cds)
 		ndata = self.getNumericData(nds)
 		cds = self.getCatData(cds)
 		nentr = self.getEntropy(nds)["entropy"]
 		
 		#conditional entropy
 		cdistr = self.getStatsCat(cds)["distr"]
-		grdata = self.getGroupByData(nds, cds)["groupedData"]
+		grdata = self.getGroupByData(nds, cds, True)["groupedData"]
 		cnentr = 0
 		for gr, data in grdata.items():
 			self.addListNumericData(data, "grdata")	
@@ -780,13 +780,14 @@ class DataExplorer:
 			cds1 : categoric data set name or list 
 			cds2 : categoric data set name or list 
 		"""
+		self.__printBanner("getting mutual information of two categorical data sets", cds1, cds2)
 		cdata1 = self.getCatData(cds1)
 		cdata2 = self.getCatData(cds1)
 		centr = self.getStatsCat(cds1)["entropy"]
 		
 		#conditional entropy
 		cdistr = self.getStatsCat(cds2)["distr"]
-		grdata = self.getGroupByData(cds1, cds2)["groupedData"]
+		grdata = self.getGroupByData(cds1, cds2, True)["groupedData"]
 		ccentr = 0
 		for gr, data in grdata.items():
 			self.addListCatData(data, "grdata")	
@@ -795,6 +796,79 @@ class DataExplorer:
 			
 		mutInfo = centr - ccentr
 		result = self.__printResult("mutInfo", mutInfo, "entropy", centr, "condEntropy", ccentr)
+		return result
+
+	def getMutualInfo(self, dst, nbins=20):
+		"""
+		get mutiual information between 2 data sets,any combination numerical and categorical
+		
+		Parameters
+			dst : data source , data type, data source , data type
+			nbins : num of bins
+		"""
+		assertEqual(len(dst), 4, "invalid data source and data type list size")
+		dtypes = ["num", "cat"]
+		assertInList(dst[1], dtypes, "invalid data type")
+		assertInList(dst[3], dtypes, "invalid data type")
+		self.__printBanner("getting mutual information of any mix numerical and categorical data", dst[0], dst[2])
+		
+		if dst[1] == "num":
+			mutInfo = self.getAllNumMutualInfo(dst[0], dst[2], nbins)["mutInfo"] if dst[3] == "num" \
+			else self.getNumCatMutualInfo(dst[0], dst[2], nbins)["mutInfo"]
+		else:
+			mutInfo = self.getNumCatMutualInfo(dst[2], dst[0], nbins)["mutInfo"] if dst[3] == "num" \
+			else self.getTwoCatMutualInfo(dst[2], dst[0])["mutInfo"]
+		
+		result = self.__printResult("mutInfo", mutInfo)
+		return result
+
+
+	def getCondMutualInfo(self, dst, nbins=20):
+		"""
+		get conditional  mutiual information between 2 data sets,any combination numerical and categorical
+		
+		Parameters
+			dst : data source , data type, data source , data type, data source , data type
+			nbins : num of bins
+		"""
+		assertEqual(len(dst), 6, "invalid data source and data type list size")
+		dtypes = ["num", "cat"]
+		assertInList(dst[1], dtypes, "invalid data type")
+		assertInList(dst[3], dtypes, "invalid data type")
+		assertInList(dst[5], dtypes, "invalid data type")
+		self.__printBanner("getting conditional mutual information of any mix numerical and categorical data", dst[0], dst[2])
+		
+		if dst[5] == "cat":
+			cdistr = self.getStatsCat(dst[4])["distr"]
+			grdata1 = self.getGroupByData(dst[0], dst[4], True)["groupedData"]
+			grdata2 = self.getGroupByData(dst[2], dst[4], True)["groupedData"]
+			
+		else:
+			gdata = self.getNumericData(dst[4])
+			hist = Histogram.createWithNumBins(gdata, nbins)
+			cdistr = hist.distr()
+			grdata1 = self.getGroupByData(dst[0], dst[4], False)["groupedData"]
+			grdata2 = self.getGroupByData(dst[2], dst[4], False)["groupedData"]
+
+
+		cminfo = 0
+		for gr in grdata1.keys():
+			data1 = grdata1[gr]
+			data2 = grdata2[gr]
+			if dst[1] == "num":
+				self.addListNumericData(data1, "grdata1")
+			else:
+				self.addListCatData(data1, "grdata1")
+					
+			if dst[3] == "num":
+				self.addListNumericData(data2, "grdata2")
+			else:
+				self.addListCatData(data2, "grdata2")
+			gdst = ["grdata1", dst[1], "grdata2", dst[3]]
+			minfo = self.getMutualInfo(gdst, nbins)["mutInfo"] 
+			cminfo += minfo * cdistr[gr]
+		
+		result = self.__printResult("condMutInfo", cminfo)
 		return result
 		
 	def getPercentile(self, ds, value):
@@ -988,7 +1062,7 @@ class DataExplorer:
 		for d in data:
 			r = getAlphaNumCharCount(d)
 			counts.append(r)
-		result = self.__printResult("AllTypeCharCounts", counts)
+		result = self.__printResult("allTypeCharCounts", counts)
 		return result
 
 	def getCatAlphaCharCounts(self, ds):
@@ -1000,10 +1074,8 @@ class DataExplorer:
 		"""
 		self.__printBanner("getting alphabetic char counts", ds)
 		data = self.getCatData(ds)
-		counts = list()
-		for d in data:
-			r = getAlphaNumCharCount(d)
-			counts.append(r[0])
+		counts = self.getCatAllCharCounts(ds)["allTypeCharCounts"]
+		counts = list(map(lambda r : r[0], counts))
 		result = self.__printResult("alphaCharCounts", counts)
 		return result
 	
@@ -1016,13 +1088,96 @@ class DataExplorer:
 		"""
 		self.__printBanner("getting numeric char counts", ds)
 		data = self.getCatData(ds)
-		counts = list()
-		for d in data:
-			r = getAlphaNumCharCount(d)
-			counts.append(r[1])
+		counts = self.getCatAllCharCounts(ds)["allTypeCharCounts"]
+		counts = list(map(lambda r : r[1], counts))
 		result = self.__printResult("numCharCounts", counts)
 		return result
+
+	def getCatSpecialCharCounts(self, ds):
+		"""
+		gets special char count list
 		
+		Parameters
+			ds: data set name or list or numpy array
+		"""
+		self.__printBanner("getting special char counts", ds)
+		counts = self.getCatAllCharCounts(ds)["allTypeCharCounts"]
+		counts = list(map(lambda r : r[2], counts))
+		result = self.__printResult("specialCharCounts", counts)
+		return result
+
+	def getCatAlphaCharCountStats(self, ds):
+		"""
+		gets alphabetic char count stats
+		
+		Parameters
+			ds: data set name or list or numpy array
+		"""
+		self.__printBanner("getting alphabetic char count stats", ds)
+		counts = self.getCatAlphaCharCounts(ds)["alphaCharCounts"]
+		nz = counts.count(0)
+		st = self.__getBasicStats(np.array(counts))
+		result = self.__printResult("mean", st[0], "std dev", st[1], "max", st[2], "min", st[3], "zeroCount", nz)
+		return result
+		
+	def getCatNumCharCountStats(self, ds):
+		"""
+		gets numeric char count stats
+		
+		Parameters
+			ds: data set name or list or numpy array
+		"""
+		self.__printBanner("getting numeric char count stats", ds)
+		counts = self.getCatNumCharCounts(ds)["numCharCounts"]
+		nz = counts.count(0)
+		st = self.__getBasicStats(np.array(counts))
+		result = self.__printResult("mean", st[0], "std dev", st[1], "max", st[2], "min", st[3], "zeroCount", nz)
+		return result
+
+	def getCatSpecialCharCountStats(self, ds):
+		"""
+		gets special char count stats
+		
+		Parameters
+			ds: data set name or list or numpy array
+		"""
+		self.__printBanner("getting special char count stats", ds)
+		counts = self.getCatSpecialCharCounts(ds)["specialCharCounts"]
+		nz = counts.count(0)
+		st = self.__getBasicStats(np.array(counts))
+		result = self.__printResult("mean", st[0], "std dev", st[1], "max", st[2], "min", st[3], "zeroCount", nz)
+		return result
+
+	def getCatFldLenStats(self, ds):
+		"""
+		gets field length stats
+		
+		Parameters
+			ds: data set name or list or numpy array
+		"""
+		self.__printBanner("getting field length stats", ds)
+		data = self.getCatData(ds)
+		le = list(map(lambda d: len(d), data))
+		st = self.__getBasicStats(np.array(le))
+		result = self.__printResult("mean", st[0], "std dev", st[1], "max", st[2], "min", st[3])
+		return result
+
+	def getCatCharCountStats(self, ds, ch):
+		"""
+		gets specified char ocuurence count stats
+		
+		Parameters
+			ds: data set name or list or numpy array
+			ch : character
+		"""
+		self.__printBanner("getting field length stats", ds)
+		data = self.getCatData(ds)
+		counts = list(map(lambda d: d.count(ch), data))
+		nz = counts.count(0)
+		st = self.__getBasicStats(np.array(counts))
+		result = self.__printResult("mean", st[0], "std dev", st[1], "max", st[2], "min", st[3], "zeroCount", nz)
+		return result
+
 	def getStats(self, ds, nextreme=5):
 		"""
 		gets summary statistics
@@ -1072,22 +1227,29 @@ class DataExplorer:
 		return result
 		
 
-	def getGroupByData(self, ds, gds):
+	def getGroupByData(self, ds, gds, gdtypeCat, numBins=20):
 		"""
 		group by 
 
 		Parameters
 			ds: data set name or list or numpy array
 			gds: group by data set name or list or numpy array
+			gdtpe : group by data type
 		"""
 		self.__printBanner("getting group by data", ds)
 		data = self.getAnyData(ds)
-		gdata = self.getCatData(gds)
+		if gdtypeCat:
+			gdata = self.getCatData(gds)
+		else:
+			gdata = self.getNumericData(gds)
+			hist = Histogram.createWithNumBins(gdata, numBins)
+			gdata = list(map(lambda d : hist.bin(d), gdata))
+			
 		self.ensureSameSize([data, gdata])
 		groups = dict()
 		for g,d in zip(gdata, data):
 			appendKeyedList(groups, g, d)
-			
+				
 		ve = self.verbose 
 		self.verbose = False
 		result = self.__printResult("groupedData", groups)
@@ -1386,6 +1548,29 @@ class DataExplorer:
 		mask = ypred != -1
 		dwoul = dmat[mask, :]
 		result = self.__printResult("numOutliers", doul.shape[0], "outliers", doul, "dataWithoutOutliers", dwoul)	
+		return result
+
+	def getOutliersWithZscore(self, ds, zthreshold, stats=None):
+		"""
+		gets outliers using zscore
+		
+		Parameters
+			ds: data set name or list or numpy array
+			zthreshold : z score threshold
+			stats : tuple cintaining mean and std dev
+		"""
+		self.__printBanner("getting outliers using zscore", ds)
+		data = self.getNumericData(ds)
+		if stats is None:
+			mean = data.mean()
+			sd = np.std(data)
+		else:
+			mean = stats[0]
+			sd = stats[1]
+			
+		zs = list(map(lambda d : abs((d - mean) / sd), data))
+		outliers = list(filter(lambda r : r[1] > zthreshold, enumerate(zs)))
+		result = self.__printResult("outliers", outliers)	
 		return result
 
 	def getSubsequenceOutliersWithDissimilarity(self, subSeqSize, ds):
@@ -2457,7 +2642,7 @@ class DataExplorer:
 		result = self.__printResult("stat", stat, "normalizedStat", nstat)
 		return result
 	
-	def getMaxRelMinRedFeatures(self, fdst, tdst, nfeatures, nbins=10):
+	def getMaxRelMinRedFeatures(self, fdst, tdst, nfeatures, nbins=20):
 		"""
 		get top n features based on max relevance and min redudancy	algorithm
 		
@@ -2465,6 +2650,61 @@ class DataExplorer:
 			fdst: list of pair of data set name or list or numpy array and data type
 			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
 			nfeatures : desired no of features
+			nbins : no of bins for numerical data
+		"""	
+		self.__printBanner("doing max relevance min redundancy feature selection")
+		return self.getMutInfoFeatures(fdst, tdst, nfeatures, "mrmr", nbins)	
+
+	def getJointMutInfoFeatures(self, fdst, tdst, nfeatures, nbins=20):
+		"""
+		get top n features based on joint mutual infoormation	algorithm
+		
+		Parameters
+			fdst: list of pair of data set name or list or numpy array and data type
+			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
+			nfeatures : desired no of features
+			nbins : no of bins for numerical data
+		"""	
+		self.__printBanner("doingjoint mutual info feature selection")
+		return self.getMutInfoFeatures(fdst, tdst, nfeatures, "jmi", nbins)
+		
+	def getCondMutInfoMaxFeatures(self, fdst, tdst, nfeatures, nbins=20):
+		"""
+		get top n features based on condition mutual information maximization algorithm
+		
+		Parameters
+			fdst: list of pair of data set name or list or numpy array and data type
+			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
+			nfeatures : desired no of features
+			nbins : no of bins for numerical data
+		"""	
+		self.__printBanner("doing conditional mutual info max feature selection")
+		return self.getMutInfoFeatures(fdst, tdst, nfeatures, "cmim", nbins)
+
+	def getInteractCapFeatures(self, fdst, tdst, nfeatures, nbins=20):
+		"""
+		get top n features based on interaction capping algorithm
+		
+		Parameters
+			fdst: list of pair of data set name or list or numpy array and data type
+			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
+			nfeatures : desired no of features
+			nbins : no of bins for numerical data
+		"""	
+		self.__printBanner("doing interaction capped feature selection")
+		return self.getMutInfoFeatures(fdst, tdst, nfeatures, "icap", nbins)
+
+	def getMutInfoFeatures(self, fdst, tdst, nfeatures, algo, nbins=20):
+		"""
+		get top n features based on various mutual information	based algorithm
+		ref: Conditional ikelihood maximisation : A unifying framework for information 
+		theoretic feature selection, Gavin Brown
+		
+		Parameters
+			fdst: list of pair of data set name or list or numpy array and data type
+			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
+			nfeatures : desired no of features
+			algo: mi based feature selection algorithm
 			nbins : no of bins for numerical data
 		"""	
 		#verify data source types types
@@ -2480,6 +2720,8 @@ class DataExplorer:
 			data = self.getNumericData(ds) if dt == "num" else self.getCatData(ds)
 			p =(ds, dt)
 			fds.append(p)
+		algos = ["mrmr", "jmi", "cmim", "icap"]
+		assertInList(algo, algos, "invalid feature selection algo " + algo)
 		
 		assertInList(tdst[1], types, "invalid type for data source " + tdst[1])
 		data = self.getNumericData(tdst[0]) if tdst[1] == "num" else self.getCatData(tdst[0])
@@ -2500,31 +2742,29 @@ class DataExplorer:
 					if ds in relevancies:
 						mutInfo = relevancies[ds]
 					else:
-						if tdst[1] == "num":
-							#regression problem
-							mutInfo = self.getMutualInfo(ds, tdst[0], nbins)["mutInfo"] if dt == "num" \
-							else self.getNumCatMutualInfo(tdst[0], ds, nbins)["mutInfo"]
-						else:
-							#classification problem
-							mutInfo = self.getNumCatMutualInfo(ds, tdst[0], nbins)["mutInfo"] if dt == "num" \
-							else self.getTwoCatMutualInfo(ds, tdst[0])["mutInfo"]
+						mutInfo = self.getMutualInfo([ds, dt,  tdst[0], tdst[1]], nbins)["mutInfo"]
 						relevancies[ds] = mutInfo
 					relev = mutInfo
 					#print("relev", relev)
 					
 					#redundancy
 					smi = 0
+					reds = list()
 					for sds, sdt, _ in sfds:
 						#print(sds, sdt)
-						if dt == "num":
-							mutInfo = self.getMutualInfo(ds, sds, nbins)["mutInfo"] if sdt == "num" \
-							else self.getNumCatMutualInfo(ds, sds, nbins)["mutInfo"]
-						else:
-							mutInfo = self.getNumCatMutualInfo(sds, ds, nbins)["mutInfo"] if  sdt == "num" \
-							else self.getTwoCatMutualInfo(ds, sds)["mutInfo"]
-						smi += mutInfo
-					
-					redun = smi / len(sfds) if len(sfds) > 0 else 0
+						mutInfo = self.getMutualInfo([ds, dt,  sds, sdt], nbins)["mutInfo"]
+						mutInfoCnd = self.getCondMutualInfo([ds, dt,  sds, sdt, tdst[0], tdst[1]], nbins)["condMutInfo"] \
+						if algo != "mrmr" else 0
+						
+						red = mutInfo - mutInfoCnd
+						reds.append(red)	
+						
+					if algo == "mrmr" or algo == "jmi":
+						redun = sum(reds) / len(sfds) if len(sfds) > 0 else 0
+					elif algo == "cmim" or algo == "icap":
+						redun = max(reds) if len(sfds) > 0 else 0
+						if algo == "icap":
+							redun = max(0, redun)
 					#print("redun", redun)
 					score = relev - redun
 					if scorem is None or score > scorem:
@@ -2608,5 +2848,17 @@ class DataExplorer:
 			print("result details:")
 			self.pp.pprint(result)
 		return result
+		
+	def __getBasicStats(self, data):
+		"""
+		get mean and std dev
+		
+		Parameters
+			data : numpy array
+		"""
+		mean = np.average(data)
+		sd = np.std(data)
+		r = (mean, sd, np.max(data), np.min(data))
+		return r
 
 
