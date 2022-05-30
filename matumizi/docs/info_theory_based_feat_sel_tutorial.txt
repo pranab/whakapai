@@ -1,0 +1,29 @@
+This tutorial is for information theory based feature selection  a loan application data set. The 
+implementation is the python package matumizi
+
+Setup
+=====
+Install matumizi as follows
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.2
+
+Install requirements
+pip3 install -r requirements.txt
+
+Generate loan application data
+==============================
+./fesel.py --op gen --nloan 2000 --noise .05 --klen 10 > lo.txt
+
+where
+op = operation to perform
+nloan = num of loans
+noise = noise level
+klen = loan ID length
+
+Feature selection
+=================
+./fesel.py --op fsel --fpath lo.txt --algo mrmr
+
+where
+op = operation to perform
+fpath = path to file containing loan data
+algo = feature selection algorithm (mrmr, jmi, cmim, icap)

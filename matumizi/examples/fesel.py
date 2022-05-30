@@ -223,7 +223,7 @@ if __name__ == "__main__":
 	
 	if op == "gen":
 		"""  generate data """
-		numLoans = arg.nloan
+		numLoans = args.nloan
 		loan = LoanApprove(numLoans)
 		noise = args.noise
 		keyLen = args.klen
