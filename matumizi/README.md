@@ -23,10 +23,13 @@ pip3 install .
 
 https://test.pypi.org/project/matumizi/0.0.2/
 
+
 3. Blogs posts
 
 * [Data exploration module overview including usage examples](https://pkghosh.wordpress.com/2020/07/13/learn-about-your-data-with-about-seventy-data-exploration-functions-all-in-one-python-class/) 
 * [Monte Carlo simulation for project cost estimation](https://pkghosh.wordpress.com/2020/05/11/monte-carlo-simulation-library-in-python-with-project-cost-estimation-as-an-example/)
+* [Information theory based feature selection](https://pkghosh.wordpress.com/2022/05/29/feature-selection-with-information-theory-based-techniques-in-python/)
+
 
 4. Code usage example
 
