@@ -1,10 +1,11 @@
 # torvik
 
 No code framework for various PyTorch Networks with these modules
-* tnn :Feed Forward Network aka multi player perceptron
+* tnn : Feed Forward Network aka multi player perceptron
 * lstm : LSTM network
 * ae : Auto Encoder network
 * gcn : Graph Convolution Network
+* fftn : Feed Forward Network for cointrastive learning
 
 Will be adding Variational Auto Encoder(VAE) and Transformer in near future
 ## Instructions

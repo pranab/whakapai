@@ -1,6 +1,6 @@
 jprops==2.0.2
 matplotlib==3.3.0
-matumizi==0.0.1
+matumizi==0.0.2
 numpy==1.18.5
 scikit_learn==1.0.2
 torch==1.10.0
