@@ -60,6 +60,7 @@ class UpperConfBound(MultiArmBandit):
 			#print(str(act))
 			if act.nplay == 0:
 				sact = act
+				self.logger.info("untried action found")
 				break
 			else:		
 				if self.transientAction or act.available:
@@ -78,14 +79,11 @@ class UpperConfBound(MultiArmBandit):
 							scmax = sc
 							sact = act
 		if sact is None:
+			self.logger.info("all actions not rewarded yet")
 			sact = selectRandomFromList(self.actions)
 			scmax = self.getActionScore(sact)
 			
-		if not self.transientAction:
-			sact.makeAvailable(False)
-		sact.nplay += 1
-		self .totPlays += 1
-		self.logger.info("action selected {}  score {}".format(str(sact), scmax))
+		self.actFinalize(sact, scmax)
 		re = (sact.name, scmax)	
 		return re
 			
@@ -127,12 +125,79 @@ class RandomGreedy(MultiArmBandit):
 				sact = selectRandomFromList(self.actions)
 				sc = self.getActionScore(sact)
 				
-		if not self.transientAction:
-			sact.makeAvailable(False)
-		sact.nplay += 1
-		self.totPlays += 1
-		self.logger.info("action selected {}  score {}".format(str(sact), sc))
+		self.actFinalize(sact, sc)
 		re = (sact.name, sc)	
 		return re
 		
+
+class ThompsonSampling(MultiArmBandit):
+	"""
+	thompson sampling multi arm bandit (ts)
+	"""
 	
+	def __init__(self, actions, wsize, transientAction,logFilePath, logLevName):
+		"""
+		initializer
+		
+		Parameters
+			actions : action names
+			wsize : reward window size
+			transientAction ; if decision involves some tied up resource it should be set False
+			logFilePath : log file path set None for no logging
+			logLevName : log level e.g. info, debug
+		"""
+		self.shapeFac = dict(map(lambda a : (a, [1,1]), actions))
+		super(ThompsonSampling, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "ThompsonSampling")
+		
+		
+	def act(self):
+		"""
+		next play return selected action
+		"""
+		sact = None
+		sc = 0
+		for act in self.actions:
+			#any action not tried yet
+			if act.nplay == 0:
+				sact = act
+				self.logger.info("untried action found")
+				break
+		
+		if sact is None:
+			#sample reward
+			for act in self.actions:
+				if act.isRewarded():
+					sf = self.shapeFac[act.name]
+					p = np.random.beta(sf[0], sf[1])
+					if p > sc:
+						sc = p
+						sact = act
+				else:
+					sact = None
+					sc = 0
+					break
+					
+		if sact is None:
+			#select random
+			self.logger.info("all actions not rewarded yet")
+			sact = selectRandomFromList(self.actions)
+
+		self.actFinalize(sact, sc)
+		re = (sact.name, sc)	
+		return re
+
+	def setReward(self, aname, reward):
+		"""
+		reward feedback for action
+			
+		Parameters
+			act : action
+			reward : reward value
+		"""
+		super().setReward(aname, reward)
+		sf = self.shapeFac[aname]
+		if random.random() < reward:
+			sf[0] += 1
+		else:
+			sf[1] += 1
+		self.logger.info("action {} beta distr factors {} {}".format(aname, sf[0], sf[1]))	

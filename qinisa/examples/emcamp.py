@@ -40,7 +40,9 @@ if __name__ == "__main__":
 	if args.algo == "rg":
 		model = RandomGreedy(emtempl, 20, True, "./log/rg.log", "info", 0.8, "loglin")
 	elif args.algo == "ucb":
-		model = UpperConfBound(emtempl, 20, True, "./log/rg.log", "info")
+		model = UpperConfBound(emtempl, 20, True, "./log/ucb.log", "info")
+	elif args.algo == "ts":
+		model = ThompsonSampling(emtempl, 20, True, "./log/ts.log", "info")
 	
 	evsamplers = dict()	
 	evsamplers["d1"] = CategoricalRejectSampler(("op", 80), ("cl", 20))

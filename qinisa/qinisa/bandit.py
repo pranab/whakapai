@@ -108,12 +108,12 @@ class MultiArmBandit:
 		self.actions = list(map(lambda aname : Action(aname, wsize), actions))
 		self .totPlays = 0
 		self.transientAction = transientAction
-		self.tuned = False
-
+		self.raction = None
+		
 		self.logger = None
 		if logFilePath is not None: 		
 			self.logger = createLogger(mname, logFilePath, logLevName)
-			self.logger.info("******** stating new  session of" + clname)
+			self.logger.info("******** stating new  session of " + clname)
 	
 			
 	def act(self):
@@ -179,6 +179,7 @@ class MultiArmBandit:
 		acts = list(filter(lambda act : act.name == aname, self.actions))
 		assertEqual(len(acts), 1, "invalid action name")
 		act = acts[0]
+		self.raction = act
 		act.addReward(reward)
 		if not self.transientAction:
 			act.makeAvailable(True)
@@ -205,4 +206,15 @@ class MultiArmBandit:
 		"""
 		model = restoreObject(filePath)
 		return model
+		
+	def actFinalize(self, sact, sc):
+		"""
+		
+		"""
+		if not self.transientAction:
+			sact.makeAvailable(False)
+		sact.nplay += 1
+		self.totPlays += 1
+		self.logger.info("action selected {}  score {}".format(str(sact), sc))
+		
 	
