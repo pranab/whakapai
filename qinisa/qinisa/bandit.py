@@ -184,6 +184,22 @@ class MultiArmBandit:
 		if not self.transientAction:
 			act.makeAvailable(True)
 		self.logger.info("action {}  reward {:.3f}".format(act, reward))
+
+	def getRegret(self):
+		"""
+		gets reward
+		"""
+		#actual reward
+		acr = 0
+		maxr = 0
+		for act in self.actions:
+			sc  = self.getActionScore(act)
+			acr += sc * act.nplay
+			if sc > maxr:
+				maxr = sc
+		
+		acr /= self .totPlays
+		return (maxr, acr, maxr - acr)
 		
 	@staticmethod
 	def save(model, filePath):

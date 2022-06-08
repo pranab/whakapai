@@ -43,6 +43,8 @@ if __name__ == "__main__":
 		model = UpperConfBound(emtempl, 20, True, "./log/ucb.log", "info")
 	elif args.algo == "ts":
 		model = ThompsonSampling(emtempl, 20, True, "./log/ts.log", "info")
+	elif args.algo == "exp3":
+		model = ExponentialWeight(emtempl, 20, True, "./log/ts.log", "info", 0.1)
 	
 	evsamplers = dict()	
 	evsamplers["d1"] = CategoricalRejectSampler(("op", 80), ("cl", 20))
@@ -69,6 +71,8 @@ if __name__ == "__main__":
 			model.setReward(act, reward)
 			emsent.remove(camp)
 		
+	reg = model.getRegret()
+	print("max reward {:.3f}  actual reawrd {:.3f}  regret {:.3f}".format(reg[0], reg[1], reg[2]))
 		
 		
 		
