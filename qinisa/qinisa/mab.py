@@ -50,7 +50,7 @@ class UpperConfBound(MultiArmBandit):
 		"""
 		self.tuned =  True
 			
-	def act(self):
+	def getAction(self):
 		"""
 		next play return selected action
 		"""
@@ -112,7 +112,7 @@ class RandomGreedy(MultiArmBandit):
 		super(RandomGreedy, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "RandomGreedy")	
 		
 		
-	def act(self):
+	def getAction(self):
 		"""
 		next play return selected action
 		"""
@@ -150,7 +150,7 @@ class ThompsonSampling(MultiArmBandit):
 		super(ThompsonSampling, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "ThompsonSampling")
 		
 		
-	def act(self):
+	def getAction(self):
 		"""
 		next play return selected action
 		"""
@@ -228,7 +228,7 @@ class ExponentialWeight(MultiArmBandit):
 		self.__getActionDistr()
 		super(ExponentialWeight, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "ExponentialWeight")
 
-	def act(self):
+	def getAction(self):
 		"""
 		next play return selected action
 		"""

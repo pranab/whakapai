@@ -36,7 +36,7 @@ and then call act() to get the next action and then reward the action by calling
 
 	emtempl = ["d1", "d2", "d3"]	
 	model = UpperConfBound(emtempl, 20, True, "./log/rg.log", "info")
-	act = model.act()	
+	act = model.getAction()	
 	reward = 0.9
 	model.setReward(act, reward)
 	

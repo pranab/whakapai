@@ -40,6 +40,8 @@ class Action(object):
 		self.available = True
 		self.rwindow = RollingStat(wsize)
 		self.nplay = 0
+		self.nreward = 0
+		self.treward = 0
 
 	def makeAvailable(self, available):
 		"""
@@ -57,7 +59,9 @@ class Action(object):
 		Parameters
 			reward : reward value
 		"""
-		self.rwindow.add(reward)	
+		self.rwindow.add(reward)
+		self.nreward += 1
+		self.treward += reward	
 		
 	def getRewardStat(self):
 		"""
@@ -116,7 +120,7 @@ class MultiArmBandit:
 			self.logger.info("******** stating new  session of " + clname)
 	
 			
-	def act(self):
+	def getAction(self):
 		"""
 		next play return selected action
 		"""
@@ -187,19 +191,21 @@ class MultiArmBandit:
 
 	def getRegret(self):
 		"""
-		gets reward
+		gets regret
 		"""
 		#actual reward
-		acr = 0
-		maxr = 0
+		nreward = 0
+		treward = 0
+		avrmax = 0
 		for act in self.actions:
-			sc  = self.getActionScore(act)
-			acr += sc * act.nplay
-			if sc > maxr:
-				maxr = sc
+			treward += act.treward
+			nreward += act.nreward
+			avreward = act.treward / act.nreward if act.nreward > 0 else 0
+			if avreward > avrmax:
+				avrmax = avreward
 		
-		acr /= self .totPlays
-		return (maxr, acr, maxr - acr)
+		avr =  treward / nreward
+		return (avrmax, avr, avrmax - avr)
 		
 	@staticmethod
 	def save(model, filePath):

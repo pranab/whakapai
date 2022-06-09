@@ -22,10 +22,12 @@ import math
 import numpy as np
 import enquiries
 import argparse
-from matumizi.util import *
-from matumizi.mlutil import *
-from matumizi.sampler import *
-from qinisa.mab import *
+sys.path.append(os.path.abspath("../lib"))
+sys.path.append(os.path.abspath("../reinf"))
+from util import *
+from mlutil import *
+from sampler import *
+from mab import *
 
 """
 Email campaign optimization  using MAB
@@ -44,7 +46,7 @@ if __name__ == "__main__":
 	elif args.algo == "ts":
 		model = ThompsonSampling(emtempl, 20, True, "./log/ts.log", "info")
 	elif args.algo == "exp3":
-		model = ExponentialWeight(emtempl, 20, True, "./log/ts.log", "info", 0.1)
+		model = ExponentialWeight(emtempl, 20, True, "./log/ts.log", "info", 0.2)
 	
 	evsamplers = dict()	
 	evsamplers["d1"] = CategoricalRejectSampler(("op", 80), ("cl", 20))
@@ -57,14 +59,15 @@ if __name__ == "__main__":
 	
 	for i in range(args.nemails):
 		cid = genID(8)
-		sel = model.act()
+		sel = model.getAction()
 		camp = (cid, sel[0])
 		print("next campaign email ", camp)
 		emsent.append(camp)
 		
 		if i > 10 and isEventSampled(80):
 			#email event and reward
-			camp = selectRandomFromList(emsent)
+			ai = randomInt(0, int(len(emsent) / 2))
+			camp = emsent[ai]
 			act  = camp[1]
 			ev = evsamplers[act].sample()
 			reward = rewards[ev]
