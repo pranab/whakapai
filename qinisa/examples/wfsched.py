@@ -21,6 +21,7 @@ import random
 import math
 import numpy as np
 import enquiries
+import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
@@ -91,7 +92,8 @@ class Worker:
 			rascore = rascore if rascore < 1.0 else 1.0
 		else:
 			rascore = 0
-			
+		
+		#print("scores {:.3f}  {:.3f}  {:.3f}".format(rscore, iscore, rascore))	
 		self.score = Worker.scoreWeights[0] * rscore + Worker.scoreWeights[1] * iscore + Worker.scoreWeights[2] * rascore
 		
 		self.scheduled = False
@@ -139,7 +141,7 @@ class Manager:
 	"""
 	manager
 	"""
-	def __init__(self, nworker):
+	def __init__(self, algo, nworker):
 		"""
 		initializer
 			
@@ -158,7 +160,10 @@ class Manager:
 		#print(names)
 		
 		#UCB modelstat  action nale list, window size 20, transient action False 
-		self.model = UpperConfBound(names, 20, False, "./log/ucb.log", "info")
+		if algo == "ucb":
+			self.model = UpperConfBound(names, 20, False, "./log/ucb.log", "info")
+		elif algo == "ts":
+			self.model = ThompsonSampling(names, 20, True, "./log/ts.log", "info")
 	
 	def schedule(self, tm):
 		"""
@@ -173,7 +178,7 @@ class Manager:
 		
 		self.scheduled  = list()
 		for _ in range(dem):
-			wname, score = self.model.act()
+			wname, score = self.model.getAction()
 			#print("worker selected ", wname)
 			self.workers[wname].schedule(score)
 			self.scheduled.append(wname)
@@ -191,8 +196,12 @@ class Manager:
 			
 ##########################################################################################
 if __name__ == "__main__":
-	nworker = int(sys.argv[1])	
-	manager = Manager(nworker)
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--algo', type=str, default = "rg", help = "bandit algo")
+	parser.add_argument('--nworker', type=int, default = 100, help = "nom of workers")
+	args = parser.parse_args()
+
+	manager = Manager(args.algo, args.nworker)
 
 	#query and document
 	opts = ["schedule", "process",  "quit"]
