@@ -22,12 +22,10 @@ import math
 import numpy as np
 import enquiries
 import argparse
-sys.path.append(os.path.abspath("../lib"))
-sys.path.append(os.path.abspath("../reinf"))
-from util import *
-from mlutil import *
-from sampler import *
-from mab import *
+from matumizi.util import *
+from matumizi.mlutil import *
+from matumizi.sampler import *
+from qinisa.mab import *
 
 """
 Email campaign optimization  using MAB
@@ -47,6 +45,8 @@ if __name__ == "__main__":
 		model = ThompsonSampling(emtempl, 20, True, "./log/ts.log", "info")
 	elif args.algo == "exp3":
 		model = ExponentialWeight(emtempl, 20, True, "./log/ts.log", "info", 0.2)
+	elif args.algo == "smix":
+		model = SoftMix(emtempl, 20, True, "./log/smix.log", "info", 0.6)
 	
 	evsamplers = dict()	
 	evsamplers["d1"] = CategoricalRejectSampler(("op", 80), ("cl", 20))

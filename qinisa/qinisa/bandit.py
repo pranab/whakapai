@@ -110,7 +110,8 @@ class MultiArmBandit:
 		"""
 		assertGreater(wsize, 9, "window size should be at least 10")
 		self.actions = list(map(lambda aname : Action(aname, wsize), actions))
-		self .totPlays = 0
+		self.naction = len(actions)
+		self.totPlays = 0
 		self.transientAction = transientAction
 		self.raction = None
 		
@@ -129,11 +130,38 @@ class MultiArmBandit:
 		if not self.transientAction:
 			sact.makeAvailable(False)
 		sact.nplay += 1
-		self .totPlays += 1
+		self.totPlays += 1
 		self.logger.info("action selected {}  score {}".format(str(sact), scmax))
 		re = (sact.name, scmax)	
 		return re
 	
+	def getUntriedAction(self):
+		"""
+		next untried action
+		"""
+		sact = None
+		for act in self.actions:
+			#any action not tried yet
+			if act.nplay == 0:
+				sact = act
+				self.logger.info("untried action found")
+				break
+		return sact
+		
+	def getActionByName(self, aname):
+		"""
+		get action by name
+		
+		Parameters
+			aname : action name
+		"""
+		sact = None
+		for act in self.actions:
+			if act.name == aname:
+				sact = act
+				break
+		return sact
+		
 	def getActionScore(self, act):
 		"""
 		return action average reward 

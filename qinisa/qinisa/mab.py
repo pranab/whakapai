@@ -219,35 +219,27 @@ class ExponentialWeight(MultiArmBandit):
 			logLevName : log level e.g. info, debug
 			gama : uniform distr factor
 		"""
+		super(ExponentialWeight, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "ExponentialWeight")
 		assertWithinRange(gama, 0, 0.5, "gama should not be greater that 0.5")
 		self.weights = list(map(lambda a : [a, 1.0], actions))
 		self.gama = gama
-		self.naction = len(actions)
 		self.distr = None
 		self.sampler = None
 		self.__getActionDistr()
-		super(ExponentialWeight, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "ExponentialWeight")
 
 	def getAction(self):
 		"""
 		next play return selected action
 		"""
-		sact = None
+		sact = self.getUntriedAction()
 		sc = 0
-		for act in self.actions:
-			#any action not tried yet
-			if act.nplay == 0:
-				sact = act
-				self.logger.info("untried action found")
-				break
+
 		
 		if sact is None:
 			#sample reward
 			aname = self.sampler.sample()
-			for act in self.actions:
-				if act.name == aname:
-					sact = act
-					break
+			self.logger.info("sampled action " + aname)
+			sact = self.getActionByName(aname)
 		
 		self.actFinalize(sact, sc)
 		re = (sact.name, sc)	
@@ -282,4 +274,82 @@ class ExponentialWeight(MultiArmBandit):
 			tw += w[1]
 		self.distr = list(map(lambda w : (w[0], (1.0 - self.gama) * w[1] / tw + self.gama / self.naction), self.weights))
 		self.sampler = CategoricalRejectSampler(self.distr)
+
+class SoftMix(MultiArmBandit):
+	"""
+	softmix multi arm bandit (smix)
+	"""
+	
+	def __init__(self, actions, wsize, transientAction,logFilePath, logLevName, d=0.5):
+		"""
+		initializer
+		
+		Parameters
+			actions : action names
+			wsize : reward window size
+			transientAction ; if decision involves some tied up resource it should be set False
+			logFilePath : log file path set None for no logging
+			logLevName : log level e.g. info, debug
+			d : factor
+		"""
+		super(SoftMix, self).__init__(actions, wsize, transientAction,logFilePath, logLevName, __name__, "SoftMix")
+		assertWithinRange(d, 0, 1.0, "d should be between 0 and 1.0")
+		self.weights = list(map(lambda a : [a, 0], actions))
+		self.d = d
+		self.ds = d * d
+		self.distr = None
+		self.sampler = None		
+		self.__getActionDistr()
+		
+	def getAction(self):
+		"""
+		next play return selected action
+		"""
+		sact = self.getUntriedAction()
+		sc = 0
+		
+		if sact is None:
+			aname = self.sampler.sample()
+			self.logger.info("sampled action " + aname)
+			sact = self.getActionByName(aname)
+		
+		self.actFinalize(sact, sc)
+		re = (sact.name, sc)	
+		return re	
+	
+	def setReward(self, aname, reward):
+		"""
+		reward feedback for action
 			
+		Parameters
+			aname : action name
+			reward : reward value
+		"""
+		super().setReward(aname, reward)
+		for d in self.distr:
+			if d[0] == aname:
+				rn = reward / d[1]
+				break	
+		self.logger.info("weight correction {:.3f}".format(rn))			
+		
+		for w in self.weights:
+			if w[0] == aname:
+				w[1] += rn
+				break
+		self.logger.info("action weights " + str(self.weights))
+		
+		self.__getActionDistr()
+									
+	def __getActionDistr(self):
+		"""
+		action probability distribution
+		"""					
+		gama = min(1, 5 * self.naction * math.log(self.totPlays) / (self.ds * self.totPlays)) if self.totPlays > 1 else 1
+		eta = math.log(1 + self.d * (self.naction / gama + 1) / (2 * self.naction / gama - self.ds)) / (self.naction / gama + 1)
+		self.logger.info("gama {:.3f}  eta {:.3f}".format(gama, eta))
+			
+		mweights = list(map(lambda w : (w[0], w[1] * eta), self.weights))
+		z = sum(list(map(lambda mw : math.exp(mw[1]), mweights)))
+		self.distr = list(map(lambda w : (w[0], (1.0 - gama) * math.exp(w[1]) / z + gama / self.naction), mweights))
+		self.logger.info("action distr " + str(self.distr))
+		self.sampler = CategoricalRejectSampler(self.distr)			
