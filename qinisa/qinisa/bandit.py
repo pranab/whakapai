@@ -267,4 +267,38 @@ class MultiArmBandit:
 		self.totPlays += 1
 		self.logger.info("action selected {}  score {}".format(str(sact), sc))
 		
-	
+class Policy:
+	"""
+	deterministic policy
+	"""
+	def __init__(self, deterministic,  *stateActions):
+		"""
+		initializer
+		
+		Parameters
+			stateActions : state and action tuple list
+		"""
+		self.deterministic = deterministic
+		if (len(stateActions) == 1):
+			self.stateActions = dict(self.stateActions[0])
+		else:
+			self.stateActions = dict(stateActions)
+				
+	def getAction(self, state):
+		"""
+		get action
+		
+		Parameters
+			state : state
+		"""
+		if state in self.stateActions:
+			action = self.stateActions[state] if self.deterministic else self.stateActions[state].sample()
+		else:
+			exitWithMessage("invalid state " + state)
+		return action
+		
+	def getStates(self):
+		"""
+		get all states
+		"""
+		return self.stateActions.keys()
