@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3
 
-# avenir-python: Machine Learning
 # Author: Pranab Ghosh
 # 
 # Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -353,3 +352,86 @@ class SoftMix(MultiArmBandit):
 		self.distr = list(map(lambda w : (w[0], (1.0 - gama) * math.exp(w[1]) / z + gama / self.naction), mweights))
 		self.logger.info("action distr " + str(self.distr))
 		self.sampler = CategoricalRejectSampler(self.distr)			
+
+
+class RandomGreedyPolicy:
+	"""
+	random greedy multi arm bandit policy (epsilon greedy)
+	"""
+	def __init__(self, qvalues, epsilon, redPolicy="linear"):
+		"""
+		initializer
+		
+		Parameters
+			qvalues : q values
+			epsilon : random selection probability 
+			redPolicy : epsilon reduction policy
+		""" 
+		self.qvalues = qvalues
+		self.epsilon = epsilon
+		self.states = list(self.qvalues.keys())
+		self.actions = list(map(lambda a : a[0], self.qvalues[self.states[0]]))
+		self.totPlays = dict(map(lambda s : (s, 0), self.states))
+		
+	def getAction(self, state):
+		"""
+		next play return selected action
+		
+		Parameters
+			state : state
+		"""
+		actions = self.qvalues[state]
+		vmax = 0
+		sact = None
+		for a in actions:
+			if a[1] > vmax:
+				sact = a[0]
+				vmax = a[1]
+		
+		tp = self.totPlays[state]
+		if tp > 0:
+			redFact = 1.0 / tp if self.redPolicy == "linear" else math.log(tp) / tp
+			eps = self.epsilon * redFact
+			if random.random() < eps:
+				sact = selectRandomFromList(self.actions)
+		incrKeyedCounter(self.totPlays, state)		
+		return sact
+
+class UpperConfBoundPolicy:		
+	"""
+	upper confidence bound multi arm bandit policy (ucb)
+	"""
+	def __init__(self, qvalues):
+		"""
+		initializer
+		
+		Parameters
+			qvalues : q values
+		""" 
+		self.qvalues = qvalues
+		self.states = list(self.qvalues.keys())
+		self.actions = list(map(lambda a : a[0], self.qvalues[self.states[0]]))
+		self.totPlays = dict(map(lambda s : (s, 0), self.states))
+		self.actPlays = dict()
+		for s in self.states:
+			self.actPlays[s] = dict(map(lambda a : (a, 0), self.actions))
+
+	def getAction(self, state):
+		"""
+		next play return selected action
+		
+		Parameters
+			state : state
+		"""
+		sact = None
+		vmax = 0
+		actions = self.qvalues[state]	
+		for a in actions:
+			v = a[1] + sqrt(2 * math.log(self.totPlays[state]) / self.actPlays[state][a[0]])
+			if v > vmax:
+				vmax = v
+				sact = a[0]
+		
+		incrKeyedCounter(self.totPlays, state)
+		incrKeyedCounter(self.actPlays[state], sact)
+		return sact
