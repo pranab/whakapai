@@ -38,6 +38,7 @@ class TempDifferenceValue:
 			dfactor : discount factor
 			istate : initial state
 		"""
+		self.policy = policy
 		self.states = policy.getStates()
 		self.values = dict(list(map(lambda s : (s, 0), self.states)))
 		self.lrate = lrate
@@ -46,14 +47,14 @@ class TempDifferenceValue:
 		
 		self.logger = None
 		if logFilePath is not None: 		
-			self.logger = createLogger(mname, logFilePath, logLevName)
+			self.logger = createLogger(__name__, logFilePath, logLevName)
 			self.logger.info("******** stating new  session of " + "TempDifferenceValue")
 		
 	def getAction(self):
 		"""
 		get action for current state
 		"""
-		return policy.getAction(self.state)
+		return self.policy.getAction(self.state)
 	
 	def setReward(self, reward, nstate):
 		"""
@@ -107,7 +108,7 @@ class TempDifferenceControl:
 		
 		self.logger = None
 		if logFilePath is not None: 		
-			self.logger = createLogger(mname, logFilePath, logLevName)
+			self.logger = createLogger(__name__, logFilePath, logLevName)
 			self.logger.info("******** stating new  session of " + "TempDifferenceControl")
 		
 	def getAction(self):
