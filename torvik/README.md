@@ -13,7 +13,7 @@ Will be adding Variational Auto Encoder(VAE) and Transformer in near future
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple torvik==0.0.2
+pip3 install -i https://test.pypi.org/simple torvik==0.0.3
 
 For installing latest, clone repo and run this at the project root directory
 pip3 install .

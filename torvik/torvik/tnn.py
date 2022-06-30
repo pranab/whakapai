@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3
 
-# avenir-python: Machine Learning
 # Author: Pranab Ghosh
 # 
 # Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -80,9 +79,11 @@ class FeedForwardNetwork(torch.nn.Module):
 		defValues["train.data.feature.fields"] = (None, "missing training data feature field ordinals")
 		defValues["train.data.out.fields"] = (None, "missing training data feature field ordinals")
 		defValues["train.layer.data"] = (None, "missing layer data")
+		defValues["train.input.size"] = (None, None)
 		defValues["train.output.size"] = (None, "missing  output size")
 		defValues["train.batch.size"] = (10, None)
 		defValues["train.loss.reduction"] = ("mean", None)
+		defValues["train.loss.margin"] = (1.0, None)
 		defValues["train.num.iterations"] = (500, None)
 		defValues["train.lossFn"] = ("mse", None) 
 		defValues["train.optimizer"] = ("sgd", None) 
@@ -139,12 +140,11 @@ class FeedForwardNetwork(torch.nn.Module):
 		torch.manual_seed(9999)
 
 		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
-		numinp = len(self.config.getIntListConfig("train.data.feature.fields")[0])
-		#numOut = len(self.config.getStringConfig("train.data.out.fields")[0].split(","))
+		numinp = self.config.getIntConfig("train.input.size")[0]
+		if numinp is None:
+			numinp = len(self.config.getIntListConfig("train.data.feature.fields")[0])
 		self.outputSize = self.config.getIntConfig("train.output.size")[0]
 		self.batchSize = self.config.getIntConfig("train.batch.size")[0]
-		#lossRed = self.config.getStringConfig("train.loss.reduction")[0]
-		#learnRate = self.config.getFloatConfig("train.opt.learning.rate")[0]
 		self.numIter = self.config.getIntConfig("train.num.iterations")[0]
 		optimizer = self.config.getStringConfig("train.optimizer")[0]
 		self.lossFnStr = self.config.getStringConfig("train.lossFn")[0]
@@ -189,6 +189,8 @@ class FeedForwardNetwork(torch.nn.Module):
 			
 		self.layers = torch.nn.Sequential(*layers)	
 		
+		self.device = FeedForwardNetwork.getDevice(self)
+		
 		#training data
 		dataFile = self.config.getStringConfig("train.data.file")[0]
 		(featData, outData) = FeedForwardNetwork.prepData(self, dataFile)
@@ -199,7 +201,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		dataFile = self.config.getStringConfig("valid.data.file")[0]
 		(featDataV, outDataV) = FeedForwardNetwork.prepData(self, dataFile)
 		self.validFeatData = torch.from_numpy(featDataV)
-		self.validOutData = outDataV
+		self.validOutData = torch.from_numpy(outDataV)
 
 		# loss function and optimizer
 		self.lossFn = FeedForwardNetwork.createLossFunction(self, self.lossFnStr)
@@ -297,6 +299,9 @@ class FeedForwardNetwork(torch.nn.Module):
 			lossFunc = torch.nn.SoftMarginLoss(reduction=lossRed)
 		elif lossFnName == "mlsm":
 			lossFunc = torch.nn.MultiLabelSoftMarginLoss(reduction=lossRed)
+		elif lossFnName == "triplet":
+			marg = config.getFloatConfig("train.loss.margin")[0]
+			lossFunc = torch.nn.TripletMarginLoss(margin=marg, reduction=lossRed)
 		else:
 			exitWithMsg("invalid loss function name " + lossFnName)
 		return lossFunc
@@ -645,7 +650,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		return score
 
 	@staticmethod
-	def errorPlot(model, trErr, vaErr):
+	def errorPlot(model, trErr, vaErr=None):
 		"""
 		plot errors
 		
@@ -655,10 +660,12 @@ class FeedForwardNetwork(torch.nn.Module):
 		"""
 		x = np.arange(len(trErr))
 		plt.plot(x,trErr,label = "training error")
-		plt.plot(x,vaErr,label = "validation error")
+		if vaErr is not None:
+			plt.plot(x,vaErr,label = "validation error")
 		plt.xlabel("iteration")
 		plt.ylabel("error")
-		plt.legend(["training error", "validation error"], loc='upper left')
+		if vaErr is not None:
+			plt.legend(["training error", "validation error"], loc='upper left')
 		plt.show()
 
 	@staticmethod
@@ -720,9 +727,9 @@ class FeedForwardNetwork(torch.nn.Module):
 		model.eval()
 		with torch.no_grad():
 			yPred = model(model.validFeatData)
-			yPred = yPred.data.cpu().numpy()
+			#yPred = yPred.data.cpu().numpy()
 			yActual = model.validOutData
-			score = perfMetric(model.lossFnStr, yActual, yPred, model.clabels)
+			score = model.lossFn(yPred, yActual).item()
 		model.train()
 		return score
     	

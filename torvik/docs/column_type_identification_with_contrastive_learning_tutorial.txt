@@ -1,0 +1,65 @@
+This tutorial is  for predicting  type of column in tabular data  using a feed forward neural network
+contrastive learning
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.2
+
+Install no code framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.3
+
+it's recommended that you copy colid.py  and fftn_col.properties to a working directory and work 
+from there. You should create directory called model under your working directory
+
+
+Generate training data
+======================
+1)Generate many sample files
+
+python3 colid.py --op sample --fpath pers.txt  --ssize 50 --nsamp 20  --sfpref sf  --fncnt 100  --sfdir ./nad
+
+where
+fpath : path to source data file
+ssize : no of records in a sample file
+nsamp ; no of sample files
+sfpref : sample file name prefix
+fncnt : counter to be used in sample file name
+sfdir : path to directory weher sample files will be saved
+
+2)Extract column data features
+
+python3 colid.py --op cfeatures  --sfdir ./nad  > cf.txt
+
+where
+sfdir : path to directory containing sample files
+
+3)Create triplet format data
+
+python3 colid.py --op ctriplet  --cfpath cf_tr.txt  --nrepl 6 > col_tr.txt
+
+where 
+cfpath : column feature file path (output of previous step)
+nrepl : no of positive and negative samples
+
+Train model
+===========
+python3 colid.py --op train --mlfpath fftn_col.properties
+
+where
+mlfpath : model configuration file
+
+If you have train.model.save=True in config file, the model will be saved in the directory
+path specified in common.model.directory
+
+Generate test data
+==================
+python3 colid.py --op cfeatures  --sfdir ./nad  > cf_va.txt
+python3 colid.py --op gtest --cfpath cf_va.txt,cf_tr.txt > col_te.txt
+
+
+Test model
+==========
+python3 colid.py --op test --mlfpath fftn_col.properties
+
+
