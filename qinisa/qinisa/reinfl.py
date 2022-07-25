@@ -22,7 +22,7 @@ import numpy as np
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from rlba import *
+from .rlba import *
 
 class TempDifferenceValue:
 	"""
