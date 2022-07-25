@@ -22,7 +22,7 @@ import numpy as np
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from .rlba import *
+from rlba import *
 
 class TempDifferenceValue:
 	"""
@@ -48,14 +48,16 @@ class TempDifferenceValue:
 		self.logger = None
 		if logFilePath is not None: 		
 			self.logger = createLogger(__name__, logFilePath, logLevName)
-			self.logger.info("******** stating new  session of " + "TempDifferenceValue")
+			self.logger.info("\n******** stating new  session of " + "TempDifferenceValue")
 		
 	def getAction(self):
 		"""
 		get action for current state
 		"""
-		return self.policy.getAction(self.state)
-	
+		act =  self.policy.getAction(self.state)
+		self.logger.info("state {}  action {}".format(self.state, act))
+		return act
+		
 	def setReward(self, reward, nstate):
 		"""
 		initializer
@@ -66,7 +68,8 @@ class TempDifferenceValue:
 		"""
 		delta = self.lrate * (reward + self.dfactor * self.values[nstate] - self.values[self.state])
 		self.values[self.state] += delta
-		self.logger.info("state {}  incr value {:.3f}  cur value {:.3f}".format(self.state, delta, self.values[self.state]))
+		self.logger.info("state {}  incr value {:.3f}  cur value {:.3f} reward {:.3f}  new state {} ".
+		format(self.state, delta, self.values[self.state], reward, nstate))
 		self.state = nstate
 	
 	def getValues(self):
@@ -75,7 +78,16 @@ class TempDifferenceValue:
 		"""	
 		return self.values
 		
-
+	def getTotValue(self):
+		"""
+		return total value
+		"""	
+		tval = 0
+		for k in self.values.keys():
+			tval += self.values[k]
+		return tval
+			
+		
 class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
