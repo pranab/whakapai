@@ -219,12 +219,12 @@ if __name__ == "__main__":
 	elif op == "train":
 		mod = FeedForwardMultiNetwork(args.mlfpath)
 		mod.buildModel()
-		FeedForwardTwinNetwork.batchTrain(mod)
+		FeedForwardMultiNetwork.batchTrain(mod)
 		
 	elif op == "test":
 		mod = FeedForwardMultiNetwork(args.mlfpath)
 		mod.buildModel()
-		FeedForwardTwinNetwork.testModel(mod)
+		FeedForwardMultiNetwork.testModel(mod)
 
 	else:
 		exitWithMsg("invalid command")

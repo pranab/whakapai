@@ -122,26 +122,9 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 				if model.verbose:
 					print("epoch {}  loss {:.6f}".format(t, epochLoss))
 				trErr.append(epochLoss)
-				vloss = FeedForwardTwinNetwork.evaluateModel(model)
+				vloss = FeedForwardMultiNetwork.evaluateModel(model)
 				vaErr.append(vloss)
 			
-		#validate
-		"""
-		model.eval()
-		yPred = model(model.vaFeOne, model.vaFeTwo)
-		yPred = yPred.data.cpu().numpy()
-		yActual = model.validOutData.data.cpu().numpy()
-		if model.verbose:
-			vsize = yPred.shape[0]
-			print("\npredicted \t\t actual")
-			for i in range(vsize):
-				print(str(yPred[i]) + "\t" + str(yActual[i]))
-		
-		score = perfMetric(model.accMetric, yActual, yPred)
-		print(yActual)
-		print(yPred)
-		print(formatFloat(3, score, "perf score"))
-		"""
 		
 		#save
 		modelSave = model.config.getBooleanConfig("train.model.save")[0]
