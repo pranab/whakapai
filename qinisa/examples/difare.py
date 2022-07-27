@@ -21,6 +21,7 @@ import math
 import numpy as np
 import enquiries
 import argparse
+sys.path.append(os.path.abspath("../reinf"))
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
@@ -136,17 +137,19 @@ if __name__ == "__main__":
 		osampler = CategoricalRejectSampler(("O1", 70), ("O2", 30))
 		oc = osampler.sample()
 		st = "P1" + oc
-		td = TempDifferenceValue(pol, 0.2, 0.95, st, "./log/tdl.log", "info")
+		fp = "./log/tdl.log"
+		td = TempDifferenceValue(pol, 0.2, 0.2, 0.95, st, fp, "info")
 		
-		for _ in range(args.nepisode):
-			print("next episode")
+		values = list()
+		for i in range(args.nepisode):
+			print("**next episode " + str(i))
 			ocu = random.randint(250, 299) if oc == "O1" else random.randint(300, 349)
 			episode = True
 			while episode:
 				ac = td.getAction()
 				print("state {}  action {}".format(st, ac))
 				key = st[:2] + ac
-				print("demand key {}".format(key))
+				#print("demand key {}".format(key))
 				dem = int(rdistr[key].sample())
 				if (ocu + dem) > 500:
 					dem = 500 - ocu
@@ -180,13 +183,19 @@ if __name__ == "__main__":
 				print("reward {:.3f}  next state {}".format(re, nst))
 				td.setReward(re, nst)
 				st = nst
+				if not episode:
+					tval = td.getTotValue()				
+					print("episode end total value {:.3f}".format(tval))
+					values.append(tval)
+					
 		
+		print("state values")
 		vals = td.getValues()
 		for k in vals.keys():
 			print("state {}  value {:.3f}".format(k, vals[k]))
+			
+		drawLine(values)
 		
-		tval = td.getTotValue()				
-		print("total value {:.3f}".format(tval))
 				
 				
 				

@@ -1,0 +1,27 @@
+This tutorial is  for evaluation pricing policy for airlines fair using Temporal Difference(TD)
+learning 
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.2
+
+Install reinforcement learning package qinisa
+pip3 install -i https://test.pypi.org/simple/ qinisa==0.0.2
+
+It's recommended that you copy difare.py  to a working directory and work 
+from there. 
+
+Policy evalaluation
+===================
+There are 2 policies defined in difare.py, p1 and p2. The policy p2 has more aggressive 
+pricing policy
+
+evaluate policy p1
+python3 difare.py --op evalst --policy p1 --nepisode 300
+
+evaluate policy p2
+python3 difare.py --op evalst --policy p2 --nepisode 300
+
+Make a note of the total value from the last episode form each run. The policy with
+a higher value is better

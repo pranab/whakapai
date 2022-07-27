@@ -28,13 +28,14 @@ class TempDifferenceValue:
 	"""
 	temporal difference TD(0) learning
 	"""
-	def __init__(self, policy, lrate, dfactor, istate, logFilePath, logLevName):
+	def __init__(self, policy, lrate, lrdecay, dfactor, istate, logFilePath, logLevName):
 		"""
 		initializer
 		
 		Parameters
 			policy : deterministic or probabilistic policy
 			lrate : learning rate
+			lrdecay ; learning rate decay
 			dfactor : discount factor
 			istate : initial state
 		"""
@@ -42,8 +43,10 @@ class TempDifferenceValue:
 		self.states = policy.getStates()
 		self.values = dict(list(map(lambda s : (s, 0), self.states)))
 		self.lrate = lrate
+		self.lrdecay = lrdecay
 		self.dfactor = dfactor
 		self.state = istate
+		self.count = 0
 		
 		self.logger = None
 		if logFilePath is not None: 		
@@ -55,7 +58,8 @@ class TempDifferenceValue:
 		get action for current state
 		"""
 		act =  self.policy.getAction(self.state)
-		self.logger.info("state {}  action {}".format(self.state, act))
+		if self.logger is not None:
+			self.logger.info("state {}  action {}".format(self.state, act))
 		return act
 		
 	def setReward(self, reward, nstate):
@@ -66,11 +70,14 @@ class TempDifferenceValue:
 			rwarde : reward
 			nstate : next state
 		"""
-		delta = self.lrate * (reward + self.dfactor * self.values[nstate] - self.values[self.state])
+		lrate = self.lrate / (1 + self.count * self.lrdecay)
+		delta = lrate * (reward + self.dfactor * self.values[nstate] - self.values[self.state])
 		self.values[self.state] += delta
-		self.logger.info("state {}  incr value {:.3f}  cur value {:.3f} reward {:.3f}  new state {} ".
+		if self.logger is not None:
+			self.logger.info("state {}  incr value {:.3f}  cur value {:.3f} reward {:.3f}  new state {} ".
 		format(self.state, delta, self.values[self.state], reward, nstate))
 		self.state = nstate
+		self.count += 1
 	
 	def getValues(self):
 		"""
