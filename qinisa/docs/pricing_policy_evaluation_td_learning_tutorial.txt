@@ -1,5 +1,5 @@
 This tutorial is  for evaluation pricing policy for airlines fair using Temporal Difference(TD)
-learning 
+learning
 
 Setup
 =====
@@ -15,13 +15,29 @@ from there.
 Policy evalaluation
 ===================
 There are 2 policies defined in difare.py, p1 and p2. The policy p2 has more aggressive 
-pricing policy
+pricing policy. Make sure there is a directory ./model/td. That's where thestate values 
+will be saved
 
 evaluate policy p1
-python3 difare.py --op evalst --policy p1 --nepisode 300
+python3 difare.py --op evalst --policy p1 --nepisode 300 --save t
 
 evaluate policy p2
-python3 difare.py --op evalst --policy p2 --nepisode 300
+python3 difare.py --op evalst --policy p2 --nepisode 300 --save t
 
-Make a note of the total value from the last episode form each run. The policy with
-a higher value is better
+if you want to see plots of state values against episodes use --plot t
+
+Policy comparison
+=================
+python3 difare.py --op polcmp --policies p1,p2 --vicount 30
+
+At the end of the output, you will see something like this
+comparison
+{'P1O1': (104.63950797215047, 59.76476143241095, 1), 'P2O1': (77.56241200948618, 4.170746154089204, 1), 
+'P3O1': (76.82000000000001, 0, 1), 'P1O2': (86.0251197131279, 32.45583466698227, 1), 
+'P2O2': (95.52928870050667, 57.38294560229932, 1), 'P3O2': (72.944, 0, 1), 'P2O3': (93.7013444717806, 37.96590682594545, 1), 
+'P3O3': (69.16666666666667, 32.96340634574586, 1), 'P2O4': (69.80174226686508, 4.24651170580217, 1), 
+'P3O4': (65.4, 36.30835110383048, 1), 'P2O5': (39.23240893353175, 0, 1), 
+'P3O5': (25.715666666666667, 9.579377824770257, 1)}
+num of states  12
+num of states with higher value 12
+
