@@ -19,6 +19,7 @@ import sys
 import random 
 import math
 import numpy as np
+import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
@@ -28,46 +29,64 @@ class TempDifferenceValue:
 	"""
 	temporal difference TD(0) learning
 	"""
-	def __init__(self, policy, lrate, dfactor, istate, logFilePath, logLevName):
+	def __init__(self, policy, lrate, lrdecay, dfactor, istate, logFilePath, logLevName):
 		"""
 		initializer
 		
 		Parameters
 			policy : deterministic or probabilistic policy
 			lrate : learning rate
+			lrdecay ; learning rate decay
 			dfactor : discount factor
 			istate : initial state
+			logFilePath : log file path
+			logLevName : log level
 		"""
 		self.policy = policy
 		self.states = policy.getStates()
 		self.values = dict(list(map(lambda s : (s, 0), self.states)))
 		self.lrate = lrate
+		self.lrdecay = lrdecay
 		self.dfactor = dfactor
 		self.state = istate
+		self.count = 0
 		
 		self.logger = None
 		if logFilePath is not None: 		
 			self.logger = createLogger(__name__, logFilePath, logLevName)
-			self.logger.info("******** stating new  session of " + "TempDifferenceValue")
+			self.logger.info("\n******** stating new  session of " + "TempDifferenceValue")
 		
 	def getAction(self):
 		"""
 		get action for current state
 		"""
-		return self.policy.getAction(self.state)
-	
-	def setReward(self, reward, nstate):
+		act =  self.policy.getAction(self.state)
+		if self.logger is not None:
+			self.logger.info("state {}  action {}".format(self.state, act))
+		return act
+		
+	def setReward(self, reward, nstate, terminal=False):
 		"""
 		initializer
 		
 		Parameters
-			rwarde : reward
+			reward : reward
 			nstate : next state
+			terminal : true if terninal state
 		"""
-		delta = self.lrate * (reward + self.dfactor * self.values[nstate] - self.values[self.state])
-		self.values[self.state] += delta
-		self.logger.info("state {}  incr value {:.3f}  cur value {:.3f}".format(self.state, delta, self.values[self.state]))
+		if not terminal:
+			lrate = self.lrate / (1 + self.count * self.lrdecay)
+			delta = lrate * (reward + self.dfactor * self.values[nstate] - self.values[self.state])
+			self.values[self.state] += delta
+			if self.logger is not None:
+				self.logger.info("state {}  incr value {:.3f}  cur value {:.3f} reward {:.3f}  new state {} ".
+			format(self.state, delta, self.values[self.state], reward, nstate))
+			self.count += 1
+		else:
+			self.values[self.state] = 0
+
 		self.state = nstate
+		
 	
 	def getValues(self):
 		"""
@@ -75,7 +94,106 @@ class TempDifferenceValue:
 		"""	
 		return self.values
 		
+	def getTotValue(self):
+		"""
+		return total value
+		"""	
+		tval = 0
+		for k in self.values.keys():
+			tval += self.values[k]
+		return tval
 
+class PolicyImprovement:
+	"""
+	compares 2 policies by using actions from the second policy
+	"""
+	def __init__(self, policyOne, policyTwo, svaluesOne, svaluesTwo, dfactor,  logFilePath, logLevName):
+		"""
+		initializer
+		
+		Parameters
+			policyOne : deterministic or probabilistic policy
+			policyTwo : deterministic or probabilistic policy
+			svaluesOne : state vaues for policyOne
+			svaluesTwo : state vaues for policyTwo
+			dfactor : discount factor
+			logFilePath : log file path
+			logLevName : log level
+		"""
+		self.policyOne = policyOne
+		self.states = policyOne.getStates()
+		self.policyTwo = policyTwo
+		self.svaluesOne = svaluesOne
+		self.svaluesTwo = svaluesTwo
+		self.dfactor = dfactor
+		self.values = list()
+		self.svalues = dict()
+		self.state = None
+
+		self.logger = None
+		if logFilePath is not None: 		
+			self.logger = createLogger(__name__, logFilePath, logLevName)
+			self.logger.info("\n******** stating new  session of " + "PolicyImprovement")
+		
+
+	def startStateIter(self, state):
+		"""
+		starts value iteration for value expectation using second policy action
+		
+		Parameters
+			state : state
+		"""	
+		if self.state is not None:
+			mvalue = statistics.mean(self.values)
+			self.svalues[self.state] = mvalue
+			self.values.clear()
+			if self.logger is not None:
+				self.logger.info("state {}  value {:.3f}".format(self.state, mvalue))
+		self.state = state
+	
+	def endStateIter(self):
+		"""
+		ends value iteration for value expectation using second policy action
+		"""	
+		mvalue = statistics.mean(self.values)
+		self.svalues[self.state] = mvalue
+		self.values.clear()
+		if self.logger is not None:
+			self.logger.info("state {}  value {:.3f}".format(self.state, mvalue))
+
+	def getAction(self):
+		"""
+		get action for current state from second policy
+		"""
+		act =  self.policyTwo.getAction(self.state)
+		return act
+
+	def setReward(self, reward, nstate):
+		"""
+		initializer
+		
+		Parameters
+			reward : reward
+			nstate : next state
+		"""
+		self.values.append(reward + self.dfactor * self.svaluesOne[nstate])
+
+
+	def compare(self, states=None):
+		"""
+		compare first policy state values with  values based on second policy 
+		"""
+		re = dict() 
+		states = self.states if states is None else states
+		for st in states:
+			nv = self.svalues[st]
+			ev = self.svaluesOne[st]
+			gr = 1 if nv >= ev else 0
+			re[st] = (nv, ev, gr)
+
+		return re
+
+	
 class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
