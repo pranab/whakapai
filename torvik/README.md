@@ -29,6 +29,7 @@ https://test.pypi.org/project/torvik/0.0.1/
 * [Viral infection prediction witkh LSTM](https://pkghosh.wordpress.com/2020/08/18/predicting-individual-viral-infection-using-contact-data-with-lstm-neural-network/)
 * [Service ticket anomaly detection with auto encoder](https://pkghosh.wordpress.com/2021/01/20/customer-service-quality-monitoring-with-autoencoder-based-anomalous-case-detection/)
 * [Subject matter expert dicovery with email text using GCN](https://pkghosh.wordpress.com/2022/04/28/discovering-subject-matter-experts-from-email-communication-data-using-graph-convolution-network/)
+* [Tabular data column semantic type identification with contrastive deep learning](https://pkghosh.wordpress.com/2022/06/30/tabular-data-column-semantic-type-identification-with-contrastive-deep-learning/)
 
 4. Easy steps to use
 
