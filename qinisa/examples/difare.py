@@ -36,7 +36,9 @@ if __name__ == "__main__":
 	parser.add_argument('--op', type=str, default = "evalst", help = "operation")
 	parser.add_argument('--algo', type=str, default = "rg", help = "bandit algo")
 	parser.add_argument('--policy', type=str, default = "p1", help = "policy")
-	parser.add_argument('--nepisode', type=int, default = 20, help = "no of episodes")
+	parser.add_argument('--nepisode', type=int, default = 50, help = "no of episodes")
+	parser.add_argument('--lrate', type=float, default = 0.20, help = "learning rate")
+	parser.add_argument('--lrdecay', type=float, default = 0.20, help = "learning rate decay")
 	parser.add_argument('--save', type=str, default = "false", help = "true if state values need saving")
 	parser.add_argument('--plot', type=str, default = "false", help = "true if state values need plotting")
 	parser.add_argument('--policies', type=str, default = "p1,p2", help = "policies")
@@ -144,7 +146,7 @@ if __name__ == "__main__":
 		oc = osampler.sample()
 		st = "P1" + oc
 		fp = "./log/tdl.log"
-		td = TempDifferenceValue(pol, 0.2, 0.2, 0.95, st, None, "info")
+		td = TempDifferenceValue(pol, args.lrate, args.lrdecay, 0.95, st, None, "info")
 		
 		values = list()
 		for i in range(args.nepisode):

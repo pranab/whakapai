@@ -19,12 +19,13 @@ pricing policy. Make sure there is a directory ./model/td. That's where thestate
 will be saved
 
 evaluate policy p1
-python3 difare.py --op evalst --policy p1 --nepisode 300 --save t
+python3 difare.py --op evalst --policy p1 --nepisode 300 --lrate 0.2  --lrdecay 0.2 --save t
 
 evaluate policy p2
-python3 difare.py --op evalst --policy p2 --nepisode 300 --save t
+python3 difare.py --op evalst --policy p2 --nepisode 300 --lrate 0.2  --lrdecay 0.2 --save t
 
-if you want to see plots of state values against episodes use --plot t
+if you want to see plots of state values against episodes use --plot t. For explanation of all 
+command line arguments please refer to difare.py
 
 Policy comparison
 =================
