@@ -14,16 +14,17 @@ few hundred other utility function. More details in
 ## Stochatic Optimization
 Coming soon
 
-## Reinforcement Learning and Multi Arm Bandit (qinisa)
-Supports 3 MAB algorithms, epsilon greedy, upper confidence bound and thompson sampling
+## Reinforcement Learning(RL) and Multi Arm Bandit(MAB) (qinisa)
+Supports multiple MAB algorithms and classic RL algorithms
 * [package home directory](https://github.com/pranab/whakapai/tree/master/qinisa)
-* [TestPyPi for package](https://test.pypi.org/project/qinisa/0.0.1/)
+* [TestPyPi for package](https://test.pypi.org/project/qinisa/0.0.2/)
 
 ## No Code PyTorch framework (torvik)
-Support 4 PyTorch models  including MLP, LSTM, AutoEncoder and GCN. Will be adding VAe and Transformer
-For any model, all you have to do is to create a config file. No Python code needed. More details in 
+Support PyTorch models  including MLP, LSTM, AutoEncoder , GCN  and Contrastive Learning . Will be 
+adding VAE and Transformer For any model, all you have to do is to create a config file. No Python 
+code needed. More details in 
 * [package home directory](https://github.com/pranab/whakapai/tree/master/torvik)
-* [TestPyPi for package](https://test.pypi.org/project/torvik/0.0.2/)
+* [TestPyPi for package](https://test.pypi.org/project/torvik/0.0.3/)
 
 
 ## No Code Scikit framework
