@@ -27,7 +27,7 @@ from .rlba import *
 
 class TempDifferenceValue:
 	"""
-	temporal difference TD(0) learning
+	temporal difference TD(0) learning for policy evaluation
 	"""
 	def __init__(self, policy, lrate, lrdecay, dfactor, istate, logFilePath, logLevName):
 		"""
@@ -103,6 +103,90 @@ class TempDifferenceValue:
 			tval += self.values[k]
 		return tval
 
+class FirstVisitMonteCarlo:
+	"""
+	first visit Monte Carlo learning for policy evaluation
+	"""
+	def __init__(self, policy, dfactor, istate, logFilePath, logLevName):
+		"""
+		initializer
+		
+		Parameters
+			policy : deterministic or probabilistic policy
+			dfactor : discount factor
+			istate : initial state
+			logFilePath : log file path
+			logLevName : log level
+		"""
+		self.policy = policy
+		self.states = policy.getStates()
+		self.values = dict(list(map(lambda s : (s, 0), self.states)))
+		self.valist = dict()
+		self.rewards = list()
+		self.dfactor = dfactor
+		self.state = istate
+		
+		self.logger = None
+		if logFilePath is not None: 		
+			self.logger = createLogger(__name__, logFilePath, logLevName)
+			self.logger.info("\n******** stating new  session of " + "FirstVisitMonteCarlo")
+
+
+	def getAction(self):
+		"""
+		get action for current state
+		"""
+		act =  self.policy.getAction(self.state)
+		if self.logger is not None:
+			self.logger.info("state {}  action {}".format(self.state, act))
+		return act
+
+	def setReward(self, reward, nstate, terminal=False):
+		"""
+		initializer
+		
+		Parameters
+			reward : reward
+			nstate : next state
+			terminal : true if terninal state
+		"""
+		if not terminal:
+			re = (self.state, reward)
+			self.rewards.append(re)
+		self.state = nstate
+		
+	def endEpisode(self):
+		"""
+		process episode end
+		"""
+		le = len(self.rewards)
+		for i in range(le):
+			rs = 0
+			dfactor = 1
+			for j in range(i, le, 1):
+				#accumulate reward
+				rs += dfactor * self.rewards[j][1]
+				dfactor *= self.dfactor
+			if self.logger is not None:
+				self.logger.info("state {}  accumulated reward {:.3f}".format(self.rewards[i][0], rs)) 
+			appendKeyedList(self.valist, self.rewards[i][0], rs)
+		self.rewards.clear()
+				
+	def endIter(self):
+		"""
+		process iteration end
+		"""
+		for k in self.valist.keys():
+			#average values from multiple episodes
+			mv = statistics.mean(self.valist[k])
+			self.values[k] = mv
+	
+	def getValues(self):
+		"""
+		return state values
+		"""	
+		return self.values
+		
 class PolicyImprovement:
 	"""
 	compares 2 policies by using actions from the second policy

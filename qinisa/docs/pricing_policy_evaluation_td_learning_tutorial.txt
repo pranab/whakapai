@@ -19,13 +19,22 @@ pricing policy. Make sure there is a directory ./model/td. That's where thestate
 will be saved
 
 evaluate policy p1
-python3 difare.py --op evalst --policy p1 --nepisode 300 --lrate 0.2  --lrdecay 0.2 --save t
+python3 difare.py --op evalst --policy p1 --nepisode 300 --drate 0.95 --lrate 0.2  --lrdecay 0.2 --save t
 
 evaluate policy p2
-python3 difare.py --op evalst --policy p2 --nepisode 300 --lrate 0.2  --lrdecay 0.2 --save t
+python3 difare.py --op evalst --policy p2 --nepisode 300 --drate 0.95 --lrate 0.2  --lrdecay 0.2 --save t
 
-if you want to see plots of state values against episodes use --plot t. For explanation of all 
+Reducing the learning rate decay (lrdecay) and increasing the num of episodes (nepisode), seems to produce 
+better results.
+
+If you want to see plots of state values against episodes use --plot t. For explanation of all 
 command line arguments please refer to difare.py
+
+Policy evaluation can also be performed with first visit Monte Carlo algorithm. If you want to use it 
+instead of TD, run the following
+python3 difare.py --op evalst --policy p1 --algo mc --drate 0.95  --nepisode 100  --save t
+python3 difare.py --op evalst --policy p2 --algo mc --drate 0.95  --nepisode 100  --save t
+
 
 Policy comparison
 =================

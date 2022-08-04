@@ -34,8 +34,9 @@ Air fare pricing policy evaluation
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "evalst", help = "operation")
-	parser.add_argument('--algo', type=str, default = "rg", help = "bandit algo")
+	parser.add_argument('--algo', type=str, default = "td", help = "bandit algo")
 	parser.add_argument('--policy', type=str, default = "p1", help = "policy")
+	parser.add_argument('--drate', type=float, default = 0.95, help = "discount rate")
 	parser.add_argument('--nepisode', type=int, default = 50, help = "no of episodes")
 	parser.add_argument('--lrate', type=float, default = 0.20, help = "learning rate")
 	parser.add_argument('--lrdecay', type=float, default = 0.20, help = "learning rate decay")
@@ -138,23 +139,25 @@ if __name__ == "__main__":
 	osampler = CategoricalRejectSampler(("O1", 70), ("O2", 30))
 		
 	if args.op == "evalst": 
-		""" evaluate state value """
-		
+		""" evaluate state value by TD or MC """
 		pol = pol1 if args.policy == "p1" else pol2
 		pol = Policy(True, pol)
 		
 		oc = osampler.sample()
 		st = "P1" + oc
 		fp = "./log/tdl.log"
-		td = TempDifferenceValue(pol, args.lrate, args.lrdecay, 0.95, st, None, "info")
-		
+		if args.algo == "td":
+			algo = TempDifferenceValue(pol, args.lrate, args.lrdecay, args.drate, st, fp, "info")
+		else:
+			algo = FirstVisitMonteCarlo(pol, args.drate, st, fp, "info")
+			
 		values = list()
 		for i in range(args.nepisode):
 			print("**next episode " + str(i))
 			ocu = random.randint(250, 299) if oc == "O1" else random.randint(300, 349)
 			episode = True
 			while episode:
-				ac = td.getAction()
+				ac = algo.getAction()
 				print("state {}  action {}".format(st, ac))
 				key = st[:2] + ac
 				#print("demand key {}".format(key))
@@ -196,16 +199,16 @@ if __name__ == "__main__":
 					nst = "P" + str(pe) + oc
 				
 				print("reward {:.3f}  next state {}".format(re, nst))
-				td.setReward(re, nst, terminal)
+				algo.setReward(re, nst, terminal)
 				st = nst
-				if not episode:
-					tval = td.getTotValue()				
-					print("episode end total value {:.3f}".format(tval))
-					values.append(tval)
-					
+				if not episode and args.algo == "mc":
+					algo.endEpisode()
+		
+		if args.algo == "mc":
+			algo.endIter()
 		
 		print("state values")
-		vals = td.getValues()
+		vals = algo.getValues()
 		for k in vals.keys():
 			print("state {}  value {:.3f}".format(k, vals[k]))
 		
@@ -213,11 +216,11 @@ if __name__ == "__main__":
 			fp = "./model/td/svalues_" + args.policy + ".mod"
 			saveObject(vals, fp)	
 		
-		if args.plot == "true" or args.plot == "t":
+		if args.algo == "td" and (args.plot == "true" or args.plot == "t"):
 			drawLine(values)
-		
+	
 				
-	if args.op == "polcmp": 
+	elif args.op == "polcmp": 
 		""" compare 2 policies """
 		policies = args.policies.split(",")	
 		fp = "./model/td/svalues_" + policies[0] + ".mod"
@@ -229,7 +232,8 @@ if __name__ == "__main__":
 		poli1 = Policy(True, pol1)
 		poli2 = Policy(True, pol2)
 
-		pimp = PolicyImprovement(poli1, poli2, svalues1, svalues2, 0.95,  None, "info")
+		lfp = "./log/tdl.log"
+		pimp = PolicyImprovement(poli1, poli2, svalues1, svalues2, 0.95,  lfp, "info")
 		cstates = list()
 		for st in states:
 			if st[:2] == "P4" or st == "P1O3" or st == "P1O4" or st == "P1O5":
