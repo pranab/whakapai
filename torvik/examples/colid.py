@@ -78,7 +78,29 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	op = args.op
 	
-	if op == "sample":
+	if op == "gen":
+		""" extract required fields and process data from original data """
+		srcFilePath = args.fpath
+		i = 0
+		for rec in fileRecGen(srcFilePath, ","):
+			if i > 0:
+				nrec = list()
+				fname = rec[0][1:-1]
+				lname = rec[1][1:-1]
+				nrec.append(fname + " " + lname)
+				nrec.append(rec[-9][1:-1])
+				nrec.append(rec[-8][1:-1])
+				nrec.append(rec[-6][1:-1])
+				z = rec[-5]
+				if len(z) == 7:
+					z = z[1:-1]
+				nrec.append(z)
+				nrec.append(rec[-2][1:-1])
+				print(",".join(nrec))
+			i += 1
+
+
+	elif op == "sample":
 		""" generate sample files """
 		fpath = args.fpath
 		tdata = getFileLines(fpath)

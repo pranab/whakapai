@@ -15,6 +15,9 @@ from there. You should create directory called model under your working director
 
 Generate training data
 ======================
+Extract only required fields from the downloaded file
+python3 colid.py --op gen --fpath us-500.csv > pers.txt
+
 1)Generate many sample files
 
 python3 colid.py --op sample --fpath pers.txt  --ssize 50 --nsamp 20  --sfpref sf  --fncnt 100  --sfdir ./nad
