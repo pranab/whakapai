@@ -704,7 +704,7 @@ class DataExplorer:
 
 	def getRelEntropy(self, ds1,  ds2, nbins=20):
 		"""
-		get relative entropy or KL divergence
+		get relative entropy or KL divergence with both data sets numeric
 		
 		Parameters
 			ds1: data set name or list or numpy array
@@ -722,6 +722,41 @@ class DataExplorer:
 		result = self.__printResult("relEntropy", entropy)
 		return result
 
+	def getAnyEntropy(self, ds,  dt, nbins=20):
+		"""
+		get entropy of any data typr numeric or categorical
+		
+		Parameters
+			ds: data set name or list or numpy array
+			dt : data type num or cat
+			nbins: num of bins
+		"""
+		entropy = self.getEntropy(ds, nbins)["entropy"] if dt == "num" else self.getStatsCat(ds)["entropy"]
+		result = self.__printResult("entropy", entropy)
+		return result
+
+	def getJointEntropy(self, ds1, ds2, nbins=20):
+		"""
+		get joint entropy with both data sets numeric
+		
+		Parameters
+			ds1: data set name or list or numpy array
+			ds2: data set name or list or numpy array
+			nbins: num of bins
+		"""
+		self.__printBanner("getting join entropy", ds1, ds2)
+		data1 = self.getNumericData(ds1)
+		data2 = self.getNumericData(ds2)
+		self.ensureSameSize([data1, data2])
+		hist, xedges, yedges = np.histogram2d(data1, data2, bins=nbins)
+		hist = hist.flatten()
+		ssize = len(data1)
+		hist = hist / ssize
+		entropy = sta.entropy(hist)
+		result = self.__printResult("jointEntropy", entropy)
+		return result
+		
+
 	def getAllNumMutualInfo(self, ds1,  ds2, nbins=20):
 		"""
 		get mutual information for both numeric data
@@ -734,13 +769,9 @@ class DataExplorer:
 		self.__printBanner("getting mutual information", ds1, ds2)
 		en1 = self.getEntropy(ds1,nbins)
 		en2 = self.getEntropy(ds2,nbins)
+		en = self.getJointEntropy(ds1, ds2, nbins)
 
-		d1 = self.getNumericData(ds1)
-		d2 = self.getNumericData(ds2)
-		d = np.vstack((d1, d2))
-		en = self.getEntropy(d,nbins)
-
-		mutInfo = en1["entropy"] + en2["entropy"] - en["entropy"]
+		mutInfo = en1["entropy"] + en2["entropy"] - en["jointEntropy"]
 		result = self.__printResult("mutInfo", mutInfo)
 		return result
 
@@ -2697,7 +2728,7 @@ class DataExplorer:
 	def getMutInfoFeatures(self, fdst, tdst, nfeatures, algo, nbins=20):
 		"""
 		get top n features based on various mutual information	based algorithm
-		ref: Conditional ikelihood maximisation : A unifying framework for information 
+		ref: Conditional likelihood maximisation : A unifying framework for information 
 		theoretic feature selection, Gavin Brown
 		
 		Parameters
@@ -2780,6 +2811,70 @@ class DataExplorer:
 		selFeatures = list(map(lambda r : (r[0], r[2]), sfds))
 		result = self.__printResult("selFeatures", selFeatures)
 		return result
+
+
+	def getFastCorrFeatures(self, fdst, tdst, delta, nbins=20):
+		"""
+		get top features based on Fast Correlation Based Filter (FCBF)
+		ref: Feature Selection for High-Dimensional Data: A Fast Correlation-Based Filter Solution
+		Lei Yu
+		
+		Parameters
+			fdst: list of pair of data set name or list or numpy array and data type
+			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
+			delta : feature, target correlation threshold
+			nbins : no of bins for numerical data
+		"""	
+		le = len(fdst)
+		nfeatGiven = int(le / 2)
+		fds = list()
+		types = ["num", "cat"]
+		for i in range (0, le, 2):
+			ds = fdst[i]
+			dt = fdst[i+1]
+			assertInList(dt, types, "invalid type for data source " + dt)
+			data = self.getNumericData(ds) if dt == "num" else self.getCatData(ds)
+			p =(ds, dt)
+			fds.append(p)
+		
+		assertInList(tdst[1], types, "invalid type for data source " + tdst[1])
+		data = self.getNumericData(tdst[0]) if tdst[1] == "num" else self.getCatData(tdst[0])
+		
+		# get features with symetric uncertainty above threshold
+		tentr = self.getAnyEntropy(tdst[0], tdst[1], nbins)["entropy"]
+		rfeatures = list()
+		fentrs = dict()
+		for ds, dt in fds:
+			mutInfo = self.getMutualInfo([ds, dt,  tdst[0], tdst[1]], nbins)["mutInfo"]
+			fentr = self.getAnyEntropy(ds, dt, nbins)["entropy"]
+			sunc = 2 * mutInfo / (tentr + fentr)
+			#print("ds {}  sunc {:.3f}".format(ds, sunc))
+			if sunc >= delta:
+				f = [ds, dt, sunc, False]
+				rfeatures.append(f)
+				fentrs[ds] = fentr
+		
+		# sort descending of sym uncertainty
+		rfeatures.sort(key=lambda e : e[2], reverse=True)
+		
+		#disccard redundant features
+		le = len(rfeatures)
+		for i in range(le):
+			if rfeatures[i][3]:
+				continue
+			for j in range(i+1, le, 1):
+				if rfeatures[j][3]:
+					continue
+				mutInfo = self.getMutualInfo([rfeatures[i][0], rfeatures[i][1],  rfeatures[j][0], rfeatures[j][1]], nbins)["mutInfo"]
+				sunc  = 2 * mutInfo / (fentrs[rfeatures[i][0]] + fentrs[rfeatures[j][0]])
+				if sunc >= rfeatures[j][2]:
+					rfeatures[j][3] = True
+			
+		frfeatures = list(filter(lambda f : not f[3], rfeatures))
+		selFeatures = list(map(lambda f : [f[0], f[2]], frfeatures))		
+		result = self.__printResult("selFeatures", selFeatures)
+		return result
+			
 				
 	def __stackData(self, *dsl):
 		"""
