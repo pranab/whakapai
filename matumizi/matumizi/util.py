@@ -688,6 +688,26 @@ def toIntFromBoolean(value):
 	ival = 1 if value else 0
 	return ival
 
+def scaleBySum(ldata):
+	"""
+	scales so that sum is 1
+	
+	Parameters
+		ldata : list data
+	"""
+	s = sum(ldata)
+	return list(map(lambda e : e/s, ldata))
+	
+def scaleByMax(ldata):
+	"""
+	scales so that max value is 1
+	
+	Parameters
+		ldata : list data
+	"""
+	m = max(ldata)
+	return list(map(lambda e : e/m, ldata))
+
 def typedValue(val, dtype=None):
 	"""
 	return typed value given string, discovers data type if not specified
