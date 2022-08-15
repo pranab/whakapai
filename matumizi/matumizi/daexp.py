@@ -33,6 +33,7 @@ from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 from scipy import stats as sta
 from statsmodels.tsa.seasonal import seasonal_decompose
+import statsmodels.api as sm
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
@@ -1769,6 +1770,24 @@ class DataExplorer:
 		result = self.__printResult("fitted line", yfit, "residue", residue)
 		return result
 
+	def getInfluentialPoints(self, dsx, dsy):
+		"""
+		gets influential points in regression model with Cook's distance
+		
+		Parameters
+			dsx : data set name or list or numpy array for x
+			dsy : data set name or list or numpy array for y
+		"""
+		self.__printBanner("finding influential points for linear regression", dsx, dsy)
+		y = self.getNumericData(dsy)
+		x = np.arange(len(data)) if dsx is None else self.getNumericData(dsx)
+		model = sm.OLS(y, x).fit()
+		np.set_printoptions(suppress=True)
+		influence = model.get_influence()
+		cooks = influence.cooks_distance
+		result = self.__printResult("Cook distance", cooks)
+		return result
+	
 	def getCovar(self, *dsl):
 		"""
 		gets covariance

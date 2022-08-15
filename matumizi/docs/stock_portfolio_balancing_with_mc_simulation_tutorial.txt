@@ -1,0 +1,59 @@
+This tutorial is  for financial protfolio balancing with Monte Carlo simulation and Sharpe Ration
+
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.3
+
+Portfolio data
+==============
+Decide what stocks to have in the portfolio  and create a portfolio data file, with one row
+per stock, with each row as below containing 3 fields
+stock_symbol,num_stocks,value_at-beginning_of_time_window
+
+Stock historical data
+=====================
+Choose a time window (e.g. 6 months) and download historical stock data for all the stocks in the portfolio
+from this web site
+https://www.nasdaq.com/market-activity/quotes/historical
+
+Store all files in the directory specified by the command line arg "sdfpath". Change each file name so that
+file name begins as "SS_" where SS is a stock symbol
+
+
+Run simulator
+=============
+python3 pobal.py --op simu --niter 100 --sdfpath ./sdata --spdpath spdata.txt --exfac 0.9 --rfret 0.01
+
+niter = Num of iterations
+sdfpath = Path of directory containing stock data files. The filenames should start with <SS>_ where SS
+    is the stock symbol
+spdpath = Path of file containg current holding. each row is coma separated 3 fields stock symbol, 
+nium of stocks and the  value at the beginning of historic data time window
+exfac = Factor exponential forecast of stock price
+rfret = Risk free investement return in the time window
+
+Command line argument values are example. Change them as needed
+
+Output
+======
+The output end will look as below
+best score 8.839
+weights  [0.10270294837929556, 0.11041322597243025, 0.000652404909398755, 0.11668341692081166, 0.018728111576860603, 0.12688306074193234, 0.016674345483451796, 0.1310681987561672, 0.020349302455518792, 0.15131254832113178, 0.07228010995988338, 0.13225232652311789]
+buy and sell recommendations
+('WMT', 27)
+('PFE', 358)
+('NFLX', -212)
+('AMD', 93)
+('TSLA', -58)
+('AMZN', 155)
+('META', -120)
+('QCOM', 129)
+('CSCO', -17)
+('MSFT', 73)
+('SBUX', 62)
+('AAPL', 129)
+
+
+
