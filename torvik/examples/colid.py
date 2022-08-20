@@ -237,7 +237,38 @@ if __name__ == "__main__":
 					r.append("0")
 					print(",".join(r))
 				
+	elif op == "gpred":
+		""" create test data """
+		fpaths = args.cfpath.split(",")
+		ptdata = getFileLines(fpaths[0])
+		ttdata = getFileLines(fpaths[1])
+		
+		#one for each class
+		classes = ["N", "A", "C"]
+		for pr  in ptdata:
+			rn = list()
+			ra = list()
+			rc = list()
+			allr = {"N" : rn, "A" : ra, "C" : rc}
+			while len(rn) < 2 or len(ra) < 2 or len(rc) < 2:
+				tr = selectRandomFromList(ttdata)
+				tcl = tr[-1]
+				allr[tcl].append(tr[:-1].copy())
 			
+			#negative protyples
+			for c in classes:
+				r = pr[:-1].copy()
+				r.extend(allr[c][0])
+				r.extend(allr[c][1])
+				r.append("0")
+				print(",".join(r))
+
+	elif op == "rmcl":
+		""" remopve class label """
+		tdata = getFileLines(args.fpath)
+		for r in tdata:
+			print(",".join(r[:-1]))
+				
 	elif op == "train":
 		mod = FeedForwardMultiNetwork(args.mlfpath)
 		mod.buildModel()
@@ -247,6 +278,11 @@ if __name__ == "__main__":
 		mod = FeedForwardMultiNetwork(args.mlfpath)
 		mod.buildModel()
 		FeedForwardMultiNetwork.testModel(mod)
+
+	elif op == "pred":
+		mod = FeedForwardMultiNetwork(args.mlfpath)
+		mod.buildModel()
+		FeedForwardMultiNetwork.predictModel(mod)
 
 	else:
 		exitWithMsg("invalid command")

@@ -38,7 +38,10 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 	contrastive learning multi feed forward network
 	"""
 	def __init__(self, configFile):
-		super(FeedForwardMultiNetwork, self).__init__(configFile)
+		defValues = dict()
+		defValues["predict.data.file.raw"] = (None, None)
+		defValues["predict.class.labels"] = (None, None)
+		super(FeedForwardMultiNetwork, self).__init__(configFile, defValues)
 
 	def buildModel(self):
 		"""
@@ -166,7 +169,7 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 		else:
 			FeedForwardTwinNetwork.batchTrain(model) 
 		
-		dataSource = model.config.getStringConfig("predict.data.file")[0]	
+		dataSource = model.config.getStringConfig("valid.data.file")[0]	
 		featData = FeedForwardNetwork.prepData(model, dataSource, False)
 		featData = torch.from_numpy(featData)
 		feCount = model.config.getIntConfig("train.input.size")[0]
@@ -178,14 +181,26 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 		model.eval()
 		with torch.no_grad():
 			yp = model(fe1, fe2, fe3)
+			for y in yp:
+				model.correctAllZeros(y)
+			
 			cos = torch.nn.CosineSimilarity()
 			s1 = cos(yp[0], yp[1]).data.cpu().numpy()
 			s2 = cos(yp[0], yp[2]).data.cpu().numpy()
 			#print(s1.shape)
 			
+			"""
+			print(yp[0][:9,:])
+			print("\n\n")
+			print(yp[1][:9,:])
+			print("\n\n")
+			print(s1[:9])
+			print("\n\n")
+			"""
+			
 			n = yp[0].shape[0]
 			if model.verbose:
-				print(n)
+				print("num rows ", n)
 				for i in range(15):
 					if i % 3 == 0:
 						print("next")
@@ -208,12 +223,115 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 						msi = si
 						imsi = j
 				tc += 1
+				#first one positive i.e same class as focus record
 				if imsi == 0:
 					cc += 1
+				
 		score = cc / tc
 		print("score: {:.3f}".format(score))	
 		model.train()
 		return score
+
+
+	@staticmethod
+	def predictModel(model):
+		"""
+		predict and return class labels
+		
+		Parameters
+			model : torch model
+		"""
+		useSavedModel = model.config.getBooleanConfig("predict.use.saved.model")[0]
+		if useSavedModel:
+			FeedForwardNetwork.restoreCheckpt(model)
+		else:
+			FeedForwardTwinNetwork.batchTrain(model) 
+		
+		dataSource = model.config.getStringConfig("predict.data.file")[0]	
+		featData = FeedForwardNetwork.prepData(model, dataSource, False)
+		featData = torch.from_numpy(featData)
+		feCount = model.config.getIntConfig("train.input.size")[0]
+		fe1 = featData[:,:feCount]
+		fe2 = featData[:,feCount:2*feCount]
+		fe3 = featData[:,2*feCount:]
+		
+		
+		model.eval()
+		with torch.no_grad():
+			yp = model(fe1, fe2, fe3)
+			for y in yp:
+				model.correctAllZeros(y)
+			
+			cos = torch.nn.CosineSimilarity()
+			s1 = cos(yp[0], yp[1]).data.cpu().numpy()
+			s2 = cos(yp[0], yp[2]).data.cpu().numpy()
+			#print(s1.shape)
+			
+			#print(yp[0][:9,:])
+			#print("\n\n")
+			#print(yp[1][:9,:])
+			
+			rawPredFilepath = model.config.getStringConfig("predict.data.file.raw")[0]
+			assert rawPredFilepath is not None, "missing raw prediction data file path"
+			tdataRaw = getFileLines(rawPredFilepath, None)
+			
+			clLabels = model.config.getStringListConfig("predict.class.labels")[0]
+			assert clLabels is not None, "missing class label list"
+			
+			n = yp[0].shape[0]
+			ri = 0
+			outputSize = model.config.getIntConfig("train.output.size")[0]
+			cp = list()
+			padWidth = model.config.getIntConfig("predict.feat.pad.size")[0]
+			for i in range(0, n, outputSize):
+				#for each sample outputSize no of rows
+				msi = None
+				imsi = None
+				for j in range(outputSize): 
+					#first one positive , followed by all negative
+					si = (s1[i+j] + s2[i+j]) / 2
+					#print("j {}  si {:.3f}".format(j, si))
+					if msi == None or si > msi:
+						msi = si
+						imsi = j
+				#first one positive i.e same class as focus record
+				cl = clLabels[imsi]
+				cp.append(cl)
+				if model.config.getBooleanConfig("predict.print.output")[0]:
+					feat = tdataRaw[ri].ljust(padWidth, " ")
+					rec = "{}\t{}  ({:.3f})".format(feat, cl, msi)
+					print(rec)
+				ri += 1
+				
+		model.train()
+		return cp
+		
+	def correctAllZeros(self, yp):
+		"""
+		correct for all zero
+		
+		Parameters
+			yp : output tensor		
+		"""
+		rs = yp.shape[1]
+		cvals = np.full((rs), .0001)
+		cvals = torch.from_numpy(cvals)
+		ri = list()
+		i = 0
+		for r in yp:
+			cnt = 0
+			for c in r:
+				if c < .0001:
+					cnt += 1
+			if cnt == rs:
+				ri.append(i)
+			i += 1
+		
+		for i in ri:
+			yp[i] = cvals
+			 
+				
+			
 		
 
 		

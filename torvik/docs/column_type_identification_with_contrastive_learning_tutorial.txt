@@ -32,7 +32,7 @@ sfdir : path to directory weher sample files will be saved
 
 2)Extract column data features
 
-python3 colid.py --op cfeatures  --sfdir ./nad  > cf.txt
+python3 colid.py --op cfeatures  --sfdir ./nad  > cf_tr.txt
 
 where
 sfdir : path to directory containing sample files
@@ -57,12 +57,32 @@ path specified in common.model.directory
 
 Generate test data
 ==================
+rm ./nad/*.*
+python3 colid.py --op sample --fpath pers.txt  --ssize 50 --nsamp 20  --sfpref sf  --fncnt 100  --sfdir ./nad
 python3 colid.py --op cfeatures  --sfdir ./nad  > cf_va.txt
 python3 colid.py --op gtest --cfpath cf_va.txt,cf_tr.txt > col_te.txt
-
 
 Test model
 ==========
 python3 colid.py --op test --mlfpath fftn_col.properties
+
+
+Generate prediction data
+========================
+rm ./nad/*.*
+python3 colid.py --op sample --fpath pers.txt  --ssize 50 --nsamp 20  --sfpref sf  --fncnt 100  --sfdir ./nad
+python3 colid.py --op cfeatures  --sfdir ./nad  > cf_prc.txt
+python3 colid.py --op gpred --cfpath cf_prc.txt,cf_tr.txt > col_pr.txt
+
+
+Remove class label from raw prediction data
+===========================================
+python3 colid.py --op rmcl --fpath cf_prc.txt > cf_pr.txt
+
+Prediction from model
+=====================
+python3 colid.py --op pred --mlfpath fftn_col.properties
+
+
 
 
