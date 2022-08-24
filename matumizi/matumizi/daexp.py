@@ -1605,6 +1605,31 @@ class DataExplorer:
 		result = self.__printResult("outliers", outliers)	
 		return result
 
+	def getOutliersWithRobustZscore(self, ds, zthreshold, stats=None):
+		"""
+		gets outliers using robust zscore
+		
+		Parameters
+			ds: data set name or list or numpy array
+			zthreshold : z score threshold
+			stats : tuple containing median and median absolute deviation
+		"""
+		self.__printBanner("getting outliers using robust zscore", ds)
+		data = self.getNumericData(ds)
+		if stats is None:
+			med = np.median(data)
+			dev = np.array(list(map(lambda d : abs(d - med), data)))
+			mad = 1.4296 *  np.median(dev)
+		else:
+			med = stats[0]
+			mad = stats[1]
+		
+		rzs = list(map(lambda d : abs((d - med) / mad), data))
+		outliers = list(filter(lambda r : r[1] > zthreshold, enumerate(rzs)))
+		result = self.__printResult("outliers", outliers)	
+		return result
+		
+
 	def getSubsequenceOutliersWithDissimilarity(self, subSeqSize, ds):
 		"""
 		gets subsequence outlier with subsequence pairwise disimilarity

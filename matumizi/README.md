@@ -13,7 +13,7 @@ Data Science utilities including following modules
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple/ matumizi
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.3
 
 For installing latest, clone rep and run this at the project root directory
 pip3 install .
@@ -21,7 +21,7 @@ pip3 install .
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/matumizi/0.0.2/
+https://test.pypi.org/project/matumizi/0.0.3/
 
 
 3. Blogs posts
@@ -35,7 +35,7 @@ https://test.pypi.org/project/matumizi/0.0.2/
 
 Here is some example code that uses all 5 modules. You can find lots of examples in 
 [another repo](https://github.com/pranab/avenir/tree/master/python/app) of mine. There the 
-imports are direct and not through the package matmizi
+imports are direct and not through the package matmizi. The example directory also has example code
 
 
 	import sys

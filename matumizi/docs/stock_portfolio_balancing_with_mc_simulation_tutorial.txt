@@ -30,7 +30,7 @@ niter = Num of iterations
 sdfpath = Path of directory containing stock data files. The filenames should start with <SS>_ where SS
     is the stock symbol
 spdpath = Path of file containg current holding. each row is coma separated 3 fields stock symbol, 
-nium of stocks and the  value at the beginning of historic data time window
+nium of stocks and the  value at the beginning of historic data time window (spdata.txt in the resource directory)
 exfac = Factor exponential forecast of stock price
 rfret = Risk free investement return in the time window
 
