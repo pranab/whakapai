@@ -1,0 +1,28 @@
+This tutorial is for optimum meeting schedules for meetings in week using genetic algorithms, given 
+the number of meetings  and participants in those meeting. More fragmented the the free blocks of time
+in betwwen higher the cost in the optimizer.
+
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.3
+
+Install heuristic optimization package arotau
+pip3 install -i https://test.pypi.org/simple/ arotau==0.0.1
+
+It's recommended that you copy msched.py  to a working directory and work 
+from there. 
+
+
+Running the iptimizer
+=====================
+python3 mesched.py  --cfpath mesched.properties --nmeeting 15 --npeople 10
+
+cfpath = config file path
+nmeeting = number of ameetings in a week
+npeople = number of people
+
+Make sure the following configuration is set as below
+opti.solution.size=x
+where x = 3 * num_meetings
