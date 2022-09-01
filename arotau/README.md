@@ -2,8 +2,8 @@
 
 Heuristic Optmization
 * opti : base class for heuristic optimization
-* optsolo : non population based algorithms
-* optpopu :population based algorithms
+* optsolo : non population based algorithms (simulated annealing, bayesian optimization)
+* optpopu :population based algorithms (genetic programming, evolutionary algorithms)
 
 
 
