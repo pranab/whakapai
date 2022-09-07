@@ -122,6 +122,7 @@ class MeetingScheduleCost(object):
 			mtg.start =  self.getSecInWeek(mtg.day,  mtg.hour, mtg.min)
 			mtg.end = mtg.start + mtg.duration * secInMinute
 			self.logger.debug(mtg)
+			#print(mtg)
 			meetings.append(mtg)
 		return meetings
 		
@@ -135,7 +136,9 @@ class MeetingScheduleCost(object):
 		"""
 		schedule validation
 		"""
+		#print(args)
 		self.solnCount += 1
+		#print("**count ", self.solnCount)
 		meetings = self.getMeetings(args)
 		#participants  conflict
 		conflicted = False
@@ -181,7 +184,6 @@ class MeetingScheduleCost(object):
 				if misOrdered:
 					break
 		self.logger.debug("conflicted {}  bhconflicted {}  misOrdered {}".format(conflicted, bhconflicted, misOrdered))	
-					
 		valid  = not (conflicted or  bhconflicted or misOrdered)
 		if not valid:
 			self.invalidSonlCount += 1
