@@ -216,6 +216,48 @@ class FeedForwardNetwork(torch.nn.Module):
 		self.outData = self.outData.to(self.device)
 		self.validFeatData = self.validFeatData.to(self.device)
 		self.to(self.device)
+
+	@staticmethod
+	def createMultLayPercepNetwork(lrData, numinp):
+		"""
+		creates MLP network based on layer data
+		
+		Parameters
+			lrData : layer list data
+			numinp : num of input element
+		"""
+		layers = list()
+		ninp = numinp
+		for ld in trData:
+			lde = ld.split(":")
+			assert len(lde) == 5, "expecting 5 items for layer data"
+			
+			#num of units, activation, whether batch normalize, whether batch normalize after activation, dropout fraction
+			nunit = int(lde[0])
+			actStr = lde[1]
+			act = FeedForwardNetwork.createActivation(actStr) if actStr != "none"  else None
+			bnorm = lde[2] == "true"
+			afterAct = lde[3] == "true"
+			dpr = float(lde[4])
+			
+			layers.append(torch.nn.Linear(ninp, nunit))			
+			if bnorm:
+				#with batch norm
+				if afterAct:
+					safeAppend(layers, act)
+					layers.append(torch.nn.BatchNorm1d(nunit))
+				else:
+					layers.append(torch.nn.BatchNorm1d(nunit))
+					safeAppend(layers, act)
+			else:
+				#without batch norm
+				safeAppend(layers, act)
+			
+			if dpr > 0:
+				layers.append(torch.nn.Dropout(dpr))
+			ninp = nunit
+		
+		return torch.nn.Sequential(*layers)
 		
 	@staticmethod
 	def getDevice(model):
