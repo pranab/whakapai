@@ -53,41 +53,54 @@ class SimulatedAnnealingOptimizer(BaseOptimizer):
 		"""
 		run optimizer
 		"""
+		self.logger.info("*****  starting SimulatedAnnealingOptimizer  *****")
 		self.curSoln = self.createCandidate()
 		curCost = self.curSoln.cost
-		self.bestSoln = cand.clone(self.curSoln)
+		cloneCand = Candidate()
+		cloneCand.clone(self.curSoln)
+		self.bestSoln = cloneCand
 		bestCost = self.bestSoln.cost
 
 		initialTemp = temp = self.config.getFloatConfig("opti.initial.temo")[0]
 		tempUpdInterval = self.config.getIntConfig("opti.temp.update.interval")[0]
 		coolingRate = self.config.getFloatConfig("opti.cooling.rate")[0]
-		geometricCooling = self.config.getBooleanConfig("opti.cooling.rate.geometricl")[0]
+		geometricCooling = self.config.getBooleanConfig("opti.cooling.rate.geometric")[0]
 
 		#iterate
 		for i in range(self.numIter):
-			mutStat, mutatedCand = self.mutateAndValidate(self.curSoln, 5, True)
+			self.logger.info("iteration " + str(i))
+			mutStat, mutatedCand = self.mutateAndValidate(self.curSoln, self.mutateMaxTry, True)
 			nextCost = mutatedCand.cost
 			if nextCost < curCost:
 				#next cost better
+				self.logger.debug("got lower cost soln")
 				self.curSoln = mutatedCand
 				curCost = self.curSoln.cost
 
 				if mutatedCand.cost < bestCost:
-					self.bestSoln = cand.clone(mutatedCand)
+					self.logger.info("best soln set")
+					cloneCand = Candidate()
+					cloneCand.clone(mutatedCand)
+					self.bestSoln = cloneCand
 					bestCost = self.bestSoln.cost
 
 			else:
 				#next cost worse
-				if math.exp((curCost - nextCost) / temp) > random.random():
+				self.logger.debug("got higher cost soln")
+				t = temp if temp != 0 else .001
+				e = math.exp((curCost - nextCost) / t)
+				self.logger.debug("expo {:.6f}  temp {:.6f}".format(e, temp))
+				if e > random.random():
+					self.logger.debug("choosing higher cost soln")
 					self.curSoln = mutatedCand
 					curCost = self.curSoln.cost
 
 			if i % tempUpdInterval == 0:
+				self.logger.info("updating temp")
 				if geometricCooling:
 					temp *= coolingRate
 				else:
 					temp = (initialTemp - i * coolingRate)
-				temp = 0 if temp <= 0 else temp
 
 
 class BayesianOptimizer(BaseOptimizer):

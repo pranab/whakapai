@@ -134,6 +134,15 @@ class Candidate(object):
 				foundGr = gr
 				break
 		return foundGr
+	
+	def getValue(self, pos):
+		"""
+		get value
+		
+		Parameters
+			pos : solution position
+		"""
+		return self.soln[pos]
 		
 	def mutate(self, pos, value):
 		"""
@@ -368,6 +377,8 @@ class BaseOptimizer(object):
 		
 		self.solnCount = 0
 		self.invalidSolnCount = 0
+		self.lastSampler = None
+		
 	# get config object
 	def getConfig(self):
 		return self.config
@@ -407,6 +418,8 @@ class BaseOptimizer(object):
 					self.logger.debug("candidate cost {:.3f}".format(cost))
 					break
 				else:
+					if isinstance(self.lastSampler, CategoricalSetSampler):
+						self.lastSampler.unsample()
 					self.invalidSolnCount += 1
 					
 			tryCount += 1
@@ -424,9 +437,12 @@ class BaseOptimizer(object):
 		"""
 		if self.varSize:
 			value = self.compDataDistr[0].sample() 
+			self.logger.debug("sample value {}".format(value))
 		else: 
 			ci = i % self.solnCompSize
 			value = self.compDataDistr[ci].sample()
+			self.logger.debug("i {}  ci {}  sample value {}".format(i, ci, value))
+			self.lastSampler = self.compDataDistr[ci]
 		return value
 
 	def getDataGroups(self,data):
@@ -455,20 +471,22 @@ class BaseOptimizer(object):
 		status = True
 		self.logger.debug("before mutation soln " + str(cand.soln))
 		pos = sampleUniform(0, len(cand.soln)  -1)
+		cval = cand.getValue(pos)
 		value = self.sampleValue(pos)
-		self.logger.debug("mutation pos {}  value {}".format(pos, value))
+		self.logger.debug("mutation pos {}  new value {} cur value {}".format(pos, value, cval))
 		tryCount = 0 
 		while not cand.mutate(pos, value):
 			pos = sampleUniform(0, len(cand.soln) - 1)
+			cval = cand.getValue(pos)
 			value = self.sampleValue(pos)
-			self.logger.debug("mutation pos {}  value {}".format(pos, value))
+			self.logger.debug("mutation pos {}  new value {} cur value {}".format(pos, value, cval))
 			tryCount += 1
 			if tryCount == self.mutateMaxTry:
 				status = False
 				#raise ValueError("faled to mutate after multiple tries")
 				self.logger.info("failed to  mutate after maximum number of tries")
 				break
-				
+		
 		if status:
 			self.logger.debug("after mutation soln " + str(cand.soln))
 		return status
@@ -496,26 +514,35 @@ class BaseOptimizer(object):
 			maxTry : max no of tries for valid soln
 			clone : clone solution if true
 		"""
+		catSet = isinstance(self.lastSampler, CategoricalSetSampler)
 		tryCount = 0 
 		mutStat = None
+		cloneCand = None
 		while True:
 			if clone:
 				cloneCand = Candidate()
 				cloneCand.clone(cand)
 			else:
 				cloneCand = cand
+			
+			#sepacil handling for categorical set sampler
+			if catSet:
+				self.lastSampler.setSampled(cloneCand.soln.copy())
 			mutStat = self.mutate(cloneCand)
 			if mutStat:
 				if self.domain.isValid(cloneCand.soln):
 					cloneCand.cost = self.domain.evaluate(cloneCand.soln)
-					self.logger.info("...next iteration: {} cost {:.3f} ".format(i, cloneCand.cost))
+					self.logger.info("mutation iteration {} cost {:.3f} ".format(tryCount, cloneCand.cost))
 					break
 				else:
 					tryCount += 1
 					if tryCount == maxTry:
 						raise ValueError("invalid solution after multiple tries to mutate")
-
-			return (mutStat, cloneCand)
+		
+				if catSet:
+					self.lastSampler.setSampled(cloneCand.soln.copy())
+			
+		return (mutStat, cloneCand)
 
 	def bestFromMultiMutate(cand, maxTry, numIter):
 		"""

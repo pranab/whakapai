@@ -923,6 +923,57 @@ class CategoricalRejectSampler:
 		return samp
 
 
+class CategoricalSetSampler:
+	"""
+	non parametric sampling for categorical attributes using uniform distribution based for 
+	sampling a set of values from all values
+	"""
+	def __init__(self,  *values):
+		"""
+		initializer
+		
+		Parameters
+			values : list which contains a categorical values
+		"""
+		self.values = values
+		if (len(self.values) == 1):
+			self.values = self.values[0]
+		self.sampled = list()
+		
+	def sample(self):
+		"""
+		samples value only from previously unsamopled
+		"""
+		samp = selectRandomFromList(self.values)
+		while True:
+			if samp in self.sampled:
+				samp = selectRandomFromList(self.values)
+			else:
+				self.sampled.append(samp)
+				break
+		return samp
+	
+	def setSampled(self, sampled):
+		"""
+		set already sampled
+		
+		Parameters
+			sampled : already sampled list
+		"""
+		self.sampled  = sampled
+				
+	def unsample(self, sample=None):
+		"""
+		rempve from sample history
+		
+		Parameters
+			sample : sample to be removed
+		"""
+		if sample is None:
+			self.sampled.clear()
+		else:	
+			self.sampled.remove(sample)
+
 class DistrMixtureSampler:
 	"""
 	distr mixture sampler
@@ -1363,6 +1414,10 @@ def createSampler(data):
 				pair = (cval, dist)
 				values.append(pair)
 			sampler = CategoricalRejectSampler(values)
+		elif dtype == "scategorical":
+			vfpath = items[0]
+			values = getFileLines(vfpath, None)
+			sampler = CategoricalSetSampler(values)
 	elif stype == "discrete":
 		vmin = int(items[0])
 		vmax = int(items[1])
