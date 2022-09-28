@@ -1,0 +1,28 @@
+This tutorial is for optimizing patient appointments in a doctor's office  using simulated annealing.
+
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.4
+
+Install heuristic optimization package arotau
+pip3 install -i https://test.pypi.org/simple/ arotau==0.0.2
+
+It's recommended that you copy doappt.py  to a working directory and work 
+from there. 
+
+Generate patient IDs
+====================
+python3 doappt.py --op gpid --npat 50 > pid.csv
+
+npat = no of patients requesting appointment (20-80% more than 32)
+
+Running the iptimizer
+=====================
+python3 doappt.py --op opt --pidfpath pid.csv --cfpath doappt.properties
+
+pidfpath = patient ID file path
+cfpath = config file path
+
+Make sure the following configuration is set as below
