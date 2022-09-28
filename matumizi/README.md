@@ -13,7 +13,7 @@ Data Science utilities including following modules
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.3
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.4
 
 For installing latest, clone rep and run this at the project root directory
 pip3 install .
@@ -21,7 +21,7 @@ pip3 install .
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/matumizi/0.0.3/
+https://test.pypi.org/project/matumizi/0.0.4/
 
 
 3. Blogs posts

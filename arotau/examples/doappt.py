@@ -37,10 +37,18 @@ class ApptCost():
 		"""
 		self.pdetails = dict()
 		tsampler = DiscreteRejectSampler(1, 2, 1, .9, .1)
+		print("patient details")
 		for pid in pids:
 			ptype = tsampler.sample()
+			
+			#delay compared to desired day
 			delay = randomInt(0, 1) if ptype == 2  else randomInt(0, 5)
-			self.pdetails[pid] = (ptype, delay)
+			
+			#days since request
+			rdelay = 0 if ptype == 2 else randomInt(0, 10)
+			
+			self.pdetails[pid] = (ptype, delay, rdelay)
+			print("ID {}  type {}  delay {} request {}".format(pid, ptype, delay, rdelay))
 
 	def isValid(self, args):
 		"""
@@ -67,9 +75,15 @@ class ApptCost():
 		for pid in self.pdetails.keys():
 			if pid not in args:
 				det = self.pdetails[pid]
+				
+				#cost due to delay
 				efact = 0.1 if det[0] == 1 else 0.5
 				cost = 1.0 - 1.0 / math.exp(efact * det[1])
-				tcost += cost
+				
+				#cost based time gap between request date and aappt date
+				rcost = 1.0 - 1.0 / math.exp(0.2 * det[2])
+				
+				tcost += (cost + rcost)
 				tcount += 1
 		return tcost / tcount
 

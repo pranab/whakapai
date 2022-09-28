@@ -10,7 +10,7 @@ Heuristic Optmization
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple arotau==0.0.1
+pip3 install -i https://test.pypi.org/simple arotau==0.0.2
 
 For installing latest, clone repo and run this at the project root directory
 pip3 install .
@@ -18,7 +18,7 @@ pip3 install .
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/arotau/0.0.1/
+https://test.pypi.org/project/arotau/0.0.2/
 
 
 3. Blogs posts
