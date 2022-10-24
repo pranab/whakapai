@@ -228,7 +228,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		"""
 		layers = list()
 		ninp = numinp
-		for ld in trData:
+		for ld in lrData:
 			lde = ld.split(":")
 			assert len(lde) == 5, "expecting 5 items for layer data"
 			
@@ -470,6 +470,54 @@ class FeedForwardNetwork(torch.nn.Module):
 			foData = (featData.astype(np.float32), outData.astype(np.float32))
 		else:
 			foData = featData.astype(np.float32)
+		return foData
+
+
+	@staticmethod
+	def prepDataNoLabel(model, dataSource):
+		"""
+		loads and prepares data without label
+		
+		Parameters
+			dataSource : data source str if file path or 2D array
+		"""
+		# parameters
+		fieldIndices = model.config.getIntListConfig("train.data.fields")[0]
+		featFieldIndices = model.config.getIntListConfig("train.data.feature.fields")[0]
+
+		#all data and feature data
+		isDataFile = isinstance(dataSource, str)
+		selFieldIndices = fieldIndices
+		if isDataFile: 
+			#source file path 
+			(data, featData) = loadDataFile(dataSource, ",", selFieldIndices, featFieldIndices)
+		else:
+			# tabular data
+			data = tableSelFieldsFilter(dataSource, selFieldIndices)
+			featData = tableSelFieldsFilter(data, featFieldIndices)
+			#print(featData)
+			featData = np.array(featData)
+			
+		if (model.config.getStringConfig("common.preprocessing")[0] == "scale"):
+		    scalingMethod = model.config.getStringConfig("common.scaling.method")[0]
+		    
+		    #scale only if there are enough rows
+		    nrow = featData.shape[0]
+		    minrows = model.config.getIntConfig("common.scaling.minrows")[0]
+		    if nrow > minrows:
+		    	#in place scaling
+		    	featData = scaleData(featData, scalingMethod)
+		    else:
+		    	#use pre computes scaling parameters
+		    	spFile = model.config.getStringConfig("common.scaling.param.file")[0]
+		    	if spFile is None:
+		    		exitWithMsg("for small data sets pre computed scaling parameters need to provided")
+		    	scParams = restoreObject(spFile)
+		    	featData = scaleDataWithParams(featData, scalingMethod, scParams)
+		    	featData = np.array(featData)
+		    	
+		# target data
+		foData = featData.astype(np.float32)
 		return foData
 
 	@staticmethod

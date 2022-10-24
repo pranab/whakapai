@@ -48,10 +48,14 @@ class VarAutoEncoder(nn.Module):
 		defValues["common.mode"] = ("training", None)
 		defValues["common.model.directory"] = ("model", None)
 		defValues["common.model.file"] = (None, None)
+		defValues["common.preprocessing"] = (None, None)
+		defValues["common.scaling.method"] = ("zscale", None)
 		defValues["common.verbose"] = (False, None)
 		defValues["common.device"] = ("cpu", None)
 		defValues["train.data.shape"] = (None, None)
 		defValues["train.data.file"] = (None, "missing training data file")
+		defValues["train.data.fields"] = (None, "missing training data field ordinals")
+		defValues["train.data.feature.fields"] = (None, "missing training data feature field ordinals")
 		defValues["train.num.input"] = (None, "missing input size")
 		defValues["train.num.latent"] = (None, "missing latent size")
 		defValues["train.num.enc.output"] = (None, "missing encoder output size")
@@ -74,7 +78,6 @@ class VarAutoEncoder(nn.Module):
 		defValues["train.batch.intv"] = (5, None) 
 		defValues["encode.use.saved.model"] = (True, None)
 		defValues["encode.data.file"] = (None, "missing enoding data file")
-		defValues["encode.feat.pad.size"] = (60, None)
 		defValues["valid.accuracy.metric"] = (None, None)
 		self.config = Configuration(configFile, defValues)
 
@@ -93,14 +96,14 @@ class VarAutoEncoder(nn.Module):
 		torch.manual_seed(9999)
 		self.verbose = self.config.getStringConfig("common.verbose")[0]
 		self.numinp = self.config.getIntConfig("train.num.input")[0]
-		self.numeout = self.config.getIntConfig("train.num.enc.out")[0]
+		self.numeout = self.config.getIntConfig("train.num.enc.output")[0]
 		self.numlat = self.config.getIntConfig("train.num.latent")[0]
 		nwType = self.config.getStringConfig("train.network.type")[0]
 		encLayers = self.config.getStringConfig("train.enc.layer.data")[0].split(",")
 		decLayers = self.config.getStringConfig("train.dec.layer.data")[0].split(",")
 		if nwType == "mlp":
-			self.encoder = FeedForwardNetwork.createMultLayPercepNetwork(self, encLayers, self.numinp)
-			self.decoder = FeedForwardNetwork.createMultLayPercepNetwork(self, decLayers, self.numlat)
+			self.encoder = FeedForwardNetwork.createMultLayPercepNetwork(encLayers, self.numinp)
+			self.decoder = FeedForwardNetwork.createMultLayPercepNetwork(decLayers, self.numlat)
 		
 		self.fcMean = nn.Linear(self.numeout, self.numlat)
 		self.fcVar = nn.Linear(self.numeout, self.numlat)
@@ -115,6 +118,7 @@ class VarAutoEncoder(nn.Module):
 		self.useSavedModel = self.config.getBooleanConfig("encode.use.saved.model")[0]
 		self.trackErr = self.config.getBooleanConfig("train.track.error")[0]
 		self.batchIntv = self.config.getIntConfig("train.batch.intv")[0]
+		self.accMetric = self.config.getStringConfig("valid.accuracy.metric")[0]		
 		self.restored = False
 
 		self.device = FeedForwardNetwork.getDevice(self)
@@ -154,7 +158,7 @@ class VarAutoEncoder(nn.Module):
 		if model.dshape is None:
 			#flat data
 			trDataFile = model.config.getStringConfig("train.data.file")[0]
-			featData = FeedForwardNetwork.prepData(model, trDataFile, False)
+			featData = FeedForwardNetwork.prepDataNoLabel(model, trDataFile)
 			featData = torch.from_numpy(featData)
 			featData = featData.to(model.device)
 			dataloader = DataLoader(featData, batch_size=model.batchSize, shuffle=True)
@@ -171,7 +175,7 @@ class VarAutoEncoder(nn.Module):
 				loss.backward()
 				optimizer.step()
 				epochLoss += loss.item()
-			epochLoss /= len(model.dataloader)
+			epochLoss /= len(dataloader)
 			print('epoch [{}-{}], loss {:.6f}'.format(it + 1, model.numIter, epochLoss))
 	
 		model.evaluateModel()
@@ -186,7 +190,7 @@ class VarAutoEncoder(nn.Module):
 		self.eval()
 			
 		teDataFile = self.config.getStringConfig("encode.data.file")[0]
-		enData = FeedForwardNetwork.prepData(self, teDataFile, False)
+		enData = FeedForwardNetwork.prepDataNoLabel(self, teDataFile)
 		enData = torch.from_numpy(enData)
 		enData = enData.to(self.device)
 		with torch.no_grad():
@@ -200,7 +204,7 @@ class VarAutoEncoder(nn.Module):
 		evaluate model
 		"""
 		(enData, regenData) = self.regen()
-		score = perfMetric(self.loss, enData, regenData)
+		score = perfMetric(self.accMetric, enData, regenData)
 		print("test error {:.6f}".format(score))
 		
 	@staticmethod
@@ -218,9 +222,8 @@ class VarAutoEncoder(nn.Module):
 			#train
 			VarAutoEncoder.trainModel(model)
 		
-		accMetric = model.config.getStringConfig("valid.accuracy.metric")[0]	
 		enData, regenData = model.regen()
-		score = perfMetric(accMetric, enData, regenData)
+		score = perfMetric(self.accMetric, enData, regenData)
 		print("test error {:.6f}".format(score))
 		return score
 		
