@@ -1,0 +1,66 @@
+This tutorial is for finding faulty machinary  with anomaly detection of vibration data using 
+Variational Auto Encoder(VAE) 
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.1
+
+
+Install node framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.4
+
+it's recommended that you copy tsgen.py, maa.py, tsgen_mach.properties and vae_maa.properties to a working directory and work 
+from there. You should create directory called model/vae under your working directory
+
+Generate Training Data
+======================
+Set output.value.nsamples=1000 in tsgen_mach.properties
+
+Run
+python3 tsgen.py --op sine --cfpath tsgen_mach.properties  > maa_tr.txt
+
+Set output.value.nsamples=100 in  tsgen_mach.properties
+
+Run
+python3 tsgen.py --op sine --cfpath tsgen_mach.properties  > maa_va.txt
+
+
+Train Model
+===========
+make sure train.model.save=True in vae_maa.properties
+
+Run
+python3 maa.py --op train --cfpath vae_maa.properties
+
+generate Test Data
+==================
+Set output.value.nsamples=10 in tsgen_mach.properties
+
+Run
+python3 tsgen.py --op sine --cfpath tsgen_mach.properties --exscomp 1.2,20,0.7,12  > maa_pr.txt
+
+The argument exscomp inserts some additional sinusoidal conmponents, making the 10th record anamolous
+
+Test Model
+==========
+make sure encode.use.saved.model=True in vae_maa.properties
+
+Run
+python3 maa.py --op pred --cfpath vae_maa.properties
+
+You will see output similar to as below. Yoiu can see that the regeneration error is significantly
+higher for the last record
+
+regen error 3.396191
+regen error 3.425475
+regen error 3.488790
+regen error 3.436164
+regen error 3.414837
+regen error 3.430545
+regen error 3.580210
+regen error 3.404906
+regen error 3.502626
+regen error 4.582457
+
+

@@ -79,6 +79,7 @@ class VarAutoEncoder(nn.Module):
 		defValues["encode.use.saved.model"] = (True, None)
 		defValues["encode.data.file"] = (None, "missing enoding data file")
 		defValues["valid.accuracy.metric"] = (None, None)
+		defValues["pred.data.file"] = (None, "missing prediction data file")
 		self.config = Configuration(configFile, defValues)
 
 		super(VarAutoEncoder, self).__init__()
@@ -126,7 +127,7 @@ class VarAutoEncoder(nn.Module):
 		
 		self.rpSampler.loc = self.rpSampler.loc.to(self.device)
 		self.rpSampler.scale = self.rpSampler.scale.to(self.device)
-
+		self.optimizer = FeedForwardNetwork.createOptimizer(self, self.optimizerStr)
 
 	def forward(self, x):
 		"""
@@ -162,18 +163,15 @@ class VarAutoEncoder(nn.Module):
 			featData = torch.from_numpy(featData)
 			featData = featData.to(model.device)
 			dataloader = DataLoader(featData, batch_size=model.batchSize, shuffle=True)
-			
-		# optimizer
-		optimizer = FeedForwardNetwork.createOptimizer(model, model.optimizerStr)
-			
+						
 		for it in range(model.numIter):
 			epochLoss = 0.0
 			for x in dataloader:
 				xh = model(x)
 				loss = ((x - xh) ** 2).sum() + model.kl
-				optimizer.zero_grad()
+				model.optimizer.zero_grad()
 				loss.backward()
-				optimizer.step()
+				model.optimizer.step()
 				epochLoss += loss.item()
 			epochLoss /= len(dataloader)
 			print('epoch [{}-{}], loss {:.6f}'.format(it + 1, model.numIter, epochLoss))
@@ -183,14 +181,16 @@ class VarAutoEncoder(nn.Module):
 		if model.modelSave:
 			FeedForwardNetwork.saveCheckpt(model)
 			
-	def regen(self):
+	def regen(self, enData=None):
 		"""
 		get regenerated data
 		"""
 		self.eval()
+		
+		if enData is None:
+			teDataFile = self.config.getStringConfig("encode.data.file")[0]
+			enData = FeedForwardNetwork.prepDataNoLabel(self, teDataFile)
 			
-		teDataFile = self.config.getStringConfig("encode.data.file")[0]
-		enData = FeedForwardNetwork.prepDataNoLabel(self, teDataFile)
 		enData = torch.from_numpy(enData)
 		enData = enData.to(self.device)
 		with torch.no_grad():
@@ -205,12 +205,12 @@ class VarAutoEncoder(nn.Module):
 		"""
 		(enData, regenData) = self.regen()
 		score = perfMetric(self.accMetric, enData, regenData)
-		print("test error {:.6f}".format(score))
+		print("test regen  error {:.6f}".format(score))
 		
 	@staticmethod
-	def validateModel(model, retPred=False):
+	def predModel(model, retPred=False):
 		"""
-		model validation
+		predict model regen error
 		
 		Parameters
 			model : torch model
@@ -222,10 +222,16 @@ class VarAutoEncoder(nn.Module):
 			#train
 			VarAutoEncoder.trainModel(model)
 		
-		enData, regenData = model.regen()
-		score = perfMetric(self.accMetric, enData, regenData)
-		print("test error {:.6f}".format(score))
-		return score
+		prDataFile = model.config.getStringConfig("pred.data.file")[0]
+		enData = FeedForwardNetwork.prepDataNoLabel(model, prDataFile)
+		scores = list()
+		for ed in enData:
+			enData, regenData = model.regen(ed)
+			score = perfMetric(model.accMetric, enData, regenData)
+			print("regen error {:.6f}".format(score))
+			scores.append(score)
+		if retPred:
+			return scores
 		
 		
 
