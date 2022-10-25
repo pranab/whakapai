@@ -208,12 +208,13 @@ class VarAutoEncoder(nn.Module):
 		print("test regen  error {:.6f}".format(score))
 		
 	@staticmethod
-	def predModel(model, retPred=False):
+	def predModel(model, doPlot=False):
 		"""
 		predict model regen error
 		
 		Parameters
 			model : torch model
+			doPlot : True if original and regnerated data are plotted
 		"""
 		if (model.useSavedModel):
 			# load saved model
@@ -225,13 +226,17 @@ class VarAutoEncoder(nn.Module):
 		prDataFile = model.config.getStringConfig("pred.data.file")[0]
 		enData = FeedForwardNetwork.prepDataNoLabel(model, prDataFile)
 		scores = list()
+		x = list(range(model.numinp))
+		i = 1
 		for ed in enData:
 			enData, regenData = model.regen(ed)
 			score = perfMetric(model.accMetric, enData, regenData)
-			print("regen error {:.6f}".format(score))
+			print("next rec {}   regen error {:.6f}".format(i, score))
 			scores.append(score)
-		if retPred:
-			return scores
+			if doPlot:
+				drawPairPlot(x, enData, regenData, "time", "amplitude", "original", "regenerated")
+			i += 1
+		return scores
 		
 		
 

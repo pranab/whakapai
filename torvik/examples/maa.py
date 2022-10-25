@@ -34,4 +34,4 @@ if __name__ == "__main__":
 	elif args.op == "pred":
 		model = VarAutoEncoder(args.cfpath)
 		model.buildModel()
-		VarAutoEncoder.predModel(model)
+		VarAutoEncoder.predModel(model, True)
