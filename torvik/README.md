@@ -6,14 +6,14 @@ No code framework for various PyTorch Networks with these modules
 * ae : Auto Encoder network
 * gcn : Graph Convolution Network
 * fftn : Feed Forward Network for cointrastive learning
+* vae : Variational Auto Encoder
 
-Will be adding Variational Auto Encoder(VAE) and Transformer in near future
 ## Instructions
 
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple torvik==0.0.3
+pip3 install -i https://test.pypi.org/simple torvik==0.0.4
 
 For installing latest, clone repo and run this at the project root directory
 pip3 install .
