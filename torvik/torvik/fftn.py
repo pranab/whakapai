@@ -283,6 +283,7 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 			outputSize = model.config.getIntConfig("train.output.size")[0]
 			cp = list()
 			padWidth = model.config.getIntConfig("predict.feat.pad.size")[0]
+			preds = list()
 			for i in range(0, n, outputSize):
 				#for each sample outputSize no of rows
 				msi = None
@@ -301,10 +302,16 @@ class FeedForwardMultiNetwork(FeedForwardNetwork):
 					feat = tdataRaw[ri].ljust(padWidth, " ")
 					rec = "{}\t{}  ({:.3f})".format(feat, cl, msi)
 					print(rec)
+					
+				pred = list()
+				pred.append(tdataRaw[ri])
+				pred.append(cl)
+				pred.append(msi)
+				preds.append(pred)
 				ri += 1
 				
 		model.train()
-		return cp
+		return preds
 		
 	def correctAllZeros(self, yp):
 		"""
