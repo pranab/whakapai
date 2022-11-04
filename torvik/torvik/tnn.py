@@ -81,6 +81,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		defValues["train.layer.data"] = (None, "missing layer data")
 		defValues["train.input.size"] = (None, None)
 		defValues["train.output.size"] = (None, "missing  output size")
+		defValues["train.output.clables"] = (None, None)
 		defValues["train.batch.size"] = (10, None)
 		defValues["train.loss.reduction"] = ("mean", None)
 		defValues["train.loss.margin"] = (1.0, None)
@@ -152,7 +153,8 @@ class FeedForwardNetwork(torch.nn.Module):
 		self.trackErr = self.config.getBooleanConfig("train.track.error")[0]
 		self.batchIntv = self.config.getIntConfig("train.batch.intv")[0]
 		self.restored = False
-		self.clabels = list(range(self.outputSize)) if self.outputSize > 1 else None
+		clabels = self.config.getStringConfig("train.output.clabels")[0]
+		self.clabels = self.config.getStringListConfig("train.output.clabels")[0] if clabels is not None else None
 		
 		#build network
 		layers = list()
@@ -580,6 +582,9 @@ class FeedForwardNetwork(torch.nn.Module):
 				yCl = np.argmax(yPred, axis=1)
 				yPred = list(map(lambda y : y[0][y[1]], zip(yPred, yCl)))
 				yPred = zip(yCl, yPred)
+				
+				if self.clabels is not None:
+					yPred = list(map(lambda y : self.clabels[y[0]], y[1], yPred))
 		else:
 			yPred = np.argmax(yPred, axis=1)
 		return yPred
