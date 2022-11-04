@@ -75,6 +75,7 @@ if __name__ == "__main__":
 	parser.add_argument('--cfpath', type=str, default = "none", help = "column features file path")
 	parser.add_argument('--nrepl', type=int, default = 2, help = "no of replicationns")
 	parser.add_argument('--mlfpath', type=str, default = "none", help = "ml config file path")
+	parser.add_argument('--clabel', type=str, default = "str", help = "class label numeric or string")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -120,6 +121,8 @@ if __name__ == "__main__":
 		""" create column features """
 		sfpaths = getAllFiles(args.sfdir)
 		expl = DataExplorer(False)
+		clabels = ["0", "1", "2"] if args.clabel == "num" else ["N", "A", "C"]
+		
 		for sfp in 	sfpaths:
 			#print(sfp)
 			names = list()
@@ -135,11 +138,11 @@ if __name__ == "__main__":
 			expl.addListCatData(cities, "city")		
 			
 			stats = getStats(expl, "name")
-			print(toStrFromList(stats, 3) + ",N")
+			print(toStrFromList(stats, 3) + "," + clabels[0])
 			stats = getStats(expl, "address")
-			print(toStrFromList(stats, 3) + ",A")
+			print(toStrFromList(stats, 3) + "," + clabels[1])
 			stats = getStats(expl, "city")
-			print(toStrFromList(stats, 3) + ",C")
+			print(toStrFromList(stats, 3) + ",", clabels[2])
 	
 	elif op == "cpairs":
 		""" create col features pair """
