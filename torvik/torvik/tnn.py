@@ -81,7 +81,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		defValues["train.layer.data"] = (None, "missing layer data")
 		defValues["train.input.size"] = (None, None)
 		defValues["train.output.size"] = (None, "missing  output size")
-		defValues["train.output.clables"] = (None, None)
+		defValues["train.output.clabels"] = (None, None)
 		defValues["train.batch.size"] = (10, None)
 		defValues["train.loss.reduction"] = ("mean", None)
 		defValues["train.loss.margin"] = (1.0, None)
@@ -584,7 +584,7 @@ class FeedForwardNetwork(torch.nn.Module):
 				yPred = zip(yCl, yPred)
 				
 				if self.clabels is not None:
-					yPred = list(map(lambda y : self.clabels[y[0]], y[1], yPred))
+					yPred = list(map(lambda y : (self.clabels[y[0]], y[1]), yPred))
 		else:
 			yPred = np.argmax(yPred, axis=1)
 		return yPred
@@ -687,7 +687,12 @@ class FeedForwardNetwork(torch.nn.Module):
 				xBatch, yBatch = xBatch.to(model.device), yBatch.to(model.device)
 				yPred = model(xBatch)
 				
+				
 				# Compute and print loss
+				if model.outputSize > 2:
+					yBatch = torch.flatten(yBatch.long())
+					#print(yPred.shape)
+					#print(yBatch.shape)
 				loss = model.lossFn(yPred, yBatch)
 				if model.verbose and t % epochIntv == 0 and b % model.batchIntv == 0:
 					print("epoch {}  batch {}  loss {:.6f}".format(t, b, loss.item()))
@@ -824,6 +829,9 @@ class FeedForwardNetwork(torch.nn.Module):
 			yPred = model(model.validFeatData)
 			#yPred = yPred.data.cpu().numpy()
 			yActual = model.validOutData
+			if model.outputSize > 2:
+				yActual = torch.flatten(yActual.long())
+
 			score = model.lossFn(yPred, yActual).item()
 		model.train()
 		return score
