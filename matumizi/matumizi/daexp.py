@@ -2919,6 +2919,104 @@ class DataExplorer:
 		result = self.__printResult("selFeatures", selFeatures)
 		return result
 			
+	def getInfoGainFeatures(self, fdst, tdst, nfeatures, nsplit, nbins=20):
+		"""
+		get top n features based on information gain or entropy loss
+		
+		Parameters
+			fdst: list of pair of data set name or list or numpy array and data type
+			tdst: target data set name or list or numpy array and data type (cat for classification num for regression)
+			nsplit : num of splits
+			nfeatures : desired no of features
+			nbins : no of bins for numerical data
+		"""	
+		le = len(fdst)
+		nfeatGiven = int(le / 2)
+		assertGreater(nfeatGiven, nfeatures, "available features should be greater than desired")
+		fds = list()
+		types = ["num", "cat"]
+		for i in range (0, le, 2):
+			ds = fdst[i]
+			dt = fdst[i+1]
+			assertInList(dt, types, "invalid type for data source " + dt)
+			data = self.getNumericData(ds) if dt == "num" else self.getCatData(ds)
+			p =(ds, dt)
+			fds.append(p)
+		
+		assertInList(tdst[1], types, "invalid type for data source " + tdst[1])
+		assertGreater(nsplit, 3, "minimum 4 splits necessary")
+		tdata = self.getNumericData(tdst[0]) if tdst[1] == "num" else self.getCatData(tdst[0])
+		tentr = self.getAnyEntropy(tdst[0], tdst[1], nbins)["entropy"]
+		sz =len(tdata)
+		
+		sfds = list()
+		for ds, dt in fds:
+			#print(ds, dt)
+			if dt == "num":
+				fd = self.getNumericData(ds)
+				_ , _ , vmax, vmin = self.__getBasicStats(fd)
+				intv = (vmax - vmin) / nsplit
+				maxig = None
+				spmin = vmin + intv
+				spmax = vmax - 0.9 * intv
+				
+				#iterate all splits
+				for sp in np.arange(spmin, spmax, intv):
+					ltvals = list()
+					gevals = list()
+					for i in range(len(fd)):
+						if fd[i] < sp:
+							ltvals.append(tdata[i])
+						else:
+							gevals.append(tdata[i])
+					
+					self.addListNumericData(ltvals, "spds") if tdst[1] == "num" else self.addListCatData(ltvals, "spds")
+					lten = self.getAnyEntropy("spds", tdst[1], nbins)["entropy"]
+					self.addListNumericData(gevals, "spds") if tdst[1] == "num" else self.addListCatData(gevals, "spds")
+					geen = self.getAnyEntropy("spds", tdst[1], nbins)["entropy"]
+					
+					#info gain
+					ig = tentr - (len(ltvals) * lten / sz + len(gevals) * geen / sz)
+					if maxig is None or ig > maxig:
+						maxig = ig
+				
+				pa = (ds, maxig)
+				sfds.append(pa)
+			else:
+				fd = self.getCatData(ds)
+				fds = set(fd)
+				fdps = genPowerSet(fds)
+				maxig = None
+				
+				#iterate all subsets
+				for s in fdps:
+					if len(s) == len(fds):
+						continue
+					invals = list()
+					exvals = list()
+					for i in range(len(fd)):
+						if fd[i] in s:
+							invals.append(tdata[i])
+						else:
+							exvals.append(tdata[i])
+							
+					self.addListNumericData(invals, "spds") if tdst[1] == "num" else self.addListCatData(invals, "spds")
+					inen = self.getAnyEntropy("spds", tdst[1], nbins)["entropy"]
+					self.addListNumericData(exvals, "spds") if tdst[1] == "num" else self.addListCatData(exvals, "spds")
+					exen = self.getAnyEntropy("spds", tdst[1], nbins)["entropy"]
+
+					ig = tentr - (len(invals) * inen / sz + len(exvals) * exen / sz)
+					if maxig is None or ig > maxig:
+						maxig = ig
+					
+				pa = (ds, maxig)
+				sfds.append(pa)
+			
+		#sort of info gain
+		sfds.sort(key = lambda v : v[1], reverse = True)
+		
+		result = self.__printResult("selFeatures", sfds[:nfeatures])
+		return result
 				
 	def __stackData(self, *dsl):
 		"""

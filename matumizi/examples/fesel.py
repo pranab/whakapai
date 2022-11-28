@@ -256,6 +256,8 @@ if __name__ == "__main__":
 			res = expl.getCondMutInfoMaxFeatures(fdt, tdt, 3)
 		elif args.algo == "icap":
 			res = expl.getInteractCapFeatures(fdt, tdt, 3)
+		elif args.algo == "infg":
+			res = expl.getInfoGainFeatures(fdt, tdt, 3, 8)
 
 		print(res)
 	else:

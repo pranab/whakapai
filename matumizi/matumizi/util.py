@@ -2136,6 +2136,32 @@ def getAlphaNumCharCount(sdata):
 			ocount += 1
 	r = (acount, ncount, ocount)
 	return r	
+
+def genPowerSet(cvalues, incEmpty=False):
+	"""
+	generates power set i.e all possible subsets
+	
+	Parameters
+		cvalues : list of categorical values
+		incEmpty : include empty set if True
+	"""		
+	ps = list()
+	for cv in cvalues:
+		pse = list()
+		for s in ps:
+			sc = s.copy()
+			sc.add(cv)
+			#print(sc)
+			pse.append(sc)
+		ps.extend(pse)
+		es = set()
+		es.add(cv)
+		ps.append(es)
+		#print(es)
+	
+	if incEmpty:
+		ps.append({})
+	return ps
 			
 class StepFunction:
 	"""
