@@ -4,14 +4,14 @@ implementation is the python package matumizi
 Setup
 =====
 Install matumizi as follows
-pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.2
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.5
 
 Install requirements
 pip3 install -r requirements.txt
 
 Generate loan application data
 ==============================
-./fesel.py --op gen --nloan 2000 --noise .05 --klen 10 > lo.txt
+python3 fesel.py --op gen --nloan 2000 --noise .05 --klen 10 > lo.txt
 
 where
 op = operation to perform
@@ -19,9 +19,16 @@ nloan = num of loans
 noise = noise level
 klen = loan ID length
 
+Options for "op" (featute selection techniques)
+mrmr 	- Max relevance min redundancy
+jmi		- Joint mutual information
+cmim	- Conditional mutual information maximization
+icap 	- Interaction capping
+infg	- Information gain
+
 Feature selection
 =================
-./fesel.py --op fsel --fpath lo.txt --algo mrmr
+python3 fesel.py --op fsel --fpath lo.txt --algo mrmr
 
 where
 op = operation to perform
