@@ -459,6 +459,126 @@ class SupvLearningDataGenerator:
 			raise "invalid type expecting categorical"
 		return s
 
+class RegressionDataGenerator:
+	"""
+	data generator for regression, including square terms, cross terms, bias and noise
+	"""
+	def __init__(self,  configFile):
+		"""
+		initilizers
+		
+		Parameters
+			configFile : config file path
+		"""
+		defValues = dict()
+		defValues["common.pvar.samplers"] = (None, None)
+		defValues["common.pvar.ranges"] = (None, None)
+		defValues["common.linear.weights"] = (None, None)
+		defValues["common.square.weights"] = (None, None)
+		defValues["common.crterm.weights"] = (None, None)
+		defValues["common.bias"] = (0, None)
+		defValues["common.noise"] = (.05, None)
+		defValues["common.tvar.range"] = (None, None)
+		defValues["common.weight.niter"] = (20, None)
+		self.config = Configuration(configFile, defValues)
+		
+		#samplers for predictor variables
+		items = self.config.getStringListConfig("common.pvar.samplers")[0]
+		self.samplers = list(map(lambda s : createSampler(s), items))
+		npvar = len(self.samplers)
+		
+		#values range  for predictor variables
+		items = self.config.getFloatListConfig("common.pvar.ranges")[0]
+		self.pvranges = list()
+		for i in range(0, len(items), 2):	
+			r = (items[i], items[i+1], items[i+1] - items[i])
+			self.pvranges.append(r)
+		assertEqual(len(self.pvranges), npvar, "no of predicatble var ranges provided is inavalid")
+		
+			
+		#linear weights for predictor variables
+		self.lweights = self.config.getFloatListConfig("common.linear.weights")[0]
+		assertEqual(len(self.lweights), npvar, "no of linear weights provided is inavalid")
+		
+		
+		#square weights for predictor variables
+		items = self.config.getStringListConfig("common.square.weights")[0]
+		self.sqweight = dict()
+		for i in range(0, len(items), 2):
+			vi = int(items[i])
+			assertLesser(vi, npvar, "invalid predictor var index")
+			wt = float(items[i+1])
+			self.sqweight[vi] = wt
+			
+		#crossterm weights for predictor variables
+		items = self.config.getStringListConfig("common.crterm.weights")[0]
+		self.crweight = dict()
+		for i in range(0, len(items), 3):
+			vi = int(items[i])
+			assertLesser(vi, npvar, "invalid predictor var index")
+			vj = int(items[i+1])
+			assertLesser(vj, npvar, "invalid predictor var index")
+			wt = float(items[i+2])
+			vp = (vi, vj)
+			self.crweight[vp] = wt
+		
+		#boas, noise and target range values	
+		self.bias = self.config.getFloatConfig("common.bias")[0]	
+		self.noise = self.config.getFloatConfig("common.noise")[0]	
+		self.tvarlim = self.config.getFloatListConfig("common.tvar.range")[0]
+		
+		#scale weights so that 
+		mcount = 0
+		mlast = 0
+		niter = self.config.getIntConfig("common.weight.niter")[0]
+		for i in range(iiter):
+			y = self.sample()[1]
+			if y < self.tvarlim[0]:
+				for j in range(npvar):
+					if self.lweights[j] > 0:
+						 self.lweights[j] *= (self.tvarlim[j][0] - self.bias) / (y - self.bias)
+					else:
+						 self.lweights[j] *= (y - self.bias) / (self.tvarlim[j][0] - self.bias)
+				mcount += 1
+				mlast = i
+			elif y > self.tvarlim[1]:
+				for j in range(npvar):
+					if self.lweights[j] > 0:
+						self.lweights[j] *= (self.tvarlim[i][1] - self.bias) / (y - self.bias)
+					else:
+						self.lweights[j] *= (y - self.bias) / (self.tvarlim[i][1] - self.bias)
+				mcount += 1
+				mlast = i
+		print("made {} modifications for weight, last modification at iteration {}, total iteration {}".format(mcount, mlast, niter))			
+			
+	def sample(self):
+		"""
+		sample predictor variables and target variable
+		
+		"""
+		pvd = list(map(lambda s : s.sample(), self.samplers))
+		spvd = list()
+		lsum = self.bias
+		for i in range(npvar):
+			pvd[i] = rangeLimit(pvd[i], self.pvranges[i][0], self.pvranges[i][1])
+			spvd[i] = pvd[i]
+			pvd[i] = scaleMinMaxScaData(pvd[i], self.pvranges[i])
+			lsum += self.lweights[i] * pvd[i]
+			
+		ssum = 0
+		for k in self.sqweight.keys():
+			ssum += self.sqweight[k] + pvd[k] * pvd[k]
+				
+		crsum = 0
+		for k in self.crweight()
+			vi = k[0]
+			vj = k[1]
+			crsum += self.crweight[k] * pvd[vi] * pvd[vj]
+			
+		y = lsum + ssum + crsum
+		y = preturbScalar(y, y * self.noise)
+		r = (spvd, y)
+		return r
 
 
 def loadDataFile(file, delim, cols, colIndices):
@@ -926,6 +1046,17 @@ def scaleDataWithParams(data, method, scParams):
 		raise ValueError("invalid scaling method")	
 	return data
 
+def scaleMinMaxScaData(data, minMax):
+	"""
+	minmax scales scalar data
+
+	Parameters
+		data : scalar data
+		minMax : min, max and range for each column
+	"""
+	sd = (data - minMax[0]) / minMax[2]
+	return sd
+	
 
 def scaleMinMaxTabData(tdata, minMax):
 	"""
@@ -933,7 +1064,7 @@ def scaleMinMaxTabData(tdata, minMax):
 
 	Parameters
 		tdata : 2D array
-		minMax : ni, max and range for each column
+		minMax : min, max and range for each column
 	"""
 	stdata = list()
 	for r in tdata:
@@ -950,7 +1081,7 @@ def scaleMinMax(rdata, minMax):
 
 	Parameters
 		rdata : data array
-		minMax : ni, max and range for each column
+		minMax : min, max and range for each column
 	"""
 	srdata = list()
 	for i in range(len(rdata)):

@@ -268,6 +268,17 @@ def range_limit(val, minv, maxv):
 		val = maxv
 	return val	
 
+def rangeLimit(val, minv, maxv):
+	"""
+	range limit a value
+	
+	Parameters
+		val : data value
+		minv : minimum
+		maxv : maximum
+	"""
+	return range_limit(val, minv, maxv)
+
 def isInRange(val, minv, maxv):
 	"""
 	checks if within range
