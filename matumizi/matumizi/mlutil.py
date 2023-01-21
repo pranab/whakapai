@@ -477,7 +477,7 @@ class RegressionDataGenerator:
 		defValues["common.square.weights"] = (None, None)
 		defValues["common.crterm.weights"] = (None, None)
 		defValues["common.bias"] = (0, None)
-		defValues["common.noise"] = (.05, None)
+		defValues["common.noise"] = (None, None)
 		defValues["common.tvar.range"] = (None, None)
 		defValues["common.weight.niter"] = (20, None)
 		self.config = Configuration(configFile, defValues)
@@ -485,20 +485,25 @@ class RegressionDataGenerator:
 		#samplers for predictor variables
 		items = self.config.getStringListConfig("common.pvar.samplers")[0]
 		self.samplers = list(map(lambda s : createSampler(s), items))
-		npvar = len(self.samplers)
+		self.npvar = len(self.samplers)
 		
 		#values range  for predictor variables
-		items = self.config.getFloatListConfig("common.pvar.ranges")[0]
+		items = self.config.getStringListConfig("common.pvar.ranges")[0]
 		self.pvranges = list()
-		for i in range(0, len(items), 2):	
-			r = (items[i], items[i+1], items[i+1] - items[i])
+		for i in range(0, len(items), 2):
+			if 	items[i] =="none":
+				r = None
+			else:
+				vmin = float(items[i])
+				vmax = float(items[i+1])
+				r = (vmin, vmax, vmax-vmin)
 			self.pvranges.append(r)
-		assertEqual(len(self.pvranges), npvar, "no of predicatble var ranges provided is inavalid")
+		assertEqual(len(self.pvranges), self.npvar, "no of predicatble var ranges provided is inavalid")
 		
 			
 		#linear weights for predictor variables
 		self.lweights = self.config.getFloatListConfig("common.linear.weights")[0]
-		assertEqual(len(self.lweights), npvar, "no of linear weights provided is inavalid")
+		assertEqual(len(self.lweights), self.npvar, "no of linear weights provided is inavalid")
 		
 		
 		#square weights for predictor variables
@@ -506,7 +511,7 @@ class RegressionDataGenerator:
 		self.sqweight = dict()
 		for i in range(0, len(items), 2):
 			vi = int(items[i])
-			assertLesser(vi, npvar, "invalid predictor var index")
+			assertLesser(vi, self.npvar, "invalid predictor var index")
 			wt = float(items[i+1])
 			self.sqweight[vi] = wt
 			
@@ -515,41 +520,40 @@ class RegressionDataGenerator:
 		self.crweight = dict()
 		for i in range(0, len(items), 3):
 			vi = int(items[i])
-			assertLesser(vi, npvar, "invalid predictor var index")
+			assertLesser(vi, self.npvar, "invalid predictor var index")
 			vj = int(items[i+1])
-			assertLesser(vj, npvar, "invalid predictor var index")
+			assertLesser(vj, self.npvar, "invalid predictor var index")
 			wt = float(items[i+2])
 			vp = (vi, vj)
 			self.crweight[vp] = wt
 		
 		#boas, noise and target range values	
 		self.bias = self.config.getFloatConfig("common.bias")[0]	
-		self.noise = self.config.getFloatConfig("common.noise")[0]	
+		noise = self.config.getStringListConfig("common.noise")[0]	
+		self.ndistr = noise[0]
+		self.noise = float(noise[1])
 		self.tvarlim = self.config.getFloatListConfig("common.tvar.range")[0]
 		
-		#scale weights so that 
-		mcount = 0
-		mlast = 0
+		#sample
 		niter = self.config.getIntConfig("common.weight.niter")[0]
-		for i in range(iiter):
+		yvals = list()
+		for i in range(niter):
 			y = self.sample()[1]
-			if y < self.tvarlim[0]:
-				for j in range(npvar):
-					if self.lweights[j] > 0:
-						 self.lweights[j] *= (self.tvarlim[j][0] - self.bias) / (y - self.bias)
-					else:
-						 self.lweights[j] *= (y - self.bias) / (self.tvarlim[j][0] - self.bias)
-				mcount += 1
-				mlast = i
-			elif y > self.tvarlim[1]:
-				for j in range(npvar):
-					if self.lweights[j] > 0:
-						self.lweights[j] *= (self.tvarlim[i][1] - self.bias) / (y - self.bias)
-					else:
-						self.lweights[j] *= (y - self.bias) / (self.tvarlim[i][1] - self.bias)
-				mcount += 1
-				mlast = i
-		print("made {} modifications for weight, last modification at iteration {}, total iteration {}".format(mcount, mlast, niter))			
+			yvals.append(y)
+		
+		#scale weights by sampled mean and target mean
+		my = statistics.mean(yvals)	
+		myt =(self.tvarlim[1] - self.tvarlim[0]) / 2
+		sc = (myt - self.bias) / (my - self.bias)
+		#print("weight scale {:.3f}".format(sc))
+		self.lweights = list(map(lambda w : w * sc, self.lweights))
+		#print("weights {}".format(toStrFromList(self.lweights, 3)))
+		
+		for k in self.sqweight.keys():
+			self.sqweight[k] *= sc
+
+		for k in self.crweight.keys():
+			self.crweight[k] *= sc
 			
 	def sample(self):
 		"""
@@ -559,24 +563,27 @@ class RegressionDataGenerator:
 		pvd = list(map(lambda s : s.sample(), self.samplers))
 		spvd = list()
 		lsum = self.bias
-		for i in range(npvar):
-			pvd[i] = rangeLimit(pvd[i], self.pvranges[i][0], self.pvranges[i][1])
-			spvd[i] = pvd[i]
+		for i in range(self.npvar):
+			if  self.pvranges[i] is not None:
+				pvd[i] = rangeLimit(pvd[i], self.pvranges[i][0], self.pvranges[i][1])
+			spvd.append(pvd[i])
 			pvd[i] = scaleMinMaxScaData(pvd[i], self.pvranges[i])
 			lsum += self.lweights[i] * pvd[i]
-			
+		
+		#square terms	
 		ssum = 0
 		for k in self.sqweight.keys():
 			ssum += self.sqweight[k] + pvd[k] * pvd[k]
-				
+		
+		#cross terms		
 		crsum = 0
-		for k in self.crweight()
+		for k in self.crweight.keys():
 			vi = k[0]
 			vj = k[1]
 			crsum += self.crweight[k] * pvd[vi] * pvd[vj]
 			
 		y = lsum + ssum + crsum
-		y = preturbScalar(y, y * self.noise)
+		y = preturbScalar(y, self.noise, self.ndistr)
 		r = (spvd, y)
 		return r
 

@@ -306,20 +306,27 @@ class BernoulliTrialSampler:
 	bernoulli trial sampler return True or False
 	"""
 	
-	def __init__(self, pr):
+	def __init__(self, pr, events=None):
 		"""
 		initializer
 		
 		Parameters
 			pr : probability
+			events : event values
 		"""
 		self.pr = pr
+		self.retEvent = False if events is None else True
+		self.events = events
 		
+	
 	def sample(self):
 		"""
 		samples value
 		"""
-		return random.random() < self.pr
+		res = random.random() < self.pr
+		if self.retEvent:
+			res = self.events[0] if res else self.events[1]
+		return res
 	
 class PoissonSampler:
 	"""
@@ -1378,6 +1385,8 @@ def createSampler(data):
 	size = len(items)
 	dtype = items[-1]
 	stype = items[-2]
+	#print("sampler data {}".format(data))
+	#print("sampler {}".format(stype))
 	sampler = None
 	if stype == "uniform":
 		if dtype == "int":
@@ -1424,8 +1433,20 @@ def createSampler(data):
 		step = int(items[2])
 		values = list(map(lambda i : int(items[i]), range(3, len(items)-2)))
 		sampler = DiscreteRejectSampler(vmin, vmax, step, values)
+	elif stype == "bernauli":
+		pr = float(items[0])
+		events = None
+		if len(items) == 5:
+			events = list()
+			if dtype == "int":
+				events.append(int(items[1]))
+				events.append(int(items[2]))
+			elif dtype == "categorical":
+				events.append(items[1])
+				events.append(items[2])
+		sampler = BernoulliTrialSampler(pr, events)
 	else:
-		raise ValueError("invalid sampler type " + dtype)
+		raise ValueError("invalid sampler type " + stype)
 	return sampler
 				 
 				

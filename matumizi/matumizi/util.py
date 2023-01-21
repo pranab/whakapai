@@ -390,15 +390,21 @@ def genRandomIntListWithinRange(size, minLim, maxLim):
 			values.add(val)
 	return list(values)
 
-def preturbScalar(value, vrange):
+def preturbScalar(value, vrange, distr="uniform"):
 	"""
 	preturbs a mutiplicative value within range
 	
 	Parameters
 		value : data value
 		vrange : value delta  fraction
+		distr : noise distribution type
 	"""
-	scale = 1.0 - vrange + 2 * vrange * random.random() 
+	if distr == "uniform":
+		scale = 1.0 - vrange + 2 * vrange * random.random() 
+	elif distr == "normal":
+		scale = 1.0 + np.random.normal(0, vrange)
+	else:
+		exisWithMsg("unknown noise distr " + distr)
 	return value * scale
 	
 def preturbScalarAbs(value, vrange):
