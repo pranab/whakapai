@@ -43,8 +43,8 @@ if __name__ == "__main__":
 		dgen = RegressionDataGenerator(args.genconf)
 		for _ in range(args.nsamp):
 			s = dgen.sample()
-			pv = toStrFromList(s[0], 3)
-			pv = pv + "," + toStr(s[1], 3)
+			pv = toStrFromList(s[0], 2)
+			pv = pv + "," + toStr(s[1], 2)
 			print(pv)
 		
 		

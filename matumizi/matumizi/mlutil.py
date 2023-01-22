@@ -461,14 +461,16 @@ class SupvLearningDataGenerator:
 
 class RegressionDataGenerator:
 	"""
-	data generator for regression, including square terms, cross terms, bias and noise
+	data generator for regression, including square terms, cross terms, bias, noise, correlated variables
+	and user defined function
 	"""
-	def __init__(self,  configFile):
+	def __init__(self,  configFile, callback=None):
 		"""
 		initilizers
 		
 		Parameters
 			configFile : config file path
+			callback : user defined function
 		"""
 		defValues = dict()
 		defValues["common.pvar.samplers"] = (None, None)
@@ -476,11 +478,13 @@ class RegressionDataGenerator:
 		defValues["common.linear.weights"] = (None, None)
 		defValues["common.square.weights"] = (None, None)
 		defValues["common.crterm.weights"] = (None, None)
+		defValues["common.corr.params"] = (None, None)
 		defValues["common.bias"] = (0, None)
 		defValues["common.noise"] = (None, None)
 		defValues["common.tvar.range"] = (None, None)
 		defValues["common.weight.niter"] = (20, None)
 		self.config = Configuration(configFile, defValues)
+		self.callback = callback
 		
 		#samplers for predictor variables
 		items = self.config.getStringListConfig("common.pvar.samplers")[0]
@@ -527,6 +531,22 @@ class RegressionDataGenerator:
 			vp = (vi, vj)
 			self.crweight[vp] = wt
 		
+		#correlated variables
+		items = self.config.getStringListConfig("common.corr.params")[0]
+		self.corrparams = dict()
+		for co in items:
+			cparam = co.split(":")
+			vi = int(cparam[0])
+			vj = int(cparam[1])
+			k = (vi,vj)
+			bias = float(cparam[2])
+			wt = float(cparam[3])
+			noise = float(cparam[4])
+			roundoff = cparam[5] == "true"
+			v = (bias, wt, noise, roundoff)
+			self.corrparams[k] = v
+		
+		
 		#boas, noise and target range values	
 		self.bias = self.config.getFloatConfig("common.bias")[0]	
 		noise = self.config.getStringListConfig("common.noise")[0]	
@@ -555,18 +575,37 @@ class RegressionDataGenerator:
 		for k in self.crweight.keys():
 			self.crweight[k] *= sc
 			
+			
 	def sample(self):
 		"""
 		sample predictor variables and target variable
 		
 		"""
 		pvd = list(map(lambda s : s.sample(), self.samplers))
+		
+		#correct for correlated variables
+		for k in self.corrparams.keys():
+			vi = k[0]
+			vj = k[1]
+			v = self.corrparams[k]
+			bias = v[0]
+			wt = v[1]
+			noise = v[2]
+			roundoff = v[3]	
+			nv = bias + wt * pvd[vi] 
+			pvd[vj] = preturbScalar(nv, noise, "normal")
+			if roundoff:
+				pvd[vj] = round(pvd[vj])
+		
 		spvd = list()
 		lsum = self.bias
 		for i in range(self.npvar):
+			#range limit
 			if  self.pvranges[i] is not None:
 				pvd[i] = rangeLimit(pvd[i], self.pvranges[i][0], self.pvranges[i][1])
 			spvd.append(pvd[i])
+			
+			#scale
 			pvd[i] = scaleMinMaxScaData(pvd[i], self.pvranges[i])
 			lsum += self.lweights[i] * pvd[i]
 		
@@ -584,6 +623,9 @@ class RegressionDataGenerator:
 			
 		y = lsum + ssum + crsum
 		y = preturbScalar(y, self.noise, self.ndistr)
+		if self.callback is not None:
+			ufy = self.callback(spvd)
+			y += ufy
 		r = (spvd, y)
 		return r
 
