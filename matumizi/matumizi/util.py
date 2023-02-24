@@ -1184,6 +1184,19 @@ def writeFloatListToFile(ldata, prec, filePath):
 		for d in ldata:
 			fh.write(formatFloat(prec, d) + "\n")
 
+def mutateFileLines(dirPath, mutator, delim=","):
+	"""
+	mutates lines from a file
+	
+	Parameters
+		dirPath : file path
+		delim : delemeter
+	"""
+	lines = list()
+	for li in fileRecGen(dirPath, delim):
+		li = mutator(li)
+		lines.append(li)		
+	return lines
 	
 def takeFirst(elems):
 	"""
