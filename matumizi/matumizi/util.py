@@ -785,7 +785,39 @@ def typedValue(val, dtype=None):
 			tVal = val		
 	
 	return tVal
+
+def isInt(val):
+	"""
+	return true if string is int and the typed value
 	
+	Parameters
+		val : value
+	"""
+	valInt = True
+	try:
+		tVal = int(val)
+	except ValueError:
+		valInt = False
+		tVal = None
+	r = (valInt, tVal)
+	return r
+	
+def isFloat(val):
+	"""
+	return true if string is float
+	
+	Parameters
+		val : value
+	"""
+	valFloat = True
+	try:
+		tVal = float(val)
+	except ValueError:
+		valFloat = False
+		tVal = None
+	r = (valFloat, tVal)
+	return r
+
 def getAllFiles(dirPath):
 	"""
 	get all files recursively
