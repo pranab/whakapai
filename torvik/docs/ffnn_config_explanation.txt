@@ -1,0 +1,133 @@
+Note:
+This an annotated explanation of configuration parameters for a no code Feed Forward Network implementation
+based on PyTorch in tnn.py 
+
+When any property value is _, it implies default value. To find the default value please look
+up the constructor code in tnn.py. For PyTorch parameters, the default values are as specified in 
+PyTorch document.
+
+common.mode=training
+This is not used. Please ignore
+
+common.model.directory=./model/tnn
+Model save directory path
+
+common.model.file=countfl.mod
+Saved model file name
+
+common.preprocessing=scale
+Any pre processing to be performed e.g scale
+
+common.scaling.method=_
+Scaling method e.g minmax, zscale
+
+common.scaling.minrows=_
+minimum of no of rows for scaling
+
+common.verbose=True
+Verbosity level
+
+common.device =_
+Device  e.g cpu, gpu
+
+train.data.file=countfl_tr.txt
+Training data file path
+
+train.data.fields=1:6
+Index of fileds to be used from the training data file
+
+train.data.feature.fields=0:4
+Index of columns for features
+
+train.data.out.fields=5
+Index of output column
+
+train.layer.data=3:relu:false:false:0.5,1:none:false:false:-1.0
+Nerual architecture description for each layer. description of each later is separated by coma.
+Attributes of a given layer are separated by semi colon. The layer attributes are 1)no of units 
+2)activation function 3)batch normalization flag 4) whether batch normalization should be done after
+activation 5)drop out probability
+
+train.input.size=_
+Input size
+
+train.output.size=1
+Output size
+
+train.output.clabels=_
+Output class labels for classification
+
+train.batch.size=32
+batch size
+
+train.loss.reduction=_
+Loss reduction. Please look up PyTorch documentation for the options
+
+train.opt.learning.rate=.005
+Learning rate
+
+train.opt.weight.decay=_
+Optimizer weight decay. Please look up PyTorch documentation for details
+
+train.opt.momentum=_
+Optimizer momentum. Please look up PyTorch documentation for details
+
+train.opt.eps=_
+For adam optimizer term added to the denominator to improve numerical stability. Please look up 
+PyTorch documentation for details
+
+train.opt.dampening=_
+Dampening for momentum. Please look up PyTorch documentation for details
+
+
+train.opt.momentum.nesterov=_
+Nesterov momentum. Please look up PyTorch documentation for details
+
+train.opt.betas=_
+For adam optimizer, coefficients used for computing running averages of gradient and its square.
+Please look up PyTorch documentation for details
+
+train.opt.alpha=_
+For RMPprop optimizer, smoothing constant. Please look up PyTorch documentation for details
+
+train.num.iterations=100
+num of epochs for training
+
+train.optimizer=_
+Optimizer type. Options are sgd, adam and rmsprop
+
+train.lossFn=mse
+Loss function. Optiona rea ltwo, mse, ce, lone, mae, bce, bcel, sm, mlsm and triplet
+
+train.model.save=True
+If True, trained model is saved
+
+train.track.error=True
+tracks error if True
+
+train.epoch.intv=10
+Epoch interval for tracking error
+
+train.batch.intv=5
+batch interval for tracking error
+
+train.print.weights=_
+prints weights if True
+
+valid.data.file=countfl_va.txt
+Validation data file path
+
+valid.accuracy.metric=mse
+Acciracy metric for validation
+
+predict.data.file=countfl_va.txt
+Validation data file path
+
+predict.use.saved.model=True
+If True uses saved model for training
+
+predict.output=_
+Prediction output type for classification. Options are prob, class
+
+predict.feat.pad.size=50
+prediction output formatting related
