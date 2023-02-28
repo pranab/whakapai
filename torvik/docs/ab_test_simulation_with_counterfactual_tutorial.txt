@@ -1,0 +1,71 @@
+This tutorial is  for simulating A/B test with counterfactual and a regression model. Use case is a 
+marketing campaign
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.7
+
+Install no code framework for PyTorch
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.4
+
+it's recommended that you copy macamp.py  and tnn_countfl.properties to a working directory and work 
+from there. You should create directory called model/tnn under your working directory
+
+Generate training data
+======================
+Base data
+python3 mcamp.py --op gen --genconf mcamp.properties --nsamp 2000 --incid true > countfl.txt
+
+where
+op = operation to be performed
+genconf = reghression synthetic data generator properties file
+nsamp = no of samples
+incid = true to to include customer ID as the first field
+
+Add income group based bias
+python3 mcamp.py --op setexp  --cffile countfl.txt > countfl_tr.txt
+
+where
+cffile = file path with data generated from the previous step
+
+Generate validation data
+========================
+Base data
+python3 mcamp.py --op gen --genconf mcamp.properties --nsamp 500 --incid true > countfl.txt
+
+Add income group based bias
+python3 mcamp.py --op setexp  --cffile countfl.txt > countfl_va.txt
+
+Generate test data
+==================
+Base data
+python3 mcamp.py --op gen --genconf mcamp.properties --nsamp 500 --incid true > countfl.txt
+
+set campaign flag
+python3 mcamp.py --op setcamp  --cffile countfl.txt > countfl_te.txt
+
+Train model
+===========
+ython3 mcamp.py --op train --mlconf tnn_countfl.properties
+
+where 
+mlconf = ML config file path
+
+Counterfactual analysis
+=======================
+For income group of 1
+python3 mcamp.py --op cntfac --mlconf tnn_countfl.properties --cffile countfl_te.txt --cfindex 0 --cfval 1 
+
+You can repoeat for other income groups
+
+where 
+cfindex = index of intervened column
+cfval = intervened column value
+
+
+For past transaction count  of 1
+python3 mcamp.py --op cntfac --mlconf tnn_countfl.properties --cffile countfl_te.txt --cfindex 2 --cfval 1 
+
+You can repeat for other past transaction count
+

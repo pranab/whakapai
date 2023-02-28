@@ -66,35 +66,42 @@ def cntfactual(model, dataFile,  cindex , cvalue):
 	else:
 		FeedForwardNetwork.batchTrain(model) 
 
+	#feature data
 	featData = loadData(model, dataFile)
 	
-	#intervened column values
-	fc = featData[:,cindex]
-	
-	#scale intervened values
-	scalingMethod = model.config.getStringConfig("common.scaling.method")[0]
-	if scalingMethod == "zscale":
-		me = np.mean(fc)
-		sd = np.std(fc)
-		print("me {:.3f}  sd {:.3f}".format(me, sd))
-		scvalue = (cvalue - me) / sd
-	elif scalingMethod == "minmax":
-		vmin = fc.min()
-		vmax = fc.max()
-		vdiff = vmax - vmin
-		scvalue = (cvalue - vmin) / vdiff
-	else:
-		raise ValueError("invalid scaling method")
-		
-		
 	#scale all data
+	scalingMethod = model.config.getStringConfig("common.scaling.method")[0]
 	if (model.config.getStringConfig("common.preprocessing")[0] == "scale"):
 		featData = scaleData(featData, scalingMethod)
 	
+	
+	if cindex >= 0:
+		#intervened column values
+		fc = featData[:,cindex]
+
+		#scale intervened values
+		if scalingMethod == "zscale":
+			me = np.mean(fc)
+			sd = np.std(fc)
+			print("me {:.3f}  sd {:.3f}".format(me, sd))
+			scvalue = (cvalue - me) / sd
+		elif scalingMethod == "minmax":
+			vmin = fc.min()
+			vmax = fc.max()
+			vdiff = vmax - vmin
+			scvalue = (cvalue - vmin) / vdiff
+		else:
+			raise ValueError("invalid scaling method")
+		
+		
+		#interven
+		#print(featData[:5,:])
+		featData[:,cindex] = scvalue
+	
+	
 	#predict with intervened values
 	model.eval()
-	#print(featData[:5,:])
-	featData[:,cindex] = scvalue
+	
 	#print(featData[:5,:])
 	tfeatData = torch.from_numpy(featData[:,:])
 	yPred = model(tfeatData)
@@ -103,7 +110,12 @@ def cntfactual(model, dataFile,  cindex , cvalue):
 	yPred = yPred[:,0]
 	#print(yPred[:5])
 	av = yPred.mean()
-	print("intervened value {}\tav xaction amount {:.2f}".format(cvalue, av))
+	
+	if cindex >= 0:
+		print("intervened value {}\tav xaction amount {:.2f}".format(cvalue, av))
+	else:
+		print("non intervened \tav xaction amount {:.2f}".format(av))
+	
 
 def setcamp(rec):
 	"""
@@ -115,6 +127,20 @@ def setcamp(rec):
 	rec[5] = "1"
 	return rec
 	
+def setexp(rec):
+	"""
+	sets expense
+		
+	Parameters
+		rec: record
+	"""
+	#income group and campaign target
+	if rec[1] == "1" and rec[5] == "1":
+		exp = float(rec[-1])
+		exp *= randomFloat(1.20, 1.25)
+		rec[-1] = formatFloat(2, exp)
+	return rec
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
@@ -124,7 +150,7 @@ if __name__ == "__main__":
 	parser.add_argument('--mlconf', type=str, default = "", help = "ML config file path")
 	parser.add_argument('--cffile', type=str, default = "", help = "conterfactual test data file path")
 	parser.add_argument('--cfindex', type=int, default = 0, help = "coubterfactual column index")
-	parser.add_argument('--cfval', type=float, default = 0.0, help = "coubterfactual column value")
+	parser.add_argument('--cfval', type=str, default = "", help = "coubterfactual column value")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -140,11 +166,19 @@ if __name__ == "__main__":
 			print(pv)
 
 	elif op == "setcamp":
+		""" sets campaign flag """
 		cfdatafp = args.cffile
 		recs = mutateFileLines(cfdatafp, setcamp)
 		for r in recs:
 			print(",".join(r))
 		
+	elif op == "setexp":
+		""" increase transaction amount based on income group and campaign target """
+		cfdatafp = args.cffile
+		recs = mutateFileLines(cfdatafp, setexp)
+		for r in recs:
+			print(",".join(r))
+
 	elif op == "train":
 		""" train  model """
 		prFile = args.mlconf
@@ -157,7 +191,20 @@ if __name__ == "__main__":
 		prFile = args.mlconf
 		cfdatafp = args.cffile
 		cfindex = args.cfindex
-		cfval = args.cfval
+		cfvals = args.cfval.split(",")
+		if len(cfvals) == 1:
+			cfval = float(cfvals[0])
+		else:
+			r = isInt(cfvals[0])
+			if r[0]:
+				v1 = r[1]
+				v2 = int(cfvals[1])
+				cfval = randomInt(v1, v2)
+			else:
+				v1 = float(fvals[0])
+				v2 = float(fvals[1])
+				cfval = randomFloat(v1, v2)
+				
 		regressor = FeedForwardNetwork(prFile)
 		regressor.buildModel()
 		cntfactual(regressor, cfdatafp, cfindex, cfval)
