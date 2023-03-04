@@ -1935,6 +1935,26 @@ class DataExplorer:
 		self.__printStat(stat, pvalue, "probably uncorrelated", "probably correlated", sigLev)
 		return result
 
+	def getSizeCorrectChiSqCorr(self, ds1, ds2, chisq):
+		"""
+		cramerV size corrected chi square correlation for  categorical	data pair
+		
+		Parameters
+			ds1: data set name or list or numpy array
+			ds2: data set name or list or numpy array
+			chisq: chisq stat
+		"""
+		self.__printBanner("getting size corrected chi square correlation for  two categorical", ds1, ds2)
+		c1 = self.getCatUniqueValueCounts(ds1)["cardinality"]
+		c2 = self.getCatUniqueValueCounts(ds2)["cardinality"]
+		c = min(c1,c2)
+		assertGreater(c, 1, "min cardinality should be greater than 1")
+		l = len(self.getCatData(ds1))
+		t = l * (c - 1)
+		stat = math.sqrt(chisq / t)
+		result = self.__printResult("stat", stat)
+		return result
+
 	def getAnovaCorr(self, ds1, ds2, grByCol, sigLev=.05):
 		"""
 		anova correlation for  numerical categorical	

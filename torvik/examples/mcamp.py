@@ -198,10 +198,8 @@ if __name__ == "__main__":
 			cfvals = list()
 		else:
 			#intervened
-			cfindxs = args.cfindex.split(",")
-			cfindxs = toIntList(cfindxs)
-			cfvals = args.cfval.split(",")
-			cfvals = toFloatList(cfvals)
+			cfindxs = strToIntArray(args.cfindex)
+			cfvals = strToFloatArray(args.cfval)
 		regressor = FeedForwardNetwork(prFile)
 		regressor.buildModel()
 		cntfactual(regressor, cfdatafp, cfindxs, cfvals)
