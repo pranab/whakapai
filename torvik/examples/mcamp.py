@@ -48,7 +48,7 @@ def loadData(model, dataFile):
 	return featData.astype(np.float32)
 
 
-def cntfactual(model, dataFile,  cindex , cvalue):
+def cntfactual(model, dataFile,  cfindxs, cfvals):
 	"""
 	get average target values with intervened column value
 		
@@ -75,28 +75,30 @@ def cntfactual(model, dataFile,  cindex , cvalue):
 		featData = scaleData(featData, scalingMethod)
 	
 	
-	if cindex >= 0:
+	# intervene all columns
+	for i, v in zip(cfindxs, cfvals):
 		#intervened column values
-		fc = featData[:,cindex]
+		fc = featData[:,i]
 
 		#scale intervened values
 		if scalingMethod == "zscale":
 			me = np.mean(fc)
 			sd = np.std(fc)
-			print("me {:.3f}  sd {:.3f}".format(me, sd))
-			scvalue = (cvalue - me) / sd
+			#print("me {:.3f}  sd {:.3f}".format(me, sd))
+			scvalue = (v - me) / sd
 		elif scalingMethod == "minmax":
 			vmin = fc.min()
 			vmax = fc.max()
+			#print("vmin {:.3f}  vmax {:.3f}".format(vmin, vmax))
 			vdiff = vmax - vmin
-			scvalue = (cvalue - vmin) / vdiff
+			scvalue = (v - vmin) / vdiff
 		else:
 			raise ValueError("invalid scaling method")
 		
 		
 		#interven
 		#print(featData[:5,:])
-		featData[:,cindex] = scvalue
+		featData[:,i] = scvalue
 	
 	
 	#predict with intervened values
@@ -111,8 +113,8 @@ def cntfactual(model, dataFile,  cindex , cvalue):
 	#print(yPred[:5])
 	av = yPred.mean()
 	
-	if cindex >= 0:
-		print("intervened value {}\tav xaction amount {:.2f}".format(cvalue, av))
+	if len(cfindxs) > 0:
+		print("intervened values {}\tav xaction amount {:.2f}".format(str(cfvals), av))
 	else:
 		print("non intervened \tav xaction amount {:.2f}".format(av))
 	
@@ -149,8 +151,8 @@ if __name__ == "__main__":
 	parser.add_argument('--incid', type=str, default = "false", help = "include cust ID")
 	parser.add_argument('--mlconf', type=str, default = "", help = "ML config file path")
 	parser.add_argument('--cffile', type=str, default = "", help = "conterfactual test data file path")
-	parser.add_argument('--cfindex', type=int, default = 0, help = "coubterfactual column index")
-	parser.add_argument('--cfval', type=str, default = "", help = "coubterfactual column value")
+	parser.add_argument('--cfindex', type=str, default = "", help = "coubterfactual column indexes")
+	parser.add_argument('--cfval', type=str, default = "", help = "coubterfactual column values")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -190,24 +192,19 @@ if __name__ == "__main__":
 		""" intervened value and average """
 		prFile = args.mlconf
 		cfdatafp = args.cffile
-		cfindex = args.cfindex
-		cfvals = args.cfval.split(",")
-		if len(cfvals) == 1:
-			cfval = float(cfvals[0])
+		if  args.cfindex == "none":
+			#non intervened
+			cfindxs = list()
+			cfvals = list()
 		else:
-			r = isInt(cfvals[0])
-			if r[0]:
-				v1 = r[1]
-				v2 = int(cfvals[1])
-				cfval = randomInt(v1, v2)
-			else:
-				v1 = float(fvals[0])
-				v2 = float(fvals[1])
-				cfval = randomFloat(v1, v2)
-				
+			#intervened
+			cfindxs = args.cfindex.split(",")
+			cfindxs = toIntList(cfindxs)
+			cfvals = args.cfval.split(",")
+			cfvals = toFloatList(cfvals)
 		regressor = FeedForwardNetwork(prFile)
 		regressor.buildModel()
-		cntfactual(regressor, cfdatafp, cfindex, cfval)
+		cntfactual(regressor, cfdatafp, cfindxs, cfvals)
 
 	else:
 		exitWithMsg("invalid command")

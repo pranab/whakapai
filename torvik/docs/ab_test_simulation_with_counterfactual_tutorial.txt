@@ -60,12 +60,16 @@ python3 mcamp.py --op cntfac --mlconf tnn_countfl.properties --cffile countfl_te
 You can repoeat for other income groups
 
 where 
-cfindex = index of intervened column
-cfval = intervened column value
+cfindex = indexes of intervened column, coma separateds tring
+cfval = intervened column values, coma separateds tring
 
 
 For past transaction count  of 1
 python3 mcamp.py --op cntfac --mlconf tnn_countfl.properties --cffile countfl_te.txt --cfindex 2 --cfval 1 
 
 You can repeat for other past transaction count
+
+Non intervened case
+python3 mcamp.py --op cntfac --mlconf tnn_countfl.properties --cffile countfl_te.txt --cfindex none --cfval none
+
 
