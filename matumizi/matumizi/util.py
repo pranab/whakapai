@@ -814,7 +814,7 @@ def isFloat(val):
 		tVal = float(val)
 	except ValueError:
 		valFloat = False
-		tVal = None
+	tVal = None
 	r = (valFloat, tVal)
 	return r
 
@@ -1340,6 +1340,18 @@ def fileSelFieldsRecGen(dirPath, columns, delim=","):
 		extracted = extractList(rec, columns)
 		yield extracted
 
+def fileSelFieldValueGen(dirPath, column, delim=","):
+	"""
+	file record generator for a given column 
+
+	Parameters
+		filePath ; file path
+		column : column index
+		delim : delemeter
+	"""
+	for rec in fileRecGen(dirPath, delim):
+		yield rec[column]
+
 def fileFiltRecGen(filePath, filt, delim = ","):
 	"""
 	file record generator with  row filter applied
@@ -1639,7 +1651,7 @@ def mutateString(val, numMutate, ctype):
 			count += 1
 	return val
 
-def mutateList(values, numMutate, vmin, vmax):
+def mutateList(values, numMutate, vmin, vmax, rabs=True):
 	"""
 	mutate list multiple times
 
@@ -1648,14 +1660,17 @@ def mutateList(values, numMutate, vmin, vmax):
 		numMutate : num of mutations
 		vmin : minimum of value range
 		vmax : maximum of value range
+		rabs : True if mim max range is absolute otherwise relative
 	"""
 	mutations = set()
 	count = 0
 	while count < numMutate:
 		j = randint(0, len(values)-1)
 		if j not in mutations:
-			values[j] = np.random.uniform(vmin, vmax)
+			s = np.random.uniform(vmin, vmax)
+			values[j] = s if rabs else  values[j] * s
 			count += 1
+			mutations.add(j)
 	return values		
 	
 
