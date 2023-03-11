@@ -28,6 +28,28 @@ from zaman.tsutil import *
 driver code for time series
 """
 
+def addNoise(rec, args):
+	"""
+	adds noise to time series data
+		
+	Parameters
+		rec: record
+		args : noise parameters
+	"""
+	nbeg = args[0]
+	nend = args[1]
+	nlow = args[2]
+	nhi = args[3]
+	cnt = args[4]
+	#print("counter", cnt, "nbeg", nbeg, "nend", nend, "nlow", nlow, "nhi", nhi)
+	if cnt >= nbeg and cnt < nend:
+		v = randomFloat(nlow, nhi)
+		v = formatFloat(3, v)
+		#print(v)
+		rec[1] = v
+	args[4] = cnt + 1
+	return rec
+	
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
@@ -37,6 +59,7 @@ if __name__ == "__main__":
 	parser.add_argument('--trend', type=str, default = "true", help = "if there is trend in generated data")
 	parser.add_argument('--cycle', type=str, default = "true", help = "if there is cycle in generated data")
 	parser.add_argument('--dfpath', type=str, default = "none", help = "data file file path")
+	parser.add_argument('--noise', type=str, default = "", help = "noise in data")
 	args = parser.parse_args()
 	op = args.op
 
@@ -67,7 +90,7 @@ if __name__ == "__main__":
 		
 	elif op == "appent":
 		""" approximate entropy """
-		ae = appEntropy([args.dfpath, 1], 3, 3)
+		ae = appEntropy([args.dfpath, 1], 7, 5)
 		print(ae)
 
 	elif op == "comp":
@@ -163,6 +186,17 @@ if __name__ == "__main__":
 			curTrend += trend
 			sampTime += secInDay
 
+	elif op == "anoise":
+		""" add noisy subsequence to data """
+		items = args.noise.split(",")
+		nbeg = int(items[0])
+		nend = int(items[1])
+		nlow = float(items[2])
+		nhi = float(items[3])
+		recs = mutateFileLines(args.dfpath, addNoise, [nbeg, nend, nlow, nhi,0])		
+		for r in recs:
+			print(",".join(r))
+	
 	else:
 		raise ValueError("invalid command")
 		

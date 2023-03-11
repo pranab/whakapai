@@ -1216,17 +1216,19 @@ def writeFloatListToFile(ldata, prec, filePath):
 		for d in ldata:
 			fh.write(formatFloat(prec, d) + "\n")
 
-def mutateFileLines(dirPath, mutator, delim=","):
+def mutateFileLines(dirPath, mutator, marg, delim=","):
 	"""
 	mutates lines from a file
 	
 	Parameters
 		dirPath : file path
+		mutator : mutation callback
+		marg : argument for mutation call back
 		delim : delemeter
 	"""
 	lines = list()
 	for li in fileRecGen(dirPath, delim):
-		li = mutator(li)
+		li = mutator(li) if marg is None else mutator(li, marg)
 		lines.append(li)		
 	return lines
 	
