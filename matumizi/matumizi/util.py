@@ -1968,6 +1968,8 @@ def drawPlot(x, y, xlabel, ylabel):
 		xlabel : x axis label
 		ylabel : y axis label
 	"""
+	if x is None:
+		x = list(range(len(y)))
 	plt.plot(x,y)
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)

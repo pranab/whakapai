@@ -28,6 +28,8 @@ from fbprophet import Prophet
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
+from matumizi.stats import *
+
 
 """
 time series untilities
@@ -124,10 +126,58 @@ def components(ds, model, freq, summaryOnly, doPlot=False):
 		freq : seasnality period
 		summaryOnly : True if only summary needed in output
 		doPlot: true if plotting needed
-		"""	
+	"""	
 	expl =_initDexpl(ds)
 	return expl.getTimeSeriesComponents("mydata", model, freq, summaryOnly, doPlot)
 
+def meanVarNonStationarity(ds, wlen, doPlot=True):
+	"""
+	mean and variance based test for non stationarity with trend, sotachstic trend or 
+		
+	Parameters
+		ds: file name and col index or list
+		wlen : window length
+		doPlot : plotted if True
+	"""
+	mlist = list()
+	vlist = list()
+	
+	data = _getListData(ds)
+	assertGreater(len(data), wlen, "data size should be larger than window size")
+	rwin = SlidingWindowStat.initialize(data[:wlen])
+	m, s = rwin.getStat()
+	mlist.append(m)
+	vlist.append(s * s)
+	
+	#iterate rolling window
+	for i in range(wlen, len(data), 1):
+		m, s = rwin.addGetStat(data[i])	
+		mlist.append(m)
+		vlist.append(s * s)
+	
+	if doPlot:
+		drawLine(mlist)
+		drawLine(vlist)
+		 
+	re = (mlist, vlist)
+	return re
+	
+
+def _getListData(ds):
+	"""
+	gets lists data from file column or returns list as is
+		
+	Parameters
+		ds: file name and col index or list
+	"""
+	if type(ds[0]) == str:
+		# file name and col index
+		data = getFileColumnAsFloat(ds[0], ds[1])
+	else:
+		# list
+		data = ds
+	return data
+		
 def _initDexpl(ds):
 	"""
 	initialize data explorer
