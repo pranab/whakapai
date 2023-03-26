@@ -19,6 +19,7 @@ import os
 import sys
 from random import randint
 import time
+from calendar import timegm
 import math
 from datetime import datetime
 from matumizi.util import *
@@ -63,6 +64,8 @@ class TimeSeriesGenerator(object):
 		defValues["rw.init.value"] = (5.0, None)
 		defValues["rw.range"] = (1.0, None)
 		defValues["ar.params"] = (None, None)
+		defValues["ar.seed"] = (None, None)
+		defValues["ar.exp.param"] = (None, None)
 		defValues["corr.file.path"] = (None, None)
 		defValues["corr.file.col"] = (None, None)
 		defValues["corr.scale"] = (1.0, None)
@@ -75,6 +78,8 @@ class TimeSeriesGenerator(object):
 		defValues["si.params"] = (None, None)
 		defValues["ol.percent"] = (5, None)
 		defValues["ol.distr"] = (None, "missing outlier distribution")
+		defValues["anomaly.params"] = (None, "missing outlier distribution")
+		defValues["motif.params"] = (None, None)
 
 		self.config = Configuration(configFile, defValues)
 
@@ -118,6 +123,9 @@ class TimeSeriesGenerator(object):
 			self.curTm *= 1000
 			self.pastTm *= 1000
 
+		# anomaly params
+		anParams = config.getStringListConfig("anomaly.params")[0]
+		self.anGenerator = self.__createAnomalyGen(anParams) if anParams is not None else None
 
 	def randGaussianGen(self):
 		"""
@@ -137,10 +145,10 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
 				
 			rec = self.ouForm.format(dt, curVal)
-			sampTm += sampIntv
+			sampTm += self.sampIntv
 			yield rec
 
 
@@ -164,10 +172,10 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
 				
 			rec = ouForm.format(dt, curVal)
-			sampTm += sampIntv
+			sampTm += self.sampIntv
 			yield rec
 
 
@@ -216,12 +224,11 @@ class TimeSeriesGenerator(object):
 		if tsRandom:
 			tsRandDistr = self. __genRandSampler()
 	
-		if self.intvDistr is not None:
-			sampIntv = int(self.intvDistr.sample())
-	
+		sampIntv = int(self.intvDistr.sample()) if self.intvDistr is not None else self.sampIntv
 		sampTm = self.pastTm
 		counter = 0
 
+		i = 0
 		while (sampTm < self.curTm):
 			curVal = 0
 		
@@ -270,8 +277,7 @@ class TimeSeriesGenerator(object):
 			else:
 				dt = datetime.fromtimestamp(sampTm)
 				dt = dt.strftime("%Y-%m-%d %H:%M:%S")
-		
-		
+			
 			#value
 			if self.tsValType == "int":
 				curVal = int(curVal)
@@ -295,19 +301,16 @@ class TimeSeriesGenerator(object):
 		ranRange = config.getFloatConfig("rw.range")[0]
 		sampTm = self.pastTm
 		curVal = initVal
-		
+		sampIntv = self.sampIntv
 		while (sampTm < self.curTm):
-			#value
-			if self.tsValType == "int":
-				curVal = int(curVal)
-				
-			#date time
-			dt = getDateTime(sampTm, self.tsTimeFormat)
-			
-			rec = ouForm.format(dt, curVal)
-			
 			#next
 			curVal += randomFloat(-ranRange, ranRange)
+			if self.tsValType == "int":
+				curVal = int(curVal)
+			
+			#date time
+			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+			rec = ouForm.format(dt, curVal)
 			
 			if self.intvDistr is not None:
 				sampIntv = int(self.intvDistr.sample())
@@ -315,40 +318,38 @@ class TimeSeriesGenerator(object):
 
 			yield rec
 
-	def autRegGen():
+	def expAutRegGen(self):
 		"""
-		generates auto regression based time series
+		generates exponential smoothing auto regression based time series
 
 		Parameters
 		"""
-		#ar parameters
-		arParams = config.getFloatListConfig("ar.params")[0]
-		hist = list()
-		for i in range(len(arParams) - 1):
-			hist.append(0.0)
+		ap  = config.getFloatConfig("ar.exp.param")[0]
+		iap = 1.0 - ap
+		hist = config.getFloatListConfig("ar.seed")[0]
 		
-		#random component
-		rsampler = self.__genRandSampler()
+		# exponential ar parameters
+		arParams = list()
+		term = ap
+		arParams.append(term)
+		for _ in range(1, len(hist), 1):
+			term *= iap
+			arParams.append(term)
+			
+		for rec in self.__autRegGen(arParams):
+			yield rec
+						
 
-		sampTm = self.pastTm
-		i = 0		
-		while (sampTm < self.curTm):
-			curVal = self.__arValue(arParams, hist) 	
-			curVal += rsampler.sample()
-			hist.insert(0, curVal)
-			hist.pop(len(hist) - 1)
+	def genAutRegGen(self):
+		"""
+		generates generic auto regression based time series
 
-			if self.tsValType == "int":
-				curVal = int(curVal)
-				
-			#date time
-			dt = getDateTime(sampTm, self.tsTimeFormat)
-				
-			sampTm += self.sampIntv
-			i += 1
-			if i > 5:	
-				rec = self.ouForm.format(dt, curVal)
-				yield rec
+		Parameters
+		"""
+		#user specified ar parameters
+		arParams = config.getFloatListConfig("ar.params")[0]
+		for rec in self.__autRegGen(arparams):
+			yield rec
 
 	def multSineGen(self, exscomp):
 		"""
@@ -363,9 +364,9 @@ class TimeSeriesGenerator(object):
 			addSine = toFloatList(exscomp.split(","))
 			osiParams = siParams.copy()
 			osiParams.extend(addSine)
-			ocomps = sinComponents(osiParams)
+			ocomps = self.__sinComponents(osiParams)
 		
-		comps = sinComponents(siParams)
+		comps = self.__sinComponents(siParams)
 					
 		#random component
 		rsampler = self.__genRandSampler()
@@ -382,20 +383,20 @@ class TimeSeriesGenerator(object):
 			
 			#generate one time series
 			while (sampTm < self.curTm):
-				val = addSines(scomps, sampTm)
+				val = self.__addSines(scomps, sampTm)
 				val += rsampler.sample()
 				if self.tsValType == "int":
 					val = int(val)
 			
 				if oformat == "long":	
 					#multiple rec per time series
-					dt = getDateTime(sampTm, self.tsTimeFormat)
+					dt = self.__getDateTime(sampTm, self.tsTimeFormat)
 					rec = ouForm.format(dt, val)
 					yield rec
 				else:
 					values.append(val)
 				
-				sampTm += sampIntv
+				sampTm += self.sampIntv
 
 			if oformat == "short":
 				# one rec per time series
@@ -468,16 +469,137 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
-		pass
+		params = self.config.getStringListConfig("motif.params")[0]
+		fpath = params[0]
+		cindex = int(params[0])
+		mdata = getFileColumnAsFloat(fpath, cindex)
+		mlen = len(mdata)
+		mcnt = 0
+		rsampler = self.__genRandSampler
+
+		sampTm = self.pastTm
+		while (sampTm < self.curTm):
+			curVal = mdata[mcnt] + rsampler.sample()
+			mcnt = (mcnt + 1) % mlen
+			
+			if self.tsValType == "int":
+				curVal = int(curVal)
+				
+			#date time
+			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+				
+			rec = self.ouForm.format(dt, curVal)
+			sampTm += self.sampIntv
+			yield rec
+
+	def spikeGen(self):
+		"""
+		generates spike based time series
+
+		Parameters
+		"""
+		params = self.config.getStringListConfig("spike.params")[0]
 		
-	def insertAnomalySeq(self):
+		#gap pameters
+		gsampler =  self.__spikeSampler(params[0])	
+		
+		#width sampler
+		wsampler =  self.__spikeSampler(params[1])
+		
+		#incr value  sampler
+		ivsampler =  self.__spikeSampler(params[2], False)
+
+		# random noise sampler
+		rsampler = self.__genRandSampler
+		
+		gap = gsampler.sample()
+		sampTm = self.pastTm
+		inSpike = False
+		preVal = rsampler.sample()
+		iga = 0
+		isp = 0
+		
+		while (sampTm < self.curTm):
+			if inSpike:	
+				if isp <= hwidth:
+					curVal = preVal + vinc + rsampler.sample()
+				else:
+					curVal = preVal - vinc + rsampler.sample()
+				preVal = curVal
+				isp += 1
+				if isp == width:
+					inSpike = False
+					gap = gsampler.sample()
+			else:
+				curVal = rsampler.sample()
+				preVal = curVal
+				iga += 1
+				if iga == gap:
+					vinc = ivsampler.sample()
+					width = wsampler.sample()
+					hwidth = int((width + 1) / 2)
+					isp = 0
+					inPike = True
+					
+			if self.tsValType == "int":
+				curVal = int(curVal)
+				
+			#date time
+			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+				
+			rec = self.ouForm.format(dt, curVal)
+			sampTm += self.sampIntv
+			yield rec
+				
+		
+	def insertAnomalySeq(self, fpath, delem, prec):
 		"""
 		inserts anomaly sequence to an existing  time series
 
 		Parameters
+			fpath : file path
+			delem : field delemeter
 		"""
-		pass
-	
+		i = 0
+		atype = self.anGenerator.getType()
+		abeg, aend = self.anGenerator.getRange()
+		for rec in fileRecGen(dirPath, delem):
+			if i >= abeg and i < aend:
+				if atype == "msine":
+					#time stamp needed for multi sine 
+					utcTm = time.strptime(rec[0], self.tsTimeFormat)
+					epochTm = timegm(utcTm)
+					anVal = self.anGenerator.sample(i, epochTm)
+				else :
+					anVal = self.anGenerator.sample(i) 
+				
+				val = float(rec[1]) + anVal
+				rec[1] = formatFloat(prec, val)
+			
+			if atype == "mshift" and i >= aend:
+				# last anomaly value persists for mean shift
+				val = float(rec[1]) + anVal
+				
+			i += 1
+			yield delem.join(rec)
+
+	def __spikeSampler(self, params, asInt=True):
+		"""
+		generates sampler for spiky time series
+
+		Parameters
+			params : parameters
+			asInt : True if too be sampled as int
+		"""
+		params = params[0].split(":")
+		if params[0] == "uniforma":
+			sampler = UniformNumericSampler(int(params[1]), int(params[2])) if asInt else UniformNumericSampler(float(params[1]), float(params[2]))
+		else:
+			sampler =  NormalSampler(float(params[1]), float(params[2]))
+			if asInt:
+				sampler.sampleAsIntValue()
+		
+		return sampler
 		
 	def __genRandSampler(self):
 		"""
@@ -491,7 +613,7 @@ class TimeSeriesGenerator(object):
 		rsampler = NormalSampler(tsRandMean, tsRandStdDev)
 		return rsampler	
 				
-	def __getDateTime(tm, tmFormat):
+	def __getDateTime(self, tm, tmFormat):
 		"""
 		returns either epoch time for formatted date time
 		
@@ -506,7 +628,37 @@ class TimeSeriesGenerator(object):
 			dt = dt.strftime("%Y-%m-%d %H:%M:%S")
 		return dt
 
-	def __arValue(arParams, hist):
+	def __autRegGen(self, arParams):
+		"""
+		generates auto regression based time series
+
+		Parameters
+			arParams : auto regression parameters
+		"""
+		#ar parameters
+		hist = config.getFloatListConfig("ar.seed")[0]
+		
+		#random component
+		rsampler = self.__genRandSampler()
+
+		sampTm = self.pastTm
+		while (sampTm < self.curTm):
+			curVal = self.__arValue(arParams, hist) 	
+			curVal += rsampler.sample()
+			hist.insert(0, curVal)
+			hist.pop(len(hist))
+
+			if self.tsValType == "int":
+				curVal = int(curVal)
+				
+			#date time
+			dt = self._getDateTime(sampTm, self.tsTimeFormat)
+				
+			sampTm += self.sampIntv
+			rec = self.ouForm.format(dt, curVal)
+			yield rec
+
+	def __arValue(self, arParams, hist):
 		"""
 		auto regressed value
 			
@@ -514,15 +666,9 @@ class TimeSeriesGenerator(object):
 			arParams : auto regression parameters
 			hist : history
 		"""
-		val = 0.0
-		for i in range(len(arParams)):
-			if i == 0:
-				val = arParams[i]
-			else:
-				val += arParams[i] * hist[i-1]
-		return val
+		return np.dot(arParams, hist[:len(arParams)])
 
-	def __sinComponents(params):
+	def __sinComponents(self, params):
 		"""
 		returns list sine components
 
@@ -538,7 +684,7 @@ class TimeSeriesGenerator(object):
 			comps.append(co)
 		return comps
 
-	def __addSines(comps, sampTm):
+	def __addSines(self, comps, sampTm):
 		"""
 		adds multiple sine comopnents
 		
@@ -552,8 +698,154 @@ class TimeSeriesGenerator(object):
 			val += c[0] * math.sin(c[2] + t)
 		return val
 
-
-
+	def __createAnomalyGen(self, anParams):
+		"""
+		adds multiple sine comopnents
+		
+		Parameters
+			anParams : anomaly params list
+		"""
+		atype = anParams[0]
+		if atype == "random":
+			agen = RandomAnomalyGenerator(anParams)
+		elif atype == "sine":
+			agen = MultSineAnomalyGenerator(anParams)
+		elif atype == "motif":
+			agen = MotifAnomalyGenerator(anParams)
+		elif atype == "meanshift":
+			pass
+		elif atype == "random":
+			pass
 			
-	
 
+class AnomalyGenerator(object):
+	def __init__(self, params):
+		"""
+		Initializer for anomaly base class
+		
+		Parameters
+			params : parameter list
+		"""
+		self.atype = params[0]
+		self.beg = int(params[1])
+		self.end = int(params[2])
+
+	def getType(self):
+		"""
+		get type of anomaly
+		
+		Parameters
+		"""
+		return self.atype
+		
+	def getRange(self):
+		"""
+		get range of anomaly
+		
+		Parameters
+		"""
+		r = (self.beg, self.end)
+		return r
+			
+			
+class RandomAnomalyGenerator(AnomalyGenerator):
+	def __init__(self, params):
+		"""
+		Initializer for random noise anomaly
+		
+		Parameters
+			params : parameter list
+		"""
+		assertEqual(len(params), 4, "invalid number of parameters")
+		sd = float(params[3])
+		self.rsampler = NormalSampler(0, sd)
+		super(RandomAnomalyGenerator, self).__init__(params)
+		
+	def sample(self, pos):
+		"""
+		samples anomalous value
+		
+		Parameters
+			pos : pos in time series
+		"""
+		sval = self.rsampler.sample() if pos >= self.beg and pos < self.end else 0
+		return sval
+
+class MotifAnomalyGenerator(AnomalyGenerator):
+	def __init__(self, params):
+		"""
+		Initializer for motif based anomaly generator
+		
+		Parameters
+			parameters : parameter list
+		"""
+		assertEqual(len(params), 6, "invalid number of parameters")
+		sd = float(params[3])
+		fpath = params[4]
+		cindex = int(params[5])
+		self.mdata = getFileColumnAsFloat(fpath, cindex)
+		self.mlen = len(mdata)
+		self.mcnt = 0
+		
+		self.rsampler = NormalSampler(0, sd) if sd > 0 else None
+		super(MotifAnomalyGenerator, self).__init__(params)
+
+	def sample(self, pos):
+		"""
+		samples anomalous value
+		
+		Parameters
+			pos : pos in time series
+		"""
+		sval = 0
+		if pos >= self.beg and pos < self.end:
+			sval = self.mdata[self.mcount]
+			sval += self.rsampler .sample() if self.rsampler is not None else 0
+			self.mcnt = (self.mcnt + 1) % self.mlen
+		return sval
+
+class MultSineAnomalyGenerator(AnomalyGenerator):
+	def __init__(self, params):
+		"""
+		Initializer for multiple sine function anomaly
+		
+		Parameters
+			parameters : parameter list
+		"""
+		sd = float(params[3])
+		self.rsampler = NormalSampler(0, sd) if scd > 0 else None
+		self.scomps = self.__sinComponents(params[4:])
+		super(MultSineAnomalyGenerator, self).__init__(params)
+		
+	def sample(self, pos, sampTm):
+		"""
+		samples anomalous value
+		
+		Parameters
+			pos : pos in time series
+			sampTm : sample time
+		"""
+		sval = 0
+		if pos >= self.beg and pos < self.end:
+			for c in self.scomps:
+				t = sampTm + c[2]
+				t = 2.0 * math.pi * (t % c[1]) / c[1]
+				sval += c[0] * math.sin(t)
+			sval += self.rsampler .sample() if self.rsampler is not None else 0
+		return sval
+
+	def __sinComponents(self, params):
+		"""
+		returns list sine components
+
+		Parameters
+			params : parameters for sine function
+		"""
+		comps = list()
+		for i in range(0, len(params), 2):
+			amp = params[i]
+			per = params[i + 1]
+			phase = randomFloat(0, 2.0 * math.pi)
+			co = (amp, per, phase)
+			comps.append(co)
+		return comps
