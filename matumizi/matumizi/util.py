@@ -1598,6 +1598,28 @@ def hourOfDay(ts):
 	rem = ts % secInDay
 	hod = int(rem / secInHour)
 	return hod
+
+def timeToSec(ts, unit):
+	"""
+	returns time in sec
+
+	Parameters
+		ts : time  in some unit
+		unit : time  unit
+	"""
+	tsec = None
+	if unit == "s":
+		tsec = ts
+	elif unit == "m":
+		tsec = ts * secInMinute
+	elif unit == "h":
+		tsec = ts * secInHour
+	elif unit == "d":
+		tsec = ts * secInDay
+	else:
+		raise exisWithMsg("invalid time unit")
+
+	return tsec
 	
 def processCmdLineArgs(expectedTypes, usage):
 	"""

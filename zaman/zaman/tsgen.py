@@ -50,16 +50,14 @@ class TimeSeriesGenerator(object):
 		defValues["output.value.format"] = ("long", None)
 		defValues["output.time.format"] = ("epoch", None)
 		defValues["output.value.nsamples"] = (1, None)
-		defValues["rnp.distr"] = (None, None)
 		defValues["ts.base"] = ("mean", None)
-		defValues["ts.base.params"] = (None, "missing time series base parameters")
+		defValues["ts.base.params"] = (None,None)
 		defValues["ts.trend"] = ("nothing", None)
 		defValues["ts.trend.params"] = (None, None)
 		defValues["ts.cycles"] = ("nothing", None)
 		defValues["ts.cycle.year.params"] = (None, None)
 		defValues["ts.cycle.week.params"] = (None, None)
 		defValues["ts.cycle.day.params"] = (None, None)
-		defValues["ts.random"] = (True, None)
 		defValues["ts.random.params"] = (None, None)
 		defValues["rw.init.value"] = (5.0, None)
 		defValues["rw.range"] = (1.0, None)
@@ -76,26 +74,29 @@ class TimeSeriesGenerator(object):
 		defValues["ccorr.co.params"] = (None, None)
 		defValues["ccorr.unco.params"] = (None, None)
 		defValues["si.params"] = (None, None)
-		defValues["ol.percent"] = (5, None)
-		defValues["ol.distr"] = (None, "missing outlier distribution")
-		defValues["anomaly.params"] = (None, "missing outlier distribution")
 		defValues["motif.params"] = (None, None)
+		defValues["anomaly.params"] = (None, None)
 
 		self.config = Configuration(configFile, defValues)
-
+		self.delim = ","
+		
 		#start time
-		winSz = config.getStringConfig("window.size")[0]
+		winSz = self.config.getStringConfig("window.size")[0]
 		items = winSz.split("_")
 		self.curTm, self.pastTm = pastTime(int(items[0]), items[1])
 	
 		#sample interval
-		sampIntvType = config.getStringConfig("window.samp.interval.type")[0]
-		sampIntv = config.getStringConfig("window.samp.interval.params")[0].split(delim)
+		sampIntvType = self.config.getStringConfig("window.samp.interval.type")[0]
+		sampIntv = self.config.getStringConfig("window.samp.interval.params")[0].split(self.delim)
 		self.intvDistr = None
 		self.sampIntv = None
 		if sampIntvType == "fixed":
-			self.sampIntv = int(sampIntv[0])
+			items = sampIntv[0].split("_")
+			ts = int(items[0])
+			unit = items[1]
+			self.sampIntv = timeToSec(ts, unit)
 		elif sampIntvType == "random":
+			assertEqual(len(sampIntv), 2, "invalid number of params for sample interval")
 			siMean = float(sampIntv[0])
 			siSd = float(sampIntv[1])
 			self.intvDistr = NormalSampler(siMean,siSd)
@@ -104,27 +105,30 @@ class TimeSeriesGenerator(object):
 		
 
 		#time alignment
-		sampAlignUnit = config.getStringConfig("window.samp.align.unit")[0]
+		sampAlignUnit = self.config.getStringConfig("window.samp.align.unit")[0]
 		if sampAlignUnit is not None:
 			self.pastTm = timeAlign(self.pastTm, sampAlignUnit)	
 	
 		#output format
-		self.tsValType = config.getStringConfig("output.value.type")[0]
-		self.valPrecision = config.getIntConfig("output.value.precision")[0]
-		self.tsTimeFormat = config.getStringConfig("output.time.format")[0]
+		self.tsValType = self.config.getStringConfig("output.value.type")[0]
+		self.valPrecision = self.config.getIntConfig("output.value.precision")[0]
+		self.tsTimeFormat = self.config.getStringConfig("output.time.format")[0]
 		if self.tsValType == "int":
 			self.ouForm = "{},{}"
 		else:
 			self.ouForm = "{},{:."  + str(self.valPrecision) + "f}"
-
+			
+		#long or short  i.e whole time series in one line format 
+		self.oformat = self.config.getStringConfig("output.value.format")[0]
+		
 		# time unit
-		timeUnit = config.getStringConfig("window.time.unit")[0]
+		timeUnit = self.config.getStringConfig("window.time.unit")[0]
 		if timeUnit == "ms":
 			self.curTm *= 1000
 			self.pastTm *= 1000
 
 		# anomaly params
-		anParams = config.getStringListConfig("anomaly.params")[0]
+		anParams = self.config.getStringListConfig("anomaly.params")[0]
 		self.anGenerator = self.__createAnomalyGen(anParams) if anParams is not None else None
 
 	def randGaussianGen(self):
@@ -186,7 +190,7 @@ class TimeSeriesGenerator(object):
 		Parameters
 		"""
 		tsBaseType = self.config.getStringConfig("ts.base")[0]
-		items = self.config.getStringConfig("ts.base.params")[0].split(delim)
+		items = self.config.getStringConfig("ts.base.params")[0].split(self.delim)
 		if tsBaseType == "mean":
 			tsMean = float(items[0])
 		elif tsBaseType == "ar":
@@ -196,7 +200,7 @@ class TimeSeriesGenerator(object):
 			raise ValueError("invalid base type")
 		
 		tsTrendType = self.config.getStringConfig("ts.trend")[0]
-		items = self.config.getStringConfig("ts.trend.params")[0].split(delim)
+		items = self.config.getStringConfig("ts.trend.params")[0].split(self.delim)
 		if tsTrendType == "linear":
 			tsTrendSlope = float(items[0])
 		elif tsTrendType == "quadratic":
@@ -219,15 +223,13 @@ class TimeSeriesGenerator(object):
 				dayCycle = cycleValues
 			
 		
-		tsRandom = self.config.getBooleanConfig("ts.random")[0]
-		tsRandDistr = None
-		if tsRandom:
-			tsRandDistr = self. __genRandSampler()
+		tsRandDistr = self. __genRandSampler()
 	
 		sampIntv = int(self.intvDistr.sample()) if self.intvDistr is not None else self.sampIntv
 		sampTm = self.pastTm
 		counter = 0
 
+		#print(self.pastTm,  self.curTm, (self.curTm - self.pastTm), sampIntv)
 		i = 0
 		while (sampTm < self.curTm):
 			curVal = 0
@@ -241,8 +243,7 @@ class TimeSeriesGenerator(object):
 				curVal = self.__arValue(arParams, hist) 	
 					
 			#random remainder
-			if tsRandDistr is not None:
-				curVal += tsRandDistr.sample()
+			curVal += tsRandDistr.sample() if tsRandDistr is not None else 0
 
 			#update history
 			if tsBaseType == "ar":
@@ -384,7 +385,7 @@ class TimeSeriesGenerator(object):
 			#generate one time series
 			while (sampTm < self.curTm):
 				val = self.__addSines(scomps, sampTm)
-				val += rsampler.sample()
+				val += rsampler.sample() if rsampler is not None else 0
 				if self.tsValType == "int":
 					val = int(val)
 			
@@ -415,9 +416,9 @@ class TimeSeriesGenerator(object):
 		cors = self.config.getFloatListConfig("ccorr.co.params")[0]
 
 		uncors = self.config.getFloatListConfig("ccorr.unco.params")[0]		
-		comps = sinComponents(uncors) if uncors is not None else None
+		comps = self.__sinComponents(uncors) if uncors is not None else None
 		
-		rsampler = self.__genRandSampler
+		rsampler = self.__genRandSampler()
 		ouForm = "{:."  + str(self.valPrecision) + "f}"
 		
 		# iterate source file
@@ -428,13 +429,15 @@ class TimeSeriesGenerator(object):
 			
 			#multiple correlated columns
 			for c in cors:
-				cval = c * rval + rsampler.sample()
+				cval = c * rval
+				cval += rsampler.sample() if rsampler is not None else 0
 				cval = str(int(cval)) if self.tsValType == "int" else self.ouForm.format(cval)
 				nrec.append(cval)
 			
 			# add multi sine  components column	
 			if comps is not None:
-				cval = addSines(comps, sampTm) + rsampler.sample()
+				cval = self.__addSines(comps, sampTm)
+				cval += rsampler.sample() if rsampler is not None else 0
 				cval = str(int(cval)) if self.tsValType == "int" else self.ouForm.format(cval)
 				nrec.append(cval)
 					
@@ -475,11 +478,12 @@ class TimeSeriesGenerator(object):
 		mdata = getFileColumnAsFloat(fpath, cindex)
 		mlen = len(mdata)
 		mcnt = 0
-		rsampler = self.__genRandSampler
+		rsampler = self.__genRandSampler()
 
 		sampTm = self.pastTm
 		while (sampTm < self.curTm):
-			curVal = mdata[mcnt] + rsampler.sample()
+			curVal = mdata[mcnt]
+			curVal += rsampler.sample() if rsampler is not None else 0
 			mcnt = (mcnt + 1) % mlen
 			
 			if self.tsValType == "int":
@@ -510,7 +514,7 @@ class TimeSeriesGenerator(object):
 		ivsampler =  self.__spikeSampler(params[2], False)
 
 		# random noise sampler
-		rsampler = self.__genRandSampler
+		rsampler = self.__genRandSampler()
 		
 		gap = gsampler.sample()
 		sampTm = self.pastTm
@@ -522,16 +526,17 @@ class TimeSeriesGenerator(object):
 		while (sampTm < self.curTm):
 			if inSpike:	
 				if isp <= hwidth:
-					curVal = preVal + vinc + rsampler.sample()
+					curVal = preVal + vinc
 				else:
-					curVal = preVal - vinc + rsampler.sample()
+					curVal = preVal - vinc
+				curVal += rsampler.sample() if rsampler is not None else 0
 				preVal = curVal
 				isp += 1
 				if isp == width:
 					inSpike = False
 					gap = gsampler.sample()
 			else:
-				curVal = rsampler.sample()
+				curVal = rsampler.sample() if rsampler is not None else 0
 				preVal = curVal
 				iga += 1
 				if iga == gap:
@@ -552,36 +557,39 @@ class TimeSeriesGenerator(object):
 			yield rec
 				
 		
-	def insertAnomalySeq(self, fpath, delem, prec):
+	def insertAnomalySeqGen(self, dfpath, prec):
 		"""
 		inserts anomaly sequence to an existing  time series
 
 		Parameters
-			fpath : file path
-			delem : field delemeter
+			dfpath : data file path
+			prec : float precision
 		"""
 		i = 0
 		atype = self.anGenerator.getType()
 		abeg, aend = self.anGenerator.getRange()
-		for rec in fileRecGen(dirPath, delem):
-			if i >= abeg and i < aend:
-				if atype == "msine":
-					#time stamp needed for multi sine 
-					utcTm = time.strptime(rec[0], self.tsTimeFormat)
-					epochTm = timegm(utcTm)
-					anVal = self.anGenerator.sample(i, epochTm)
-				else :
-					anVal = self.anGenerator.sample(i) 
-				
+		anVal = None
+		anValLast = None
+		for rec in fileRecGen(dfpath, self.delim):
+			if i >= abeg:
+				if i < aend:
+					if atype == "multsine":
+						#time stamp needed for multi sine 
+						utcTm = time.strptime(rec[0], self.tsTimeFormat)
+						epochTm = timegm(utcTm)
+						anVal = self.anGenerator.sample(i, epochTm)
+					else :
+						anVal = self.anGenerator.sample(i) 
+					anValLast = anVal
+				else:
+					if atype == "meanshift":
+						anVal = anValLast
+						
 				val = float(rec[1]) + anVal
 				rec[1] = formatFloat(prec, val)
 			
-			if atype == "mshift" and i >= aend:
-				# last anomaly value persists for mean shift
-				val = float(rec[1]) + anVal
-				
 			i += 1
-			yield delem.join(rec)
+			yield self.delim.join(rec)
 
 	def __spikeSampler(self, params, asInt=True):
 		"""
@@ -608,9 +616,11 @@ class TimeSeriesGenerator(object):
 		Parameters
 		"""
 		items = self.config.getFloatListConfig("ts.random.params")[0]
-		tsRandMean = items[0]
-		tsRandStdDev = items[1]
-		rsampler = NormalSampler(tsRandMean, tsRandStdDev)
+		rsampler = None
+		if items is not None:
+			tsRandMean = items[0]
+			tsRandStdDev = items[1]
+			rsampler = NormalSampler(tsRandMean, tsRandStdDev)
 		return rsampler	
 				
 	def __getDateTime(self, tm, tmFormat):
@@ -644,7 +654,7 @@ class TimeSeriesGenerator(object):
 		sampTm = self.pastTm
 		while (sampTm < self.curTm):
 			curVal = self.__arValue(arParams, hist) 	
-			curVal += rsampler.sample()
+			curVal += rsampler.sample() if rsampler is not None else 0
 			hist.insert(0, curVal)
 			hist.pop(len(hist))
 
@@ -708,15 +718,16 @@ class TimeSeriesGenerator(object):
 		atype = anParams[0]
 		if atype == "random":
 			agen = RandomAnomalyGenerator(anParams)
-		elif atype == "sine":
+		elif atype == "multsine":
 			agen = MultSineAnomalyGenerator(anParams)
 		elif atype == "motif":
 			agen = MotifAnomalyGenerator(anParams)
 		elif atype == "meanshift":
-			pass
-		elif atype == "random":
-			pass
-			
+			agen = MeanShiftAnomalyGenerator(anParams)
+		else:
+			exitWithMsg("invalid anomaly type")	
+		
+		return agen
 
 class AnomalyGenerator(object):
 	def __init__(self, params):
@@ -800,7 +811,7 @@ class MotifAnomalyGenerator(AnomalyGenerator):
 		sval = 0
 		if pos >= self.beg and pos < self.end:
 			sval = self.mdata[self.mcount]
-			sval += self.rsampler .sample() if self.rsampler is not None else 0
+			sval += self.rsampler.sample() if self.rsampler is not None else 0
 			self.mcnt = (self.mcnt + 1) % self.mlen
 		return sval
 
@@ -831,7 +842,7 @@ class MultSineAnomalyGenerator(AnomalyGenerator):
 				t = sampTm + c[2]
 				t = 2.0 * math.pi * (t % c[1]) / c[1]
 				sval += c[0] * math.sin(t)
-			sval += self.rsampler .sample() if self.rsampler is not None else 0
+			sval += self.rsampler.sample() if self.rsampler is not None else 0
 		return sval
 
 	def __sinComponents(self, params):
@@ -849,3 +860,36 @@ class MultSineAnomalyGenerator(AnomalyGenerator):
 			co = (amp, per, phase)
 			comps.append(co)
 		return comps
+
+class MeanShiftAnomalyGenerator(AnomalyGenerator):
+	def __init__(self, params):
+		"""
+		Initializer for mean shift based anomaly generator
+		
+		Parameters
+			parameters : parameter list
+		"""
+		assertEqual(len(params), 5, "invalid number of parameters")
+		self.shift = float(params[3])
+		self.cshift = 0
+		sd = float(params[4])
+		self.rsampler = NormalSampler(0, sd) if sd > 0 else None
+		super(MeanShiftAnomalyGenerator, self).__init__(params)
+
+	def sample(self, pos):
+		"""
+		samples anomalous value
+		
+		Parameters
+			pos : pos in time series
+		"""
+		sval = 0
+		if pos >= self.beg and pos < self.end:
+			self.cshift += self.shift
+			sval = self.cshift
+			sval += self.rsampler.sample() if self.rsampler is not None else 0
+		
+		#persist shift after anomaly range
+		elif pos >= self.end:
+			sval = self.cshift
+		return sval
