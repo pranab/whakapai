@@ -824,7 +824,7 @@ class MultSineAnomalyGenerator(AnomalyGenerator):
 			parameters : parameter list
 		"""
 		sd = float(params[3])
-		self.rsampler = NormalSampler(0, sd) if scd > 0 else None
+		self.rsampler = NormalSampler(0, sd) if sd > 0 else None
 		self.scomps = self.__sinComponents(params[4:])
 		super(MultSineAnomalyGenerator, self).__init__(params)
 		
