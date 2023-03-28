@@ -16,6 +16,8 @@ pip3 install -i https://test.pypi.org/simple zaman==0.0.1
 For installing latest, clone repo and run this at .../whakapai directory 
 ./lbi.sh zaman
 
+For dependencies run this form the project root directory
+pip3 install -r requirements.txt
 
 2. Project page in testpypi
 

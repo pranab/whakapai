@@ -511,40 +511,43 @@ class RegressionDataGenerator:
 		
 		
 		#square weights for predictor variables
-		items = self.config.getStringListConfig("common.square.weights")[0]
 		self.sqweight = dict()
-		for i in range(0, len(items), 2):
-			vi = int(items[i])
-			assertLesser(vi, self.npvar, "invalid predictor var index")
-			wt = float(items[i+1])
-			self.sqweight[vi] = wt
+		items = self.config.getStringListConfig("common.square.weights")[0]
+		if items is not None:
+			for i in range(0, len(items), 2):
+				vi = int(items[i])
+				assertLesser(vi, self.npvar, "invalid predictor var index")
+				wt = float(items[i+1])
+				self.sqweight[vi] = wt
 			
 		#crossterm weights for predictor variables
-		items = self.config.getStringListConfig("common.crterm.weights")[0]
 		self.crweight = dict()
-		for i in range(0, len(items), 3):
-			vi = int(items[i])
-			assertLesser(vi, self.npvar, "invalid predictor var index")
-			vj = int(items[i+1])
-			assertLesser(vj, self.npvar, "invalid predictor var index")
-			wt = float(items[i+2])
-			vp = (vi, vj)
-			self.crweight[vp] = wt
+		items = self.config.getStringListConfig("common.crterm.weights")[0]
+		if items is not None:
+			for i in range(0, len(items), 3):
+				vi = int(items[i])
+				assertLesser(vi, self.npvar, "invalid predictor var index")
+				vj = int(items[i+1])
+				assertLesser(vj, self.npvar, "invalid predictor var index")
+				wt = float(items[i+2])
+				vp = (vi, vj)
+				self.crweight[vp] = wt
 		
 		#correlated variables
-		items = self.config.getStringListConfig("common.corr.params")[0]
 		self.corrparams = dict()
-		for co in items:
-			cparam = co.split(":")
-			vi = int(cparam[0])
-			vj = int(cparam[1])
-			k = (vi,vj)
-			bias = float(cparam[2])
-			wt = float(cparam[3])
-			noise = float(cparam[4])
-			roundoff = cparam[5] == "true"
-			v = (bias, wt, noise, roundoff)
-			self.corrparams[k] = v
+		items = self.config.getStringListConfig("common.corr.params")[0]
+		if items is not None:
+			for co in items:
+				cparam = co.split(":")
+				vi = int(cparam[0])
+				vj = int(cparam[1])
+				k = (vi,vj)
+				bias = float(cparam[2])
+				wt = float(cparam[3])
+				noise = float(cparam[4])
+				roundoff = cparam[5] == "true"
+				v = (bias, wt, noise, roundoff)
+				self.corrparams[k] = v
 		
 		
 		#boas, noise and target range values	

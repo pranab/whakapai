@@ -1,0 +1,38 @@
+This tutorial is  for synthetic time series data generation. Although the module tsgen in the pyton 
+package zaman can generate different kinds of time series, this tutorial is for generation of time series
+with trend, seasonality and gaussian noise
+
+Setup
+=====
+Install the package zaman
+pip3 install -i https://test.pypi.org/simple/ zaman==0.0.2
+
+For local build and istallation run this from the repo root directory whakapi
+./lbi.sh zaman
+
+Install dependencies, by running this from the package root directory
+pip3 install -r requirements.txt
+
+Configuration
+=============
+Use tsgen_test.properties as is. You edit to meet your needs e.g using day seasonality instead 
+of wee or the change the the rate of linear trend. The document zaman/docs/tsgen_config_readme.txt explains 
+all config parameters and how to use them
+
+Generate time series
+====================
+tsgend.py --op tsn  --cfpath tsgen_test.properties > tsn.cv
+
+where
+op = time series type
+cfpath = config file path
+
+Insert anomalous sequence
+=========================
+tsgend.py --op insan  --cfpath tsgen_test.properties  --dfpath tsn.cv --prec 2 > tsna.csv
+
+where
+op = "insan" for inserting anomalous sequence
+cfpath = config file path
+dfpath = path to file generated in the previous step
+prec  = floating point precision in output
