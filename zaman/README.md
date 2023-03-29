@@ -11,7 +11,7 @@ Everyting time series, EDA, forecasting, classificatio and anomaly detection
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple zaman==0.0.1
+pip3 install -i https://test.pypi.org/simple zaman==0.0.2
 
 For installing latest, clone repo and run this at .../whakapai directory 
 ./lbi.sh zaman
@@ -21,7 +21,7 @@ pip3 install -r requirements.txt
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/zaman/0.0.1/
+https://test.pypi.org/project/zaman/0.0.2/
 
 
 3. Blogs posts
