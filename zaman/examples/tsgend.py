@@ -43,9 +43,17 @@ if __name__ == "__main__":
 		drawLine(da)
 	
 	elif op == "insan":
-		""" insert anomaly """
+		""" insert sequence anomaly """
 		da = list()
 		for rec in generator.insertAnomalySeqGen(args.dfpath, args.prec):			
+			print(rec)
+			da.append(float(rec.split(",")[1]))
+		drawLine(da)
+	
+	elif op == "insanp":
+		""" insert point anomaly """
+		da = list()
+		for rec in generator.insertAnomalyPointGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
 		drawLine(da)

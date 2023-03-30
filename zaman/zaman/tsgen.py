@@ -76,6 +76,7 @@ class TimeSeriesGenerator(object):
 		defValues["si.params"] = (None, None)
 		defValues["motif.params"] = (None, None)
 		defValues["anomaly.params"] = (None, None)
+		defValues["anomaly.pt.params"] = (None, None)
 
 		self.config = Configuration(configFile, defValues)
 		self.delim = ","
@@ -127,9 +128,13 @@ class TimeSeriesGenerator(object):
 			self.curTm *= 1000
 			self.pastTm *= 1000
 
-		# anomaly params
+		# seq anomaly 
 		anParams = self.config.getStringListConfig("anomaly.params")[0]
 		self.anGenerator = self.__createAnomalyGen(anParams) if anParams is not None else None
+
+		# point anomaly 
+		anParams = self.config.getStringListConfig("anomaly.pt.params")[0]
+		self.ptAnGenerator = PointAnomalyGenerator(anParams) if anParams is not None else None
 
 	def randGaussianGen(self):
 		"""
@@ -149,7 +154,7 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm)
 				
 			rec = self.ouForm.format(dt, curVal)
 			sampTm += self.sampIntv
@@ -176,7 +181,7 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm)
 				
 			rec = ouForm.format(dt, curVal)
 			sampTm += self.sampIntv
@@ -270,15 +275,10 @@ class TimeSeriesGenerator(object):
 			if dayCycle:
 				hour = hourOfDay(sampTm)
 				curVal += dayCycle[hour]
-
 	
 			#date time
-			if self.tsTimeFormat == "epoch":
-				dt = sampTm
-			else:
-				dt = datetime.fromtimestamp(sampTm)
-				dt = dt.strftime("%Y-%m-%d %H:%M:%S")
-			
+			dt = self.__getDateTime(sampTm)
+
 			#value
 			if self.tsValType == "int":
 				curVal = int(curVal)
@@ -310,7 +310,7 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 			
 			#date time
-			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm)
 			rec = ouForm.format(dt, curVal)
 			
 			if self.intvDistr is not None:
@@ -391,7 +391,7 @@ class TimeSeriesGenerator(object):
 			
 				if oformat == "long":	
 					#multiple rec per time series
-					dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+					dt = self.__getDateTime(sampTm)
 					rec = ouForm.format(dt, val)
 					yield rec
 				else:
@@ -444,9 +444,9 @@ class TimeSeriesGenerator(object):
 			nRec = ",".join(nrec)
 			yield nRec
 
-	def corrGen(self):
+	def autCorrGen(self):
 		"""
-		generates correlated time series
+		generates auto correlated time series
 
 		Parameters
 		"""
@@ -490,7 +490,7 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm)
 				
 			rec = self.ouForm.format(dt, curVal)
 			sampTm += self.sampIntv
@@ -550,7 +550,7 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = self.__getDateTime(sampTm, self.tsTimeFormat)
+			dt = self.__getDateTime(sampTm)
 				
 			rec = self.ouForm.format(dt, curVal)
 			sampTm += self.sampIntv
@@ -591,6 +591,23 @@ class TimeSeriesGenerator(object):
 			i += 1
 			yield self.delim.join(rec)
 
+	def insertAnomalyPointGen(self, dfpath, prec):
+		"""
+		inserts anomaly sequence to an existing  time series
+
+		Parameters
+			dfpath : data file path
+			prec : float precision
+		"""
+		i = 0
+		for rec in fileRecGen(dfpath, self.delim):
+			anVal = self.ptAnGenerator.sample(i)
+			if anVal != 0:
+				val = float(rec[1]) + anVal
+				rec[1] = formatFloat(prec, val)
+			i += 1
+			yield self.delim.join(rec)
+			
 	def __spikeSampler(self, params, asInt=True):
 		"""
 		generates sampler for spiky time series
@@ -623,19 +640,18 @@ class TimeSeriesGenerator(object):
 			rsampler = NormalSampler(tsRandMean, tsRandStdDev)
 		return rsampler	
 				
-	def __getDateTime(self, tm, tmFormat):
+	def __getDateTime(self, tm):
 		"""
 		returns either epoch time for formatted date time
 		
 		Parameters
 			tm : epoch time
-			tmFormat : time format
 		"""
-		if tmFormat == "epoch":
+		if self.tsTimeFormat == "epoch":
 			dt = tm
 		else:
 			dt = datetime.fromtimestamp(tm)
-			dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+			dt = dt.strftime(self.tsTimeFormat)
 		return dt
 
 	def __autRegGen(self, arParams):
@@ -662,7 +678,7 @@ class TimeSeriesGenerator(object):
 				curVal = int(curVal)
 				
 			#date time
-			dt = self._getDateTime(sampTm, self.tsTimeFormat)
+			dt = self._getDateTime(sampTm)
 				
 			sampTm += self.sampIntv
 			rec = self.ouForm.format(dt, curVal)
@@ -893,3 +909,52 @@ class MeanShiftAnomalyGenerator(AnomalyGenerator):
 		elif pos >= self.end:
 			sval = self.cshift
 		return sval
+
+
+class PointAnomalyGenerator(object):
+	def __init__(self, params):
+		"""
+		Initializer for point random noise anomaly
+		
+		Parameters
+			params : parameter list
+		"""
+		assertEqual(len(params), 2, "invalid number of parameters")
+		
+		#gap sampler
+		self.gsampler = self.__createSampler(params[0], "int")
+		
+		#value sampler
+		self.vasampler = self.__createSampler(params[1], "float")
+		
+		self.nextSpike = self.gsampler.sample()
+		
+	def sample(self, pos):
+		"""
+		samples anomalous value
+		
+		Parameters
+			pos : pos in time series
+		"""
+		curVal = 0
+		if pos == self.nextSpike:
+			curVal = self.vasampler.sample()
+			self.nextSpike = pos + self.gsampler.sample()
+
+		return curVal
+		
+	def __createSampler(self, paramstr, dtype):
+		"""
+		creates sampler
+		
+		Parameters
+			paramstr : param string separated by coma
+			dtype : data type
+		"""
+		items = paramstr.split(":")
+		params = items[1:].copy()
+		params.append(items[0])
+		params.append(dtype)
+		paramStr = ":".join(params)
+		return createSampler(paramStr)
+	
