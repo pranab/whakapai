@@ -49,7 +49,7 @@ class TimeSeriesGenerator(object):
 		defValues["output.value.precision"] = (3, None)
 		defValues["output.value.format"] = ("long", None)
 		defValues["output.time.format"] = ("epoch", None)
-		defValues["output.value.nsamples"] = (1, None)
+		defValues["output.value.nsamples"] = (None, None)
 		defValues["ts.base"] = ("mean", None)
 		defValues["ts.base.params"] = (None,None)
 		defValues["ts.trend"] = ("nothing", None)
@@ -128,13 +128,6 @@ class TimeSeriesGenerator(object):
 			self.curTm *= 1000
 			self.pastTm *= 1000
 
-		# seq anomaly 
-		anParams = self.config.getStringListConfig("anomaly.params")[0]
-		self.anGenerator = self.__createAnomalyGen(anParams) if anParams is not None else None
-
-		# point anomaly 
-		anParams = self.config.getStringListConfig("anomaly.pt.params")[0]
-		self.ptAnGenerator = PointAnomalyGenerator(anParams) if anParams is not None else None
 
 	def randGaussianGen(self):
 		"""
@@ -194,6 +187,9 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		#assert all config params
+		self.config.assertParams("ts.base", "ts.base.params", "ts.trend", "ts.cycles")
+		
 		tsBaseType = self.config.getStringConfig("ts.base")[0]
 		items = self.config.getStringConfig("ts.base.params")[0].split(self.delim)
 		if tsBaseType == "mean":
@@ -298,6 +294,7 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		self.config.assertParams("rw.init.value", "rw.range")
 		initVal = config.getFloatConfig("rw.init.value")[0]
 		ranRange = config.getFloatConfig("rw.range")[0]
 		sampTm = self.pastTm
@@ -325,6 +322,7 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		self.config.assertParams("ar.exp.param", "ar.seed")
 		ap  = config.getFloatConfig("ar.exp.param")[0]
 		iap = 1.0 - ap
 		hist = config.getFloatListConfig("ar.seed")[0]
@@ -348,6 +346,7 @@ class TimeSeriesGenerator(object):
 		Parameters
 		"""
 		#user specified ar parameters
+		self.config.assertParams("ar.params")
 		arParams = config.getFloatListConfig("ar.params")[0]
 		for rec in self.__autRegGen(arparams):
 			yield rec
@@ -359,6 +358,7 @@ class TimeSeriesGenerator(object):
 		Parameters
 			exscomp : extra sine components
 		"""
+		self.config.assertParams("si.params", "output.value.nsamples")
 		siParams = self.config.getFloatListConfig("si.params")[0]	
 		ocomps = None
 		if exscomp != "none":
@@ -411,6 +411,7 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		self.config.assertParams("ccorr.file.path", "ccorr.file.col", "ccorr.co.params")
 		refFile = self.config.getStringConfig("ccorr.file.path")[0]
 		refCol = self.config.getIntConfig("ccorr.file.col")[0]
 		cors = self.config.getFloatListConfig("ccorr.co.params")[0]
@@ -450,6 +451,7 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		self.config.assertParams("corr.file.path", "corr.file.col", "corr.scale", "corr.noise.stddev")
 		refFile = self.config.getStringConfig("corr.file.path")[0]
 		refCol = self.config.getIntConfig("corr.file.col")[0]
 		scale = self.config.getFloatConfig("corr.scale")[0]
@@ -472,6 +474,7 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		self.config.assertParams("motif.params")
 		params = self.config.getStringListConfig("motif.params")[0]
 		fpath = params[0]
 		cindex = int(params[0])
@@ -502,6 +505,7 @@ class TimeSeriesGenerator(object):
 
 		Parameters
 		"""
+		self.config.assertParams("spike.params")
 		params = self.config.getStringListConfig("spike.params")[0]
 		
 		#gap pameters
@@ -565,9 +569,13 @@ class TimeSeriesGenerator(object):
 			dfpath : data file path
 			prec : float precision
 		"""
+		self.config.assertParams("anomaly.params")
+		anParams = self.config.getStringListConfig("anomaly.params")[0]
+		anGenerator = self.__createAnomalyGen(anParams)
+		
 		i = 0
-		atype = self.anGenerator.getType()
-		abeg, aend = self.anGenerator.getRange()
+		atype = anGenerator.getType()
+		abeg, aend = anGenerator.getRange()
 		anVal = None
 		anValLast = None
 		for rec in fileRecGen(dfpath, self.delim):
@@ -577,9 +585,9 @@ class TimeSeriesGenerator(object):
 						#time stamp needed for multi sine 
 						utcTm = time.strptime(rec[0], self.tsTimeFormat)
 						epochTm = timegm(utcTm)
-						anVal = self.anGenerator.sample(i, epochTm)
+						anVal = anGenerator.sample(i, epochTm)
 					else :
-						anVal = self.anGenerator.sample(i) 
+						anVal = anGenerator.sample(i) 
 					anValLast = anVal
 				else:
 					if atype == "meanshift":
@@ -599,9 +607,13 @@ class TimeSeriesGenerator(object):
 			dfpath : data file path
 			prec : float precision
 		"""
+		self.config.assertParams("anomaly.pt.params")
+		anParams = self.config.getStringListConfig("anomaly.pt.params")[0]
+		ptAnGenerator = PointAnomalyGenerator(anParams)
+
 		i = 0
 		for rec in fileRecGen(dfpath, self.delim):
-			anVal = self.ptAnGenerator.sample(i)
+			anVal = ptAnGenerator.sample(i)
 			if anVal != 0:
 				val = float(rec[1]) + anVal
 				rec[1] = formatFloat(prec, val)
@@ -661,7 +673,7 @@ class TimeSeriesGenerator(object):
 		Parameters
 			arParams : auto regression parameters
 		"""
-		#ar parameters
+		self.config.assertParams("ar.seed")
 		hist = config.getFloatListConfig("ar.seed")[0]
 		
 		#random component

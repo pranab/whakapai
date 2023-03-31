@@ -288,6 +288,22 @@ class Configuration:
 				raise ValueError("at least one of the two parameters should be set " + firstName + "  " + secondName)
 		return (first, second)
 	
+	def assertParams(self, *params):
+		"""
+		asserts parameters are not None	
+
+		Parameters
+			params : param list
+		"""
+		ecount = 0
+		for param in params:
+			pval = self.getStringConfig(param)[0]
+			if pval is None:
+				print("error: config param " + param + " is not set")
+				ecount += 1 
+		
+		if ecount > 0:
+			exitWithMsg("One or config parameters are not set")
 
 class CatLabelGenerator:
 	"""
