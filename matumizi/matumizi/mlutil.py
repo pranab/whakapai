@@ -27,6 +27,7 @@ import random
 from math import *
 from decimal import Decimal
 import statistics
+import abc
 import jprops
 from Levenshtein import distance as ld
 from .util import *
@@ -648,6 +649,47 @@ class RegressionDataGenerator:
 		r = (spvd, y)
 		return r
 
+class SlidingWindowProcessor(metaclass=abc.ABCMeta):
+	"""
+	sliding window processor
+	"""
+	
+	def __init__(self, wsize, pstep=1):
+		"""
+		initializer
+		
+		Parameters
+			wsize : window size
+			pstep : processing step size
+		"""
+		self.wsize = size
+		self.pstep = pstep
+		self.window = list()
+		self.vcount = 0
+		
+	def add(self, val):
+		"""
+		adds value to window
+		
+		Parameters
+			val : value
+		"""
+		self.window.append(val)
+		self.vcount += 1
+		if self.vcount >= self.wsize:
+			if self.vcount > self.wsize:
+				self.window.pop(0)
+			if self.vcount % self.pstep == 0:
+				self.process()
+				
+	@abc.abstractmethod
+	def process(self):
+		"""
+		processes window
+		
+		"""
+		return
+		
 
 def loadDataFile(file, delim, cols, colIndices):
 	"""

@@ -1487,11 +1487,21 @@ def pastTime(interval, unit):
 	"""
 	curTime = int(time.time())
 	if unit == "d":
+		#day
 		pastTime = curTime - interval * secInDay
 	elif unit == "h":
+		#hour
 		pastTime = curTime - interval * secInHour
 	elif unit == "m":
+		#minute
 		pastTime = curTime - interval * secInMinute
+	elif unit == "s":
+		#second
+		pastTime = curTime - interval
+	elif unit == "ms":
+		#mili second
+		curTime = curTimeMs()
+		pastTime = curTime - interval
 	else:
 		raise ValueError("invalid time unit " + unit)
 	return (curTime, pastTime)
@@ -1547,14 +1557,16 @@ def dayAlign(ts):
 
 def timeAlign(ts, unit):
 	"""
-	boundary alignment of time
+	boundary alignment of time 
 
 	Parameters
 		ts : time stamp in sec
 		unit : unit of time
 	"""
 	alignedTs = 0
-	if unit == "s":
+	if unit == "ms":
+		alignedTs = ts
+	elif unit == "s":
 		alignedTs = ts
 	elif unit == "m":
 		alignedTs = minuteAlign(ts)

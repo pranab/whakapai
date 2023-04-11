@@ -22,18 +22,20 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from zaman.tsgen import *
+from tsgen import *
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
 	parser.add_argument('--cfpath', type=str, default = "", help = "config file path")
+	parser.add_argument('--ovcfpath', type=str, default = "none", help = "overriding config file path")
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
 	parser.add_argument('--prec', type=int, default = 3, help = "floating point precision")
 	args = parser.parse_args()
 	op = args.op
 	
-	generator = TimeSeriesGenerator(args.cfpath)
+	ovcfpath = None if args.ovcfpath == "none" else args.ovcfpath
+	generator = TimeSeriesGenerator(args.cfpath, ovcfpath)
 	if op == "tsn":
 		""" trend, cycle and noise based generation """
 		da = list()
@@ -42,6 +44,14 @@ if __name__ == "__main__":
 			da.append(float(rec.split(",")[1]))
 		drawLine(da)
 	
+	if op == "triang":
+		""" triangular cyclic  based generation """
+		da = list()
+		for rec in generator.triangGen():
+			print(rec)
+			da.append(float(rec.split(",")[1]))
+		drawLine(da[:50])
+
 	elif op == "insan":
 		""" insert sequence anomaly """
 		da = list()

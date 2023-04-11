@@ -475,7 +475,7 @@ class NormalSampler:
 		"""
 		samp =  np.random.normal(self.mean, self.stdDev)
 		if self.sampleAsInt:
-			samp = int(samp)
+			samp = round(samp)
 		return samp
 				
 class LogNormalSampler:
@@ -637,7 +637,7 @@ class GaussianRejectSampler:
 				done = True
 				samp = x
 		if self.sampleAsInt:
-			samp = int(samp)
+			samp = round(samp)
 		return samp
 
 class DiscreteRejectSampler:

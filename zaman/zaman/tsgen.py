@@ -32,12 +32,13 @@ Time series generation for different kinds of time series
 
 
 class TimeSeriesGenerator(object):
-	def __init__(self, configFile):
+	def __init__(self, configFile, ovConfigFile=None):
 		"""
 		Initializer
 		
 		Parameters
 			configFile : config file path
+			ovConfigFile : over riding config file path
 		"""
 		defValues = {}
 		defValues["window.size"] = (None, "missing time window size")
@@ -75,10 +76,14 @@ class TimeSeriesGenerator(object):
 		defValues["ccorr.unco.params"] = (None, None)
 		defValues["si.params"] = (None, None)
 		defValues["motif.params"] = (None, None)
+		defValues["spike.params"] = (None, None)
+		defValues["triang.params"] = (None, None)
 		defValues["anomaly.params"] = (None, None)
 		defValues["anomaly.pt.params"] = (None, None)
 
 		self.config = Configuration(configFile, defValues)
+		if ovConfigFile is not None:
+			self.config.override(ovConfigFile)
 		self.delim = ","
 		
 		#start time
@@ -95,7 +100,10 @@ class TimeSeriesGenerator(object):
 			items = sampIntv[0].split("_")
 			ts = int(items[0])
 			unit = items[1]
-			self.sampIntv = timeToSec(ts, unit)
+			if unit == "s" or unit  == "ms":
+				self.sampIntv = ts
+			else:	
+				self.sampIntv = timeToSec(ts, unit)
 		elif sampIntvType == "random":
 			assertEqual(len(sampIntv), 2, "invalid number of params for sample interval")
 			siMean = float(sampIntv[0])
@@ -124,9 +132,6 @@ class TimeSeriesGenerator(object):
 		
 		# time unit
 		timeUnit = self.config.getStringConfig("window.time.unit")[0]
-		if timeUnit == "ms":
-			self.curTm *= 1000
-			self.pastTm *= 1000
 
 
 	def randGaussianGen(self):
@@ -560,6 +565,52 @@ class TimeSeriesGenerator(object):
 			sampTm += self.sampIntv
 			yield rec
 				
+	def triangGen(self):
+		"""
+		generates triangle based periodic time series
+
+		Parameters
+		"""
+		self.config.assertParams("triang.params")
+		params = self.config.getStringListConfig("triang.params")[0]
+		
+		#period
+		psampler =  self.__spikeSampler(params[0])	
+		
+		#incr value  sampler
+		ivsampler =  self.__spikeSampler(params[1], False)
+
+		# random noise sampler
+		rsampler = self.__genRandSampler()
+
+		sampTm = self.pastTm
+		curVal = -ivsampler.sample()
+		while (sampTm < self.curTm):
+			per = psampler.sample()
+			qper = round(per / 4)
+			tqpr = round(3 * per / 4)
+			
+			for i in range(per):
+				incr = ivsampler.sample()
+				if i < qper:
+					curVal += incr
+				elif i < tqpr:
+					curVal -= incr
+				else:
+					curVal += incr
+				
+				if i == per - 1:
+					curVal = 0
+							
+				if self.tsValType == "int":
+					curVal = int(curVal)
+				
+				#date time
+				dt = self.__getDateTime(sampTm)
+				
+				rec = self.ouForm.format(dt, curVal)
+				sampTm += self.sampIntv
+				yield rec
 		
 	def insertAnomalySeqGen(self, dfpath, prec):
 		"""
@@ -628,8 +679,8 @@ class TimeSeriesGenerator(object):
 			params : parameters
 			asInt : True if too be sampled as int
 		"""
-		params = params[0].split(":")
-		if params[0] == "uniforma":
+		params = params.split(":")
+		if params[0] == "uniform":
 			sampler = UniformNumericSampler(int(params[1]), int(params[2])) if asInt else UniformNumericSampler(float(params[1]), float(params[2]))
 		else:
 			sampler =  NormalSampler(float(params[1]), float(params[2]))
