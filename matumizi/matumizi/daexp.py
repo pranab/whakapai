@@ -32,6 +32,7 @@ from statsmodels.stats import stattools as sstt
 from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 from scipy import stats as sta
+from scipy import fft
 from statsmodels.tsa.seasonal import seasonal_decompose
 import statsmodels.api as sm
 from sklearn.ensemble import IsolationForest
@@ -343,13 +344,13 @@ class DataExplorer:
 			numeric : True if numeric False in binary
 			name : name of data set
 		"""
-		assert type(ds) == list, "data not a list"
+		assert type(ds) == list or type(ds) == np.ndarray, "data not a list or numpy array"
 		if numeric:
 			assert isNumeric(ds), "data is not numeric"
 		else:
 			assert isBinary(ds), "data is not binary"
 		dtype = DataSetMetaData.dtypeNum if numeric else DataSetMetaData.dtypeBin
-		self.dataSets[name] = np.array(ds)
+		self.dataSets[name] = np.array(ds) if type(ds) == list else ds
 		self.metaData[name] = DataSetMetaData(dtype)
 
 
@@ -2157,17 +2158,20 @@ class DataExplorer:
 		result = self.__printResult("crossCorr", crossCorr)
 		return result
 
-	def getFourierTransform(self, ds):
+	def getFourierTransform(self, ds, srate):
 		"""
 		gets fast fourier transform
 		
 		Parameters
 			ds: data set name or list or numpy array
+			srate : sampling rate
 		"""
 		self.__printBanner("getting fourier transform", ds)
 		data = self.getNumericData(ds)
-		ft = np.fft.rfft(data)
-		result = self.__printResult("fourierTransform", ft)
+		ft = fft.rfft(data)
+		nsamp = len(data)
+		freq = fft.rfftfreq(nsamp, 1 / srate)
+		result = self.__printResult("fourierTransform", ft, "frquency", freq)
 		return result
 
 
