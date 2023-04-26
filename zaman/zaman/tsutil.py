@@ -132,7 +132,7 @@ def components(ds, model, freq, summaryOnly, doPlot=False):
 
 def meanVarNonStationarity(ds, wlen, doPlot=True):
 	"""
-	mean and variance based test for non stationarity with trend, sotachstic trend or 
+	mean and variance based test for non stationarity with trend, sotachstic trend or heteroscedastic
 		
 	Parameters
 		ds: file name and col index or list

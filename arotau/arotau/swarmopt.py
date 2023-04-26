@@ -40,15 +40,17 @@ class AntColonyOptimizer(object):
 			configFile : configuration file
 		"""
 		defValues = {}
+		defValues["common.verbose"] = (False, None)
 		defValues["ac.graph.data"] = (None, None)
 		defValues["ac.graph.base.node"] = (None, None)
 		defValues["ac.ant.pool.size"] = (10, None)
 		defValues["ac.num.iter"] = (10, None)
 		defValues["ac.pheromone.exp"] = (1.0, None)
 		defValues["ac.heuristic.exp"] = (1.0, None)
-		defValues["ac.pheromone.evaporation"] = (0.3, None)
-		defValues["ac.pheromone.update.strategy"] = ("as", None)
-		defValues["ac.exploration.probab"] = (None, None)
+		defValues["ac.pheromone.evaporation.param"] = (0.5, None)
+		defValues["ac.pheromone.update.policy"] = ("as", None)
+		defValues["ac.pheromone.add.param"] = (None, None)
+		defValues["ac.exploration.probab"] = (0.2, None)
 		self.config = Configuration(configFile, defValues)
 		
 		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
@@ -57,17 +59,30 @@ class AntColonyOptimizer(object):
 		self.hexp = self.config.getFloatConfig("ac.heuristic.exp")[0]
 		self.pexp = self.config.getFloatConfig("ac.pheromone.exp")[0]
 		graph = self.config.getStringListConfig("ac.graph.data")[0]
-		self.edges = dict()
-		self.nodes = None
-		self.__processGraph(graph)
 		
 		self.antPoolSize = self.config.getIntConfig("ac.ant.pool.size")[0]
 		self.base = self.config.getStringConfig("ac.graph.base.node")[0]
-		self.ants = [[self.base]] * self.antPoolSize
-		self.costs = [0] * self.antPoolSize
+		self.ants = None
+		self.costs = None
+		self.plens = None
+		self.__initAntPool()
+
 		self.explProbab = self.config.getFloatConfig("ac.exploration.probab")[0]
 		if self.explProbab is not None:
 			self.explProbab = int(100 * self.explProbab)
+		
+		# if pheromone add param not set then set to num of nodes assuming max wt of edge is 1
+		self.pheromAddParam = self.config.getFloatConfig("ac.pheromone.add.param")[0]
+		self.pheromEvaporParam = self.config.getFloatConfig("ac.pheromone.evaporation.param")[0]
+		self.pheromUpdPolicy = self.config.getStringConfig("ac.pheromone.update.policy")[0]
+		
+		self.iterBestSoln = None
+		self.bestSoln = None
+		
+		self.edges = dict()
+		self.nodes = None
+		self.numNodes = None
+		self.__processGraph(graph)
 		
 	def run(self):
 		"""
@@ -76,13 +91,16 @@ class AntColonyOptimizer(object):
 		niter = self.config.getIntConfig("ac.num.iter")[0]
 		
 		#iterations
-		for _ in range(niter):
+		for it in range(niter):
+			print("iteration ", it)
 			#all nodes
-			for j in range(len(self.nodes)):
+			for j in range(self.numNodes - 1):
 				#all ants
 				for a in range(self.antPoolSize):
 					visited = self.ants[a]
+					print("ant {}  visited {}".format(a, str(visited)))
 					nextVisits = self.__nextToVisitNodes(visited)
+					assertGreater(len(nextVisits), 0, "failed to find next node to visit, visited so far  " + str(visited))
 					trPr = dict()
 					sumPr = 0
 					cnode = visited[-1]
@@ -95,42 +113,67 @@ class AntColonyOptimizer(object):
 						else:
 							k = (nv, cnode)
 							edge = self.edges[k]	
-						pr = (edge[0] ** self.hexp) * (edge[1] ** self.pexp)
+						pr = (edge[1] ** self.hexp) * (edge[2] ** self.pexp)
 						sumPr += pr
 						trPr[nv] = pr
 				
-						#normalize proability
-						for k in trPr.keys():
-							trPr[k] /= sumPr
+					#normalize proability
+					for k in trPr.keys():
+						trPr[k] /= sumPr
 				
-						#select next node
-						snode = self.__selectNextNode(trPr)	
-						visited.append(snode)
+					#select next node
+					snode = self.__selectNextNode(trPr)	
+					self.ants[a].append(snode)
+					print("ant {}  visited {}".format(a, str(self.ants[a])))
+						
+					#updatre path cost and length
+					sedge = self.__getEdge(cnode, snode)[1]
+					self.plens[a] += sedge[0]
+					self.costs[a] += sedge[1]
 				
-					#updatre path cost
-					sedge = self.__getEdge(self, lnode, snode)
-					self.costs[a] += sedge[0]
-				
+					#print(self.ants)
+					
 			#add base node
 			for a in range(self.antPoolSize):
 				assertEqual(len(self.ants[a]), len(self.nodes), "not all nodes visited")
 				self.ants[a].append(self.base)
-				sedge = self.__getEdge(self, self.ants[a][-2], self.ants[a][-1])
-				self.costs[a] += sedge[0]
+				sedge = self.__getEdge(self.ants[a][-2], self.ants[a][-1])[1]
+				self.plens[a] += sedge[0]
+				self.costs[a] += sedge[1]
 			
 			#current iteration best soln
+			minCost = 10 * self.numNodes
+			bi = None
+			for i in range(len(self.costs)):
+				if self.costs[i] < minCost:
+					bi = i
+					minCost = self.costs[i]
+			self.iterBestSoln = (self.ants[bi], self.costs[bi], self.plens[bi])
 				
 			#global best soln
+			if self.bestSoln is None or self.iterBestSoln[1] < self.bestSoln[1]:
+				self.bestSoln = self.iterBestSoln
+				print("iteration {} best soln {}".format(it, str(self.bestSoln)))
 				
 			#update pheronope weights
+			self.__updatePheronome()
 			
 			#reset
-			self.ants = [[self.base]] * self.antPoolSize
-			self.costs = [0] * self.antPoolSize
-			
+			self.__initAntPool()
+		
 				
-			
-									
+	def __initAntPool(self):
+		"""
+		initalize ant pool
+		"""
+		self.ants = list()
+		for _ in range(self.antPoolSize):
+			self.ants.append([self.base])
+		print(self.ants)
+		self.costs = [0] * self.antPoolSize
+		self.plens = [0] * self.antPoolSize
+	
+										
 	def __processGraph(self, edges):
 		"""
 		process graph data
@@ -142,27 +185,33 @@ class AntColonyOptimizer(object):
 		nset = set()
 		for e in edges:
 			items = e.split(":")
-			edge = (e[0], e[1])
-			wt = float(e[2])
+			assertEqual(len(items), 3, "incorrect edge data num items " + str(len(items)))
+			edge = (items[0], items[1])
+			wt = float(items[2])
 			self.edges[edge] = [wt]
 			if wt > maxWt:
 				maxWt = wt
-			nset.add(e[0])
-			nset.add(e[1])
+			nset.add(items[0])
+			nset.add(items[1])
 			
 		self.nodes = list(nset)
+		self.numNodes = len(self.nodes)
 		
-		#scale
-		sumw = 0
+		#scale by max value
 		for e in self.edges.keys():
-			wt = maxWt / self.edges[e][0]
+			wt = self.edges[e][0] / maxWt
 			self.edges[e][0] = wt
-			sumw += wt
+			self.edges[e].append(1 / wt)
+
 		
-		# preonome weight is average heuristic weight	
-		avWt = sumw / len(self.edges)
+		# phereonome weight initilized based on random path weight 
+		if self.pheromAddParam is None:
+			self.pheromAddParam = self.numNodes
 		for e in self.edges.keys():
-			self.edges[e].append(avWt)
+			plen = randomFloat(0.2 * self.numNodes, 0.8 * self.numNodes)
+			self.edges[e].append(self.pheromAddParam / plen)
+			assertEqual(len(self.edges[e]), 3, "incorrect edge data num items " + str(len(self.edges[e])))
+	
 	
 	def __nextToVisitNodes(self, visited):
 		"""
@@ -194,12 +243,14 @@ class AntColonyOptimizer(object):
 			n2 : node 2 of edge
 		"""
 		if (n1,n2) in self.edges:
-			edge = self.edges[(n1,n2)]
+			ekey = (n1,n2)
+			edge = self.edges[ekey]
 		elif (n2,n1) in self.edges:
-			edge = self.edges[(n2,n1)]
+			ekey = (n2,n1)
+			edge = self.edges[ekey]
 		else:
 			exitWithMsg("edge does not exist with nodes " + n1  + " " + n2)
-		return edge
+		return (ekey, edge)
 		
 	def __selectNextNode(self, trPr):
 		"""
@@ -234,8 +285,39 @@ class AntColonyOptimizer(object):
 		update all pheronome weights
 
 		"""
-		pass
+		#evaporate
+		for e in self.edges.keys():
+			self.edges[e][2] *= (1 - self.pheromEvaporParam)
 		
+		#add weight	
+		if self.pheromUpdPolicy == "as":
+			#all ants in current iteration
+			for a in range(len(self.ants)):
+				ant = self.ants[a]
+				plen = self.plens[a]
+				self.__addPheromone(ant, plen)
 		
+		elif self.pheromUpdPolicy == "ib":
+			#current iteration best ant
+			ant = self.iterBestSoln[0]
+			plen = self.iterBestSoln[2]
+			self.__addPheromone(ant, plen)
 	
-		
+		elif self.pheromUpdPolicy == "bs":
+			#best solution so far
+			ant = self.bestSoln[0]
+			plen = self.bestSoln[2]
+			self.__addPheromone(ant, plen)
+	
+	def __addPheromone(self, ant, plen):
+		"""
+		add pheromon to all edges in the ant solution path
+
+		Parameters
+			ant : ant path
+			plen : ant path length
+		"""
+		for i in range(len(ant) - 1):
+			ekey =  self.__getEdge(ant[i], ant[i+1])[0]	
+			self.edges[ekey][2] += self.pheromEvaporParam * self.pheromAddParam / plen
+	
