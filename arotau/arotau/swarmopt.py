@@ -41,6 +41,8 @@ class AntColonyOptimizer(object):
 		"""
 		defValues = {}
 		defValues["common.verbose"] = (False, None)
+		defValues["common.logging.file"] = (None, "missing log file path")
+		defValues["common.logging.level"] = ("info", None)
 		defValues["ac.graph.data"] = (None, None)
 		defValues["ac.graph.base.node"] = (None, None)
 		defValues["ac.ant.pool.size"] = (10, None)
@@ -54,6 +56,10 @@ class AntColonyOptimizer(object):
 		self.config = Configuration(configFile, defValues)
 		
 		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
+		logFilePath = self.config.getStringConfig("common.logging.file")[0]
+		logLevName = self.config.getStringConfig("common.logging.level")[0]
+		self.logger = createLogger(__name__, logFilePath, logLevName)
+		
 		self.bestSoln = None
 		
 		self.hexp = self.config.getFloatConfig("ac.heuristic.exp")[0]
@@ -63,7 +69,7 @@ class AntColonyOptimizer(object):
 		self.antPoolSize = self.config.getIntConfig("ac.ant.pool.size")[0]
 		self.base = self.config.getStringConfig("ac.graph.base.node")[0]
 		self.ants = None
-		self.costs = None
+		self.weights = None
 		self.plens = None
 		self.__initAntPool()
 
@@ -88,17 +94,18 @@ class AntColonyOptimizer(object):
 		"""
 		run optimizer
 		"""
+		self.logger.info("**** Starting AntColonyOptimizer ****")
 		niter = self.config.getIntConfig("ac.num.iter")[0]
 		
 		#iterations
 		for it in range(niter):
-			print("iteration ", it)
+			self.logger.debug("iteration " +  str(it))
 			#all nodes
 			for j in range(self.numNodes - 1):
 				#all ants
 				for a in range(self.antPoolSize):
 					visited = self.ants[a]
-					print("ant {}  visited {}".format(a, str(visited)))
+					self.logger.debug("ant {}  visited so far {}".format(a, str(visited)))
 					nextVisits = self.__nextToVisitNodes(visited)
 					assertGreater(len(nextVisits), 0, "failed to find next node to visit, visited so far  " + str(visited))
 					trPr = dict()
@@ -124,12 +131,12 @@ class AntColonyOptimizer(object):
 					#select next node
 					snode = self.__selectNextNode(trPr)	
 					self.ants[a].append(snode)
-					print("ant {}  visited {}".format(a, str(self.ants[a])))
+					self.logger.debug("ant {}  new visit {}".format(a, snode))
 						
 					#updatre path cost and length
 					sedge = self.__getEdge(cnode, snode)[1]
 					self.plens[a] += sedge[0]
-					self.costs[a] += sedge[1]
+					self.weights[a] += sedge[1]
 				
 					#print(self.ants)
 					
@@ -139,29 +146,35 @@ class AntColonyOptimizer(object):
 				self.ants[a].append(self.base)
 				sedge = self.__getEdge(self.ants[a][-2], self.ants[a][-1])[1]
 				self.plens[a] += sedge[0]
-				self.costs[a] += sedge[1]
+				self.weights[a] += sedge[1]
 			
 			#current iteration best soln
 			minCost = 10 * self.numNodes
 			bi = None
-			for i in range(len(self.costs)):
-				if self.costs[i] < minCost:
+			for i in range(len(self.plens)):
+				if self.plens[i] < minCost:
 					bi = i
-					minCost = self.costs[i]
-			self.iterBestSoln = (self.ants[bi], self.costs[bi], self.plens[bi])
+					minCost = self.plens[i]
+			self.iterBestSoln = (self.ants[bi], self.weights[bi], self.plens[bi])
+			mformat = "current iteration best soln {} weight {:.6f}  cost {:.6f}"
+			self.logger.debug(mformat.format(str(self.iterBestSoln[0]), self.iterBestSoln[1], self.iterBestSoln[2]))
 				
 			#global best soln
-			if self.bestSoln is None or self.iterBestSoln[1] < self.bestSoln[1]:
+			if self.bestSoln is None or self.iterBestSoln[2] < self.bestSoln[2]:
 				self.bestSoln = self.iterBestSoln
-				print("iteration {} best soln {}".format(it, str(self.bestSoln)))
+				mformat = "global best soln at iteration {} path {} weight {:.6f}  cost {:.6f}"
+				self.logger.info(mformat.format(it, str(self.bestSoln[0]), self.bestSoln[1], self.bestSoln[2]))
+				print(mformat.format(it, str(self.bestSoln[0]), self.bestSoln[1], self.bestSoln[2]))
 				
 			#update pheronope weights
 			self.__updatePheronome()
 			
 			#reset
 			self.__initAntPool()
-		
 				
+		self.logger.info("final global best soln  path {} weight {:.6f}  cost {:.6f}".format(str(self.bestSoln[0]), self.bestSoln[1], self.bestSoln[2]))
+		print("final global best soln  path {} weight {:.6f}  cost {:.6f}".format(str(self.bestSoln[0]), self.bestSoln[1], self.bestSoln[2]))
+		
 	def __initAntPool(self):
 		"""
 		initalize ant pool
@@ -169,8 +182,8 @@ class AntColonyOptimizer(object):
 		self.ants = list()
 		for _ in range(self.antPoolSize):
 			self.ants.append([self.base])
-		print(self.ants)
-		self.costs = [0] * self.antPoolSize
+		self.logger.debug("ants " + str(self.ants))
+		self.weights = [0] * self.antPoolSize
 		self.plens = [0] * self.antPoolSize
 	
 										
@@ -212,7 +225,11 @@ class AntColonyOptimizer(object):
 			self.edges[e].append(self.pheromAddParam / plen)
 			assertEqual(len(self.edges[e]), 3, "incorrect edge data num items " + str(len(self.edges[e])))
 	
-	
+		self.logger.debug("graph data")
+		for e in self.edges.keys():
+			mformat = "edge  {} length {}  cost {:.3f} pheromone weight {:.3f}"
+			self.logger.debug(mformat.format(str(e), self.edges[e][0], self.edges[e][1], self.edges[e][2]))
+
 	def __nextToVisitNodes(self, visited):
 		"""
 		get nodes not visited that are immediate neighbors of the current node
@@ -259,6 +276,7 @@ class AntColonyOptimizer(object):
 		Parameters
 			trPr : transition probability of next nodes
 		"""
+		self.logger.debug("neighbor weight distribution " + str(trPr))
 		greedy = True
 		if self.explProbab is not None:
 			if isEventSampled(self.explProbab):
@@ -272,11 +290,13 @@ class AntColonyOptimizer(object):
 				if trPr[n] > maxp:
 					snode = n
 					maxp = trPr[n]
+			self.logger.debug("selected {} greedily".format(snode))
 		else:
 			#sample node
 			distr = list(zip(trPr.keys(), trPr.values()))
 			sampler = CategoricalRejectSampler(distr)
 			snode = sampler.sample()
+			self.logger.debug("selected {} by sampling".format(snode))
 			
 		return snode
 		
@@ -308,6 +328,10 @@ class AntColonyOptimizer(object):
 			ant = self.bestSoln[0]
 			plen = self.bestSoln[2]
 			self.__addPheromone(ant, plen)
+
+		self.logger.debug("edge pheromone")
+		for e in self.edges.keys():
+			self.logger.debug("edge {} pheromone {:.3f}".format(str(e), self.edges[e][2]))
 	
 	def __addPheromone(self, ant, plen):
 		"""
