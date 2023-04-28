@@ -1,0 +1,41 @@
+Note:
+This an annotated explanation of configuration parameters for Ant Colony Optimization implementation
+When any property value is _, it implies default value. To find the default value please look
+up the constructor code in swarmopt.py. 
+
+
+common.logging.file=./log/opti.log
+	Log file path
+	
+common.logging.level=debug
+	Log level 
+
+ac.graph.data=A:B:5.1,A:C:10.3,A:D:5.3,A:E:8.1,A:F:7.9,A:G:9.1,A:H:11.2,B:C:5.2,B:D:4.8,B:E:12.5,B:F:8.8,B:G:8.6,B:H:12.8,C:D:4.8,C:E:13.1,C:F:9.8,C:G:8.1,C:H:12.9,D:E:8.7,D:F:4.9,D:G:4.2,D:H:6.1,E:F:4.8,E:G:8.2,E:H:7.9,F:G:4.2,F:H:4.1,G:H:3.9
+	Graph data. The data for each edge is separated by coma. For each edge we definne the connecting nodes and and  edge length separate by colon e.g A:E:8.1
+	
+ac.graph.base.node=A
+	This is the start and end node for graph traversal
+	
+ac.ant.pool.size=20
+	Ant pool size
+	
+ac.num.iter=50
+	Number of iteration
+	
+ac.heuristic.exp=2.0
+	Heuristic weight exponential
+	
+ac.pheromone.exp=1.0
+	Pheronome weight exponential
+	
+ac.pheromone.evaporation.param=0.5
+	Pheronome evaporation parameter
+	
+ac.pheromone.update.policy=ib
+	Pheronome weight update policy where as = all soln in current iteration ib = iteration best soln  bs = best so far soln
+	
+ac.pheromone.add.param=_
+	Parameter for adding npheronome weight. Default is based on the number of nodes
+	
+ac.exploration.probab=0.2
+	Probabilty for random greedy algorithm for node selection

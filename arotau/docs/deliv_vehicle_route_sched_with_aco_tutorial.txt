@@ -1,0 +1,21 @@
+This tutorial is for optimizing delivery vehicle route  using Ant Colony Optimization.
+
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.7
+
+Install heuristic optimization package arotau
+pip3 install -i https://test.pypi.org/simple/ arotau==0.0.3
+
+It's recommended that you copy desch.py  to a working directory and work from there. 
+
+
+Running the optimizer
+=====================
+python3 ./desch.py --op opt --cfpath aco_desch.properties 
+
+where
+cfpath = config file path
+
