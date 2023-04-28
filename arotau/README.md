@@ -4,13 +4,14 @@ Heuristic Optmization
 * opti : base class for heuristic optimization
 * optsolo : non population based algorithms (simulated annealing, bayesian optimization)
 * optpopu :population based algorithms (genetic programming, evolutionary algorithms)
+* swarmopt :swarm optimization (ant colony optimization)
 
 
 
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple arotau==0.0.2
+pip3 install -i https://test.pypi.org/simple arotau==0.0.3
 
 For installing latest, clone repo and run this at the project root directory
 pip3 install .
@@ -18,7 +19,7 @@ pip3 install .
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/arotau/0.0.2/
+https://test.pypi.org/project/arotau/0.0.3/
 
 
 3. Blogs posts
