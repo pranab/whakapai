@@ -25,7 +25,8 @@ https://test.pypi.org/project/arotau/0.0.3/
 3. Blogs posts
 
 * [Meeting Schedule Optimization with Genetic Algorithm in Python](https://pkghosh.wordpress.com/2020/11/26/meeting-schedule-optimization-with-genetic-algorithm-in-python/)
-
+* [Patient Appointment Management Optimization with Simulated Annealing](https://pkghosh.wordpress.com/2022/09/28/patient-appointment-management-optimization-with-simulated-annealing/)
+* [Delivery Vehicle Route Planning with Ant Colony Optimization](https://pkghosh.wordpress.com/2023/04/28/delivery-vehicle-route-planning-with-ant-colony-optimization/)
 
 4. Code usage example
 

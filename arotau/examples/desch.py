@@ -26,7 +26,7 @@ from matumizi.util import *
 from matumizi.sampler import *
 from arotau.opti import *
 from arotau.optsolo import *
-from swarmopt import *
+from arotau.swarmopt import *
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
