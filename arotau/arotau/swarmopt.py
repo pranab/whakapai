@@ -40,7 +40,6 @@ class AntColonyOptimizer(object):
 			configFile : configuration file
 		"""
 		defValues = {}
-		defValues["common.verbose"] = (False, None)
 		defValues["common.logging.file"] = (None, "missing log file path")
 		defValues["common.logging.level"] = ("info", None)
 		defValues["ac.graph.data"] = (None, None)
@@ -55,7 +54,6 @@ class AntColonyOptimizer(object):
 		defValues["ac.exploration.probab"] = (0.2, None)
 		self.config = Configuration(configFile, defValues)
 		
-		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
 		logFilePath = self.config.getStringConfig("common.logging.file")[0]
 		logLevName = self.config.getStringConfig("common.logging.level")[0]
 		self.logger = createLogger(__name__, logFilePath, logLevName)
@@ -328,7 +326,9 @@ class AntColonyOptimizer(object):
 			ant = self.bestSoln[0]
 			plen = self.bestSoln[2]
 			self.__addPheromone(ant, plen)
-
+		else:
+			exitwithMsg("invalid pheronome update policy")
+			
 		self.logger.debug("edge pheromone")
 		for e in self.edges.keys():
 			self.logger.debug("edge {} pheromone {:.3f}".format(str(e), self.edges[e][2]))
