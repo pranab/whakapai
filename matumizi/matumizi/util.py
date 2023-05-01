@@ -1992,6 +1992,21 @@ def drawLine(data, yscale=None):
 		plt.yticks(range(0, yscale, step))
 	plt.show()
 
+def drawLineParts(data, nparts, yscale=None):
+	"""
+	line plot in parts
+
+	Parameters
+		data : list data
+		nparts : num of parts
+		yscale : y axis scale
+	"""
+	step = int(len(data) / nparts)
+	for i in range(nparts):
+		beg = i * step
+		end = len(data) if i == nparts - 1 else beg + step
+		drawLine(data[beg:end], yscale)
+
 def drawPlot(x, y, xlabel, ylabel):
 	"""
 	line plot
