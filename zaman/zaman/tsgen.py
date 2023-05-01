@@ -78,6 +78,7 @@ class TimeSeriesGenerator(object):
 		defValues["motif.params"] = (None, None)
 		defValues["spike.params"] = (None, None)
 		defValues["triang.params"] = (None, None)
+		defValues["step.params"] = (None, None)
 		defValues["anomaly.params"] = (None, None)
 		defValues["anomaly.pt.params"] = (None, None)
 
@@ -514,13 +515,13 @@ class TimeSeriesGenerator(object):
 		params = self.config.getStringListConfig("spike.params")[0]
 		
 		#gap pameters
-		gsampler =  self.__spikeSampler(params[0])	
+		gsampler =  self.__simpleSampler(params[0])	
 		
 		#width sampler
-		wsampler =  self.__spikeSampler(params[1])
+		wsampler =  self.__simpleSampler(params[1])
 		
 		#incr value  sampler
-		ivsampler =  self.__spikeSampler(params[2], False)
+		ivsampler =  self.__simpleSampler(params[2], False)
 
 		# random noise sampler
 		rsampler = self.__genRandSampler()
@@ -575,10 +576,10 @@ class TimeSeriesGenerator(object):
 		params = self.config.getStringListConfig("triang.params")[0]
 		
 		#period
-		psampler =  self.__spikeSampler(params[0])	
+		psampler =  self.__simpleSampler(params[0])	
 		
 		#incr value  sampler
-		ivsampler =  self.__spikeSampler(params[1], False)
+		ivsampler =  self.__simpleSampler(params[1], False)
 
 		# random noise sampler
 		rsampler = self.__genRandSampler()
@@ -607,11 +608,81 @@ class TimeSeriesGenerator(object):
 				
 				#date time
 				dt = self.__getDateTime(sampTm)
-				
+				curVal += rsampler.sample()
 				rec = self.ouForm.format(dt, curVal)
 				sampTm += self.sampIntv
 				yield rec
 		
+	def stepGen(self):
+		"""
+		generates step function signal
+
+		Parameters
+		"""
+		self.config.assertParams("step.params")
+		params = self.config.getStringListConfig("step.params")[0]
+		
+		#step duration
+		dsampler =  self.__simpleSampler(params[0])	
+		
+		#step value
+		vsampler =  self.__simpleSampler(params[1], False)	
+
+		#incr value  sampler
+		ivsampler =  self.__simpleSampler(params[2], False)
+		
+		# random noise sampler
+		rsampler = self.__genRandSampler()
+		
+		sampTm = self.pastTm
+		sval = vsampler.sample()
+		dur = dsampler.sample()
+		#print("duration ", dur)
+		dcnt = 1
+		scnt = -1
+		while sampTm < self.curTm:
+			if dcnt == dur:
+				#step end
+				psval = sval
+				sval = vsampler.sample()
+				incval = ivsampler.sample()
+				if sval < psval:
+					incval = - incval
+				nsteps = int((sval - psval) / incval)
+				nsteps = 2 if nsteps < 2 else nsteps
+				curVal = psval + incval 
+				scnt = 1
+				dcnt = -1
+				sval = psval + nsteps * incval
+				#print("step end psval {:.3f}  sval{:.3f}  curVal {:.3f}".format(psval, sval, curVal))
+			elif scnt > 0:
+				#transition
+				if scnt == nsteps:
+					#new step
+					curVal = sval
+					dcnt = 1
+					scnt = -1
+					dur = dsampler.sample()
+					#print("new step sval{:.3f}  curVal {:.3f}".format(sval, curVal))
+					#print("duration ", dur)
+				else:
+					#in transition
+					scnt += 1
+					curVal = psval + scnt * incval 
+					#print("in transition psval {:.3f}  curVal {:.3f}".format(psval, curVal))
+			else:
+				#in step
+				#print("in step sval {:.3f}".format(sval) )
+				curVal = sval
+				dcnt += 1	
+			
+			curVal += rsampler.sample()		
+			dt = self.__getDateTime(sampTm)
+			rec = self.ouForm.format(dt, curVal)
+			sampTm += self.sampIntv
+			yield rec
+
+
 	def insertAnomalySeqGen(self, dfpath, prec):
 		"""
 		inserts anomaly sequence to an existing  time series
@@ -671,7 +742,7 @@ class TimeSeriesGenerator(object):
 			i += 1
 			yield self.delim.join(rec)
 			
-	def __spikeSampler(self, params, asInt=True):
+	def __simpleSampler(self, params, asInt=True):
 		"""
 		generates sampler for spiky time series
 

@@ -22,7 +22,8 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from tsgen import *
+from zaman.tsgen import *
+
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -51,6 +52,14 @@ if __name__ == "__main__":
 			print(rec)
 			da.append(float(rec.split(",")[1]))
 		drawLine(da[:50])
+
+	if op == "step":
+		""" step based generation """
+		da = list()
+		for rec in generator.stepGen():
+			print(rec)
+			da.append(float(rec.split(",")[1]))
+		drawLineParts(da, 5, 160)
 
 	elif op == "insan":
 		""" insert sequence anomaly """
