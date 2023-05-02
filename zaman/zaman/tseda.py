@@ -159,10 +159,65 @@ def meanVarNonStationarity(ds, wlen, doPlot=True):
 		drawLine(mlist)
 		drawLine(vlist)
 		 
-	re = (mlist, vlist)
-	return re
-	
+	res = __createResult("meanValues", mlist, "varvalues", vlist)
+	return res
 
+def meanVarShift(ds, wlen, doPlot=True):
+	"""
+	detects mean and variance shift
+		
+	Parameters
+		ds: file name and col index or list
+		wlen : window length
+		doPlot : plotted if True
+	"""
+	mlist = list()
+	slist = list()
+	data = _getListData(ds)
+	assertGreater(len(data), wlen, "data size should be larger than window size")
+	
+	mmdiff = None
+	msdiff = None
+	for i in range(len(data) - wlen):
+		#mean and sd of each half window
+		beg = i
+		half = beg + int(wlen / 2)
+		end = beg + wlen
+		m1, s1 = basicStat(data[beg:half])
+		m2, s2 = basicStat(data[half:end])
+		
+		#max diff in mean and sd
+		mdiff = abs(m1 - m2)
+		sdiff = abs(s1 - s2)
+		if mmdiff is None:
+			mmdiff = mdiff
+			msdiff = sdiff
+		else:
+			if mdiff > mmdiff:
+				mmdiff = mdiff
+				mi = i
+			if sdiff > msdiff:
+				msdiff = sdiff
+				si = i
+			
+	res = __createResult("meanDiff", mmdiff, "meanDiffLoc", mi, "sdDiff", msdiff, "sdDiffLoc", si)
+	return res
+			
+def fft(ds, srate):
+	"""
+	gets fft
+		
+	Parameters
+		ds: list containing file name and col index or list of data
+		srate : sampling rate	
+	"""
+	expl =_initDexpl(ds)
+	res = expl.getFourierTransform("mydata", srate)
+	yf = res["fourierTransform"]
+	xf = res["frquency"]
+	res["fourierTransform"] = np.abs(yf)
+	return res
+	
 def _getListData(ds):
 	"""
 	gets lists data from file column or returns list as is
@@ -221,5 +276,18 @@ def _shuffleData(config, bsize, dataFileConf, shDataFpath):
 	
 	# set config with shugffled data file path
 	config.setParam(dataFileConf, shDataFpath)
+
+def __createResult(*values):
+	"""
+	create result map
+		
+	Parameters
+		values : flattened kay and value pairs
+	"""
+	result = dict()
+	assert len(values) % 2 == 0, "key value list should have even number of items"
+	for i in range(0, len(values), 2):
+		result[values[i]] = values[i+1]
+	return result
 	
 	
