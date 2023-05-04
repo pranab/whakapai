@@ -223,10 +223,13 @@ class TimeSeriesGenerator(object):
 			key = "ts.cycle." + c + ".params"
 			cycleValues = self.config.getFloatListConfig(key)[0]
 			if c == "year":
+				#month of year
 				yearCycle = cycleValues
 			elif c == "week":
+				#day of week
 				weekCycle = cycleValues
 			elif c == "day":
+				#hour of day
 				dayCycle = cycleValues
 			
 		
@@ -268,15 +271,17 @@ class TimeSeriesGenerator(object):
 			counter += 1
 		
 			#cycle
-			if yearCycle:
+			cyvalue = 0
+			if yearCycle is not None:
 				month = monthOfYear(sampTm)
-				curVal += yearCycle[month]
-			if weekCycle:
+				cyvalue += yearCycle[month]
+			if weekCycle is not None:
 				day = dayOfWeek(sampTm)
-				curVal += weekCycle[day]
-			if dayCycle:
+				cyvalue += weekCycle[day]
+			if dayCycle is not None:
 				hour = hourOfDay(sampTm)
-				curVal += dayCycle[hour]
+				cyvalue += dayCycle[hour]
+			curVal += cyvalue
 	
 			#date time
 			dt = self.__getDateTime(sampTm)
