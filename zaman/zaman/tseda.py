@@ -42,7 +42,7 @@ def doPlot(ds):
 	Parameters
 		ds: file name and col index or list
 	"""
-	expl =_initDexpl(ds)
+	expl = __initDexpl(ds, "mydata")
 	expl.plot("mydata")
 
 def autoCorr(ds, plot, nlags, alpha=.05):
@@ -55,7 +55,7 @@ def autoCorr(ds, plot, nlags, alpha=.05):
 		lags: num of lags
 		alpha: confidence level
 	"""
-	expl =_initDexpl(ds)
+	expl = __initDexpl(ds, "mydata")
 	auc = None
 	if plot:
 		expl.plotAutoCorr("mydata", nlags, alpha)
@@ -111,8 +111,8 @@ def kaboudan(cnfFpath, changepoints, holidays, bsize, shTrDataFpath, shVaDataFpa
 	
 	#shuffled data
 	config = forecaster.getConfig()
-	_shuffleData(config, bsize, "train.data.file", shTrDataFpath)
-	_shuffleData(config, bsize, "validate.data.file", shVaDataFpath)
+	__shuffleData(config, bsize, "train.data.file", shTrDataFpath)
+	__shuffleData(config, bsize, "validate.data.file", shVaDataFpath)
 	forecaster.train()
 	serr = forecaster.validate()
 
@@ -127,7 +127,7 @@ def components(ds, model, freq, summaryOnly, doPlot=False):
 		summaryOnly : True if only summary needed in output
 		doPlot: true if plotting needed
 	"""	
-	expl =_initDexpl(ds)
+	expl = __initDexpl(ds, "mydata")
 	return expl.getTimeSeriesComponents("mydata", model, freq, summaryOnly, doPlot)
 
 def meanVarNonStationarity(ds, wlen, doPlot=True):
@@ -142,7 +142,7 @@ def meanVarNonStationarity(ds, wlen, doPlot=True):
 	mlist = list()
 	vlist = list()
 	
-	data = _getListData(ds)
+	data = __getListDatal(ds)
 	assertGreater(len(data), wlen, "data size should be larger than window size")
 	rwin = SlidingWindowStat.initialize(data[:wlen])
 	m, s = rwin.getStat()
@@ -162,47 +162,109 @@ def meanVarNonStationarity(ds, wlen, doPlot=True):
 	res = __createResult("meanValues", mlist, "varvalues", vlist)
 	return res
 
-def meanVarShift(ds, wlen, doPlot=True):
+def meanStdDevShift(ds, wlen, rdata=None):
 	"""
 	detects mean and variance shift
 		
 	Parameters
 		ds: file name and col index or list
 		wlen : window length
-		doPlot : plotted if True
+		rdata : reference data
 	"""
 	mlist = list()
 	slist = list()
-	data = _getListData(ds)
+	data = __getListDatal(ds)
 	assertGreater(len(data), wlen, "data size should be larger than window size")
 	
 	mmdiff = None
 	msdiff = None
-	for i in range(len(data) - wlen):
-		#mean and sd of each half window
-		beg = i
-		half = beg + int(wlen / 2)
-		end = beg + wlen
-		m1, s1 = basicStat(data[beg:half])
-		m2, s2 = basicStat(data[half:end])
-		
+	means = None
+	sds = None
+	
+	def setMax(m1, s1, m2, s2):
 		#max diff in mean and sd
 		mdiff = abs(m1 - m2)
 		sdiff = abs(s1 - s2)
 		if mmdiff is None:
 			mmdiff = mdiff
 			msdiff = sdiff
+			sds = (s1, s2)
+			means = (m1, m2)
 		else:
 			if mdiff > mmdiff:
 				mmdiff = mdiff
 				mi = i
+				sds = (s1, s2)
 			if sdiff > msdiff:
 				msdiff = sdiff
 				si = i
-			
-	res = __createResult("meanDiff", mmdiff, "meanDiffLoc", mi, "sdDiff", msdiff, "sdDiffLoc", si)
+				means = (m1, m2)
+	
+	if rdata is None:
+		for i in range(len(data) - wlen):
+			#use half windows
+			beg = i
+			half = beg + int(wlen / 2)
+			end = beg + wlen
+			m1, s1 = basicStat(data[beg:half])
+			m2, s2 = basicStat(data[half:end])
+			setMax(m1, s1, m2, s2)
+	else:
+		#use reference data
+		rdata = __getListDatal(rdata)
+		m1, s1 = basicStat(rdata)
+		for i in range(len(data) - wlen):
+			beg = i
+			end = beg + wlen
+			m2, s2 = basicStat(data[beg:end])
+			setMax(m1, s1, m2, s2)
+
+	res = __createResult("meanDiff", mmdiff, "meanDiffLoc", mi, "stdDeviations", sds, "sdDiff", msdiff, "sdDiffLoc", si, "means", means)
 	return res
-			
+
+def twoSampleStat(ds, wlen, algo, rdata=None):
+	"""
+	two sample statistic
+		
+	Parameters
+		ds: file name and col index or list
+		wlen : window length
+		algo : two sample stat algorithm
+		rdata : reference data file name and col index or list
+	"""
+	maxKs = None
+	maxi = None
+	data = __getListDatal(ds)
+	
+	def setMax(res):
+		ks = res["stat"]
+		if maxKs is None or ks > maxKs:
+			maxKs = ks
+			maxi = i
+	
+	
+	if rdata is None:
+		# two half windows
+		for i in range(len(data) - wlen):
+			#use half windows
+			beg = i
+			half = beg + int(wlen / 2)
+			end = beg + wlen
+			__regData(data[beg:half],  "d1", expl)
+			__regData(data[half:end],  "d2", expl)
+			setMax(res)
+	else:
+		expl = __initDexpl(rdata, "d1")
+		for i in range(len(data) - wlen):
+			beg = i
+			end = beg + wlen
+			__regData(data[beg:end],  "d2", expl)
+			res = expl.testTwoSampleKs("d1", "d2")
+			setMax(res)
+	
+	res = __createResult("maxKS", maxKs, "maxLoc", maxi)
+	return res
+		
 def fft(ds, srate):
 	"""
 	gets fft
@@ -211,14 +273,14 @@ def fft(ds, srate):
 		ds: list containing file name and col index or list of data
 		srate : sampling rate	
 	"""
-	expl =_initDexpl(ds)
+	expl = __initDexpl(ds, "mydata")
 	res = expl.getFourierTransform("mydata", srate)
 	yf = res["fourierTransform"]
 	xf = res["frquency"]
 	res["fourierTransform"] = np.abs(yf)
 	return res
 	
-def _getListData(ds):
+def __getListDatal(ds):
 	"""
 	gets lists data from file column or returns list as is
 		
@@ -233,23 +295,42 @@ def _getListData(ds):
 		data = ds
 	return data
 		
-def _initDexpl(ds):
+def __initDexpl(ds, dsname, expl=None):
 	"""
 	initialize data explorer
 		
 	Parameters
 		ds: file name and col index or list
+		dsname : data sourceb name
 	"""
-	expl = DataExplorer()
+	if expl is None:
+		expl = DataExplorer()
 	if type(ds[0]) == str:
 		# file name and col index
-		expl.addFileNumericData(ds[0], int(ds[1]), "mydata")
+		expl.addFileNumericData(ds[0], int(ds[1]), dsname)
 	else:
 		# list
-		expl.addListNumericData(ds, "mydata")
+		expl.addListNumericData(ds, dsname)
 	return expl
 
-def _shuffleData(config, bsize, dataFileConf, shDataFpath):
+def __regData(ds, dsname, expl):
+	"""
+	register data withdata explorer
+		
+	Parameters
+		ds: file name and col index or list
+		dsname : data source name
+		expl ; data explorer
+	"""
+	if type(ds[0]) == str:
+		# file name and col index
+		expl.addFileNumericData(ds[0], int(ds[1]),dsname)
+	else:
+		# list
+		expl.addListNumericData(ds, dsname)
+	return expl
+
+def __shuffleData(config, bsize, dataFileConf, shDataFpath):
 	"""
 	block shuffles data
 		

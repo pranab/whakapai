@@ -2342,7 +2342,7 @@ class DataExplorer:
 		stat, pvalue = sta.ks_2samp(data1, data2)
 		result = self.__printResult("stat", stat, "pvalue", pvalue)
 		self.__printStat(stat, pvalue, "probably same distribution", "probably not same distribution", sigLev)
-
+		return result
 
 	def testTwoSampleMw(self, ds1, ds2, sigLev=.05):
 		"""
