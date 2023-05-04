@@ -32,6 +32,8 @@ if __name__ == "__main__":
 	parser.add_argument('--ovcfpath', type=str, default = "none", help = "overriding config file path")
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
 	parser.add_argument('--prec', type=int, default = 3, help = "floating point precision")
+	parser.add_argument('--nplots', type=int, default = 3, help = "num of plots")
+	parser.add_argument('--yscale', type=int, default = 3, help = "plot yscsale")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -43,7 +45,7 @@ if __name__ == "__main__":
 		for rec in generator.trendCycleNoiseGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLine(da)
+		drawLineParts(da, args.nplots, args.yscale)
 	
 	if op == "triang":
 		""" triangular cyclic  based generation """
@@ -51,7 +53,7 @@ if __name__ == "__main__":
 		for rec in generator.triangGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLine(da[:50])
+		drawLineParts(da, args.nplots, args.yscale)
 
 	if op == "step":
 		""" step based generation """
@@ -59,7 +61,7 @@ if __name__ == "__main__":
 		for rec in generator.stepGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, 5, 160)
+		drawLineParts(da, args.nplots, args.yscale)
 
 	elif op == "insan":
 		""" insert sequence anomaly """
@@ -67,7 +69,7 @@ if __name__ == "__main__":
 		for rec in generator.insertAnomalySeqGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLine(da)
+		drawLineParts(da, args.nplots, args.yscale)
 	
 	elif op == "insanp":
 		""" insert point anomaly """
@@ -75,4 +77,4 @@ if __name__ == "__main__":
 		for rec in generator.insertAnomalyPointGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLine(da)
+		drawLineParts(da, args.nplots, args.yscale)
