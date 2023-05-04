@@ -1,8 +1,8 @@
 # whakapai
 Various Data Science Python packages to be available on Pypi
 
-Here are the packages. Only two are available now. More will be available soon. For details
-please visit thye corresponding package directory.
+Here are the packages. All are available, but in different stages of progress. For details
+please visit the corresponding package home directory.
 
 ## Data Exploration (matumizi)
 About 100 data exploration functions pulled from various open source libraries  along with 
