@@ -2359,6 +2359,7 @@ class DataExplorer:
 		stat, pvalue = sta.mannwhitneyu(data1, data2)
 		result = self.__printResult("stat", stat, "pvalue", pvalue)
 		self.__printStat(stat, pvalue, "probably same distribution", "probably not same distribution", sigLev)
+		return result
 
 	def testTwoSampleWilcox(self, ds1, ds2, sigLev=.05):
 		"""
@@ -2375,7 +2376,7 @@ class DataExplorer:
 		stat, pvalue = sta.wilcoxon(data1, data2)
 		result = self.__printResult("stat", stat, "pvalue", pvalue)
 		self.__printStat(stat, pvalue, "probably same distribution", "probably not same distribution", sigLev)
-
+		return result
 
 	def testTwoSampleKw(self, ds1, ds2, sigLev=.05):
 		"""
@@ -2392,6 +2393,7 @@ class DataExplorer:
 		stat, pvalue = sta.kruskal(data1, data2)
 		result = self.__printResult("stat", stat, "pvalue", pvalue)
 		self.__printStat(stat, pvalue, "probably same distribution", "probably snot ame distribution", sigLev)
+		return result
 
 	def testTwoSampleFriedman(self, ds1, ds2, ds3, sigLev=.05):
 		"""
@@ -2409,6 +2411,7 @@ class DataExplorer:
 		stat, pvalue = sta.friedmanchisquare(data1, data2, data3)
 		result = self.__printResult("stat", stat, "pvalue", pvalue)
 		self.__printStat(stat, pvalue, "probably same distribution", "probably not same distribution", sigLev)
+		return result
 
 	def testTwoSampleEs(self, ds1, ds2, sigLev=.05):
 		"""
@@ -2425,6 +2428,7 @@ class DataExplorer:
 		stat, pvalue = sta.epps_singleton_2samp(data1, data2)
 		result = self.__printResult("stat", stat, "pvalue", pvalue)
 		self.__printStat(stat, pvalue, "probably same distribution", "probably not same distribution", sigLev)
+		return result
 
 	def testTwoSampleAnderson(self, ds1, ds2, sigLev=.05):
 		"""
