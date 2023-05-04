@@ -2009,13 +2009,14 @@ def drawLineParts(data, nparts, yscale=None):
 
 def drawPlot(x, y, xlabel, ylabel):
 	"""
-	line plot
+	line plot 
 
 	Parameters
 		x : x values
 		y : y values
 		xlabel : x axis label
 		ylabel : y axis label
+		nparts : num of parts
 	"""
 	if x is None:
 		x = list(range(len(y)))
@@ -2024,6 +2025,26 @@ def drawPlot(x, y, xlabel, ylabel):
 	plt.ylabel(ylabel)
 	plt.show()
 
+def drawPlotParts(x, y, xlabel, ylabel, nparts):
+	"""
+	line plot in parts
+
+	Parameters
+		x : x values
+		y : y values
+		xlabel : x axis label
+		ylabel : y axis label
+		nparts : num of parts
+	"""
+	le = len(y)
+	if x is None:
+		x = list(range(le))
+	step = int(le / nparts)
+	for i in range(nparts):
+		beg = i * step
+		end = le if i == nparts - 1 else beg + step
+		drawPlot(x[beg:end], y[beg:end], xlabel, ylabel)
+		
 def drawPairPlot(x, y1, y2, xlabel,ylabel, y1label, y2label):
 	"""
 	line plot of 2 lines
