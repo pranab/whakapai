@@ -222,7 +222,7 @@ def meanStdDevShift(ds, wlen, rdata=None):
 	res = __createResult("meanDiff", mmdiff, "meanDiffLoc", mi, "stdDeviations", sds, "sdDiff", msdiff, "sdDiffLoc", si, "means", means)
 	return res
 
-def twoSampleStat(ds, wlen, algo, rdata=None):
+def twoSampleStat(ds, wlen, pstep, algo, rdata=None):
 	"""
 	two sample statistic
 		
@@ -234,35 +234,48 @@ def twoSampleStat(ds, wlen, algo, rdata=None):
 	"""
 	maxKs = None
 	maxi = None
+	maxPvalue = None
 	data = __getListDatal(ds)
 	
 	def setMax(res):
+		nonlocal maxKs
+		nonlocal maxi
+		nonlocal maxPvalue
 		ks = res["stat"]
 		if maxKs is None or ks > maxKs:
 			maxKs = ks
+			maxPvalue = res["pvalue"]
 			maxi = i
 	
 	
 	if rdata is None:
 		# two half windows
-		for i in range(len(data) - wlen):
+		expl = DataExplorer()
+		for i in range(0, len(data) - wlen, pstep):
 			#use half windows
 			beg = i
 			half = beg + int(wlen / 2)
 			end = beg + wlen
 			__regData(data[beg:half],  "d1", expl)
 			__regData(data[half:end],  "d2", expl)
+			if algo == "ks":
+				res = expl.testTwoSampleKs("d1", "d2")
+			else:
+				exitWithMsg("invalid 2 sample statistic algo")
 			setMax(res)
 	else:
 		expl = __initDexpl(rdata, "d1")
-		for i in range(len(data) - wlen):
+		for i in range(0, len(data) - wlen, pstep):
 			beg = i
 			end = beg + wlen
 			__regData(data[beg:end],  "d2", expl)
-			res = expl.testTwoSampleKs("d1", "d2")
+			if algo == "ks":
+				res = expl.testTwoSampleKs("d1", "d2")
+			else:
+				exitWithMsg("invalid 2 sample statistic algo")
 			setMax(res)
 	
-	res = __createResult("maxKS", maxKs, "maxLoc", maxi)
+	res = __createResult("maxKS", maxKs, "pvalue", maxPvalue, "loc", maxi)
 	return res
 		
 def fft(ds, srate):
@@ -274,10 +287,10 @@ def fft(ds, srate):
 		srate : sampling rate	
 	"""
 	expl = __initDexpl(ds, "mydata")
-	res = expl.getFourierTransform("mydata", srate)
-	yf = res["fourierTransform"]
-	xf = res["frquency"]
-	res["fourierTransform"] = np.abs(yf)
+	re = expl.getFourierTransform("mydata", srate)
+	yf = re["fourierTransform"]
+	xf = re["frquency"]
+	res = __createResult("frquency", xf, "fft", np.abs(yf))
 	return res
 	
 def __getListDatal(ds):
