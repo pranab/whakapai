@@ -1555,6 +1555,15 @@ def dayAlign(ts):
 	"""
 	return int(ts / secInDay) * secInDay
 
+def weekAlign(ts):
+	"""
+	week aligned time	
+
+	Parameters
+		ts : time stamp in sec
+	"""
+	return int(ts / secInWeek) * secInWeek
+
 def timeAlign(ts, unit):
 	"""
 	boundary alignment of time 
@@ -1574,6 +1583,8 @@ def timeAlign(ts, unit):
 		alignedTs = hourAlign(ts)
 	elif unit == "d":
 		alignedTs = dayAlign(ts)
+	elif unit == "w":
+		alignedTs = weekAlign(ts)
 	else:
 		raise ValueError("invalid time unit")
 	return 	alignedTs
