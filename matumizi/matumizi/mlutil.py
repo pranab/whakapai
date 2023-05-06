@@ -666,6 +666,8 @@ class SlidingWindowProcessor(metaclass=abc.ABCMeta):
 		self.pstep = pstep
 		self.window = list()
 		self.vcount = 0
+		self.scount = 0
+		self.full = False
 		
 	def add(self, val):
 		"""
@@ -675,12 +677,22 @@ class SlidingWindowProcessor(metaclass=abc.ABCMeta):
 			val : value
 		"""
 		self.window.append(val)
-		self.vcount += 1
-		if self.vcount >= self.wsize:
-			if self.vcount > self.wsize:
-				self.window.pop(0)
-			if self.vcount % self.pstep == 0:
+		if not self.full:
+			self.vcount += 1
+		
+		if self.vcount == self.wsize  and not self.full:
+			#first time full
+			self.full = True
+			self.process()
+		elif self.full:
+			#already full
+			self.window.pop(0)
+			self.scount += 1
+			
+			if self.scount == self.pstep:
+				#process
 				self.process()
+				self.scount = 0
 				
 	@abc.abstractmethod
 	def process(self):
