@@ -662,7 +662,7 @@ class SlidingWindowProcessor(metaclass=abc.ABCMeta):
 			wsize : window size
 			pstep : processing step size
 		"""
-		self.wsize = size
+		self.wsize = wsize
 		self.pstep = pstep
 		self.window = list()
 		self.vcount = 0

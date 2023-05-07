@@ -62,12 +62,30 @@ if __name__ == "__main__":
 		drawPlotParts(res["frquency"], res["fft"], "frequency", "fft", 5)
 	
 	elif op == "comp":
+		""" get trend, cycle and remainder """
 		res = components([args.dfpath, args.dfcol], "additive", args.period, False, True)	
 		seas = res["seasonal"]	
 		nplots = getNumPlot(seas, args)
 		drawPlotParts(None, seas, "time", "value", nplots)
 	
 	elif op == "tsstat":
+		""" two sample statistic  """
 		res = twoSampleStat([args.dfpath, args.dfcol], args.wlen, args.pstep, "ks")
 		print(res)
 	
+	elif op == "msshift":
+		""" mean and std deviation shift """
+		data = getListData([args.dfpath, args.dfcol])
+		detector = MeanStdShiftDetector(args.wlen, args.pstep)
+		for d in data:
+			detector.add(d)
+		res = detector.getResult()
+		print(res)
+		
+		diffs = detector.getDiffList()
+		nplots = getNumPlot(diffs[0], args)
+		drawPlotParts(None, diffs[0], "time", "mean diff", nplots)
+	
+	else:
+		exitWithMsg("invalid command")	
+			

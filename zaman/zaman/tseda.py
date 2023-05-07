@@ -142,7 +142,7 @@ def meanVarNonStationarity(ds, wlen, doPlot=True):
 	mlist = list()
 	vlist = list()
 	
-	data = __getListDatal(ds)
+	data = getListData(ds)
 	assertGreater(len(data), wlen, "data size should be larger than window size")
 	rwin = SlidingWindowStat.initialize(data[:wlen])
 	m, s = rwin.getStat()
@@ -159,7 +159,7 @@ def meanVarNonStationarity(ds, wlen, doPlot=True):
 		drawLine(mlist)
 		drawLine(vlist)
 		 
-	res = __createResult("meanValues", mlist, "varvalues", vlist)
+	res = createExplResult("meanValues", mlist, "varvalues", vlist)
 	return res
 
 def meanStdDevShift(ds, wlen, rdata=None):
@@ -173,16 +173,25 @@ def meanStdDevShift(ds, wlen, rdata=None):
 	"""
 	mlist = list()
 	slist = list()
-	data = __getListDatal(ds)
+	data = getListData(ds)
 	assertGreater(len(data), wlen, "data size should be larger than window size")
 	
 	mmdiff = None
 	msdiff = None
 	means = None
 	sds = None
+	mi = None
+	si = None
 	
-	def setMax(m1, s1, m2, s2):
+	def setMax(m1, s1, m2, s2, i):
 		#max diff in mean and sd
+		nonlocal mmdiff
+		nonlocal msdiff
+		nonlocal means
+		nonlocal sds
+		nonlocal mi
+		nonlocal si
+		
 		mdiff = abs(m1 - m2)
 		sdiff = abs(s1 - s2)
 		if mmdiff is None:
@@ -208,18 +217,18 @@ def meanStdDevShift(ds, wlen, rdata=None):
 			end = beg + wlen
 			m1, s1 = basicStat(data[beg:half])
 			m2, s2 = basicStat(data[half:end])
-			setMax(m1, s1, m2, s2)
+			setMax(m1, s1, m2, s2, half)
 	else:
 		#use reference data
-		rdata = __getListDatal(rdata)
+		rdata = getListData(rdata)
 		m1, s1 = basicStat(rdata)
 		for i in range(len(data) - wlen):
 			beg = i
 			end = beg + wlen
 			m2, s2 = basicStat(data[beg:end])
-			setMax(m1, s1, m2, s2)
+			setMax(m1, s1, m2, s2, i)
 
-	res = __createResult("meanDiff", mmdiff, "meanDiffLoc", mi, "stdDeviations", sds, "sdDiff", msdiff, "sdDiffLoc", si, "means", means)
+	res = createExplResult("meanDiff", mmdiff, "meanDiffLoc", mi, "stdDeviations", sds, "sdDiff", msdiff, "sdDiffLoc", si, "means", means)
 	return res
 
 def twoSampleStat(ds, wlen, pstep, algo, rdata=None):
@@ -235,7 +244,7 @@ def twoSampleStat(ds, wlen, pstep, algo, rdata=None):
 	maxKs = None
 	maxi = None
 	maxPvalue = None
-	data = __getListDatal(ds)
+	data = getListData(ds)
 	
 	def setMax(res):
 		nonlocal maxKs
@@ -275,7 +284,7 @@ def twoSampleStat(ds, wlen, pstep, algo, rdata=None):
 				exitWithMsg("invalid 2 sample statistic algo")
 			setMax(res)
 	
-	res = __createResult("maxKS", maxKs, "pvalue", maxPvalue, "loc", maxi)
+	res = createExplResult("maxKS", maxKs, "pvalue", maxPvalue, "loc", maxi)
 	return res
 		
 def fft(ds, srate):
@@ -290,10 +299,10 @@ def fft(ds, srate):
 	re = expl.getFourierTransform("mydata", srate)
 	yf = re["fourierTransform"]
 	xf = re["frquency"]
-	res = __createResult("frquency", xf, "fft", np.abs(yf))
+	res = createExplResult("frquency", xf, "fft", np.abs(yf))
 	return res
 	
-def __getListDatal(ds):
+def getListData(ds):
 	"""
 	gets lists data from file column or returns list as is
 		
@@ -371,7 +380,7 @@ def __shuffleData(config, bsize, dataFileConf, shDataFpath):
 	# set config with shugffled data file path
 	config.setParam(dataFileConf, shDataFpath)
 
-def __createResult(*values):
+def createExplResult(*values):
 	"""
 	create result map
 		
@@ -384,4 +393,100 @@ def __createResult(*values):
 		result[values[i]] = values[i+1]
 	return result
 	
+
+class MeanStdShiftDetector(SlidingWindowProcessor):
+	"""
+	online detection of mean and std deviation shift
+	"""
+	def __init__(self,  wsize, pstep, rdata=None):
+		"""
+		initilizers
+		
+		Parameters
+			wsize : window size
+			pstep : processing step size
+			rdata : reference data
+		"""
+		self.mmdiff = None
+		self.msdiff = None
+		self.mi = None
+		self.si = None
+		self.means = None
+		self.sds = None
+		self.pcount = 0
+		self.rdata = None
+		self.mr = None
+		self.sr = None
+		self.useRdata = False
+		if rdata is not None:
+			rdata = getListData(rdata)
+			self.mr, self.sr = basicStat(rdata)
+			self.useRdata = True
+		self.mdiffs = list()
+		self.sdiffs = list()
+		
+		super(MeanStdShiftDetector, self).__init__(wsize, pstep)	
+		
 	
+	def process(self):
+		"""
+		processes window
+		
+		"""
+		self.pcount += 1
+		data = self.window
+		wlen = self.wsize
+		half = int(wlen / 2)
+		if not self.useRdata:
+			#use half windows
+			m1, s1 = basicStat(data[:half])
+			m2, s2 = basicStat(data[half:])
+			self.__setMax(m1, s1, m2, s2)
+		else:
+			#use reference data
+			m2, s2 = basicStat(data)
+			self.__setMax(self.mr, self.sr, m2, s2)
+	
+	def getResult(self):
+		"""
+		get results
+		"""
+		res = createExplResult("meanDiff", self.mmdiff, "meanDiffLoc", self.mi, "stdDeviations", self.sds, "sdDiff", self.msdiff, 
+		"sdDiffLoc", self.si, "means", self.means)
+		return res
+	
+	def getDiffList(self):
+		"""
+		get lists of mean diff and std dev diff
+		"""
+		return (self.mdiffs, self.sdiffs)
+		
+	def __setMax(self, m1, s1, m2, s2):
+		"""
+		sets max values
+		
+		Parameters
+			m1 : first mean
+			s1 : first std dev
+			m2 : second mean
+			s2 : second std dev
+		"""
+		#max diff in mean and sd
+		mdiff = abs(m1 - m2)
+		sdiff = abs(s1 - s2)
+		self.mdiffs.append(mdiff)
+		self.sdiffs.append(sdiff)
+		if self.mmdiff is None:
+			self.mmdiff = mdiff
+			self.msdiff = sdiff
+			self.sds = (s1, s2)
+			self.means = (m1, m2)
+		else:
+			if mdiff > self.mmdiff:
+				self.mmdiff = mdiff
+				self.mi = self.pcount
+				self.sds = (s1, s2)
+			if sdiff > self.msdiff:
+				self.msdiff = sdiff
+				self.si = self.pcount
+				self.means = (m1, m2)
