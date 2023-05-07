@@ -22,7 +22,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from tseda import *
+from zaman.tseda import *
 
 """
 driver  for time series data exploration
