@@ -1,27 +1,8 @@
-*.class
 *.log
-
-
-# Scala-IDE specific
-.scala_dependencies
-.worksheet
-
-spark/.classpath
-spark/.project
-spark/project/project
-spark/project/target
-spark/target
-spark/lib_managed
-spark/src_managed
-spark/project/boot
-spark/tmp
+*.egg-info
+**/dist
+**/build
 .history
-spark/dist
 .DS_Store
 .cache
-spark/bin
-.class
-.ivy2
-.lib
-spark/project/plugins/project/
 
