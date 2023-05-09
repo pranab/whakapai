@@ -1643,6 +1643,25 @@ def timeToSec(ts, unit):
 		raise exisWithMsg("invalid time unit")
 
 	return tsec
+
+def dayHourIndex(stime, day, hour, speriod):
+	"""
+	returns index time series for a given day pof week and hour of day
+
+	Parameters
+		stime : start time in sec in time series
+		day : day pf week index Monday = 0
+		hour : hour of day
+		speriod : sampling period in sec
+	"""
+	secIntoWeek = stime % secInWeek
+	secIntoWeekReqd = day * secInday + hour * secInHour
+	
+	if secIntoWeek <= secIntoWeekReqd:
+		tsIndex = int((secIntoWeekReqd - secIntoWeek) / speriod)
+	else:
+		tsIndex = int((secIntoWeekReqd - secIntoWeek + secInWeek) / speriod)
+	return tsIndex
 	
 def processCmdLineArgs(expectedTypes, usage):
 	"""
