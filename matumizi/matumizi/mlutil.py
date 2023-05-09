@@ -874,6 +874,26 @@ def levenshteinSimilarity(s1, s2):
 	d = 1.0 - min(d/l, 1.0)
 	return d	
 
+def findMinDistances(X1, X2, algo="L2"):
+	"""
+	finds minimum distance between each row of X1(m x p) and X2(n x p)
+	
+	Parameters
+		X1 : m x p array
+		X2 : n x p array
+		algo : distance algo L1 or L2
+	"""
+	minDist = np.zeros(len(X1))
+	
+	for i,x1 in enumerate(X1):
+		if algo == "L1":
+			dists = np.sqrt(np.sum(abs(X2 - x1),axis=1))
+		else:
+			dists = np.sqrt(np.sum((X2 - x1)**2,axis=1))
+		minDist[i] = dists.min()
+
+	return minDist
+
 def norm(values, po=2):
 	"""
 	norm
