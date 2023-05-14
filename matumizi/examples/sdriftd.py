@@ -82,6 +82,7 @@ if __name__ == "__main__":
 	parser.add_argument('--trans', type=float, default = -1.0, help = "transition point for drift")
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file file path")
 	parser.add_argument('--threshold', type=float, default = 3.5, help = "threshold for drift")
+	parser.add_argument('--conflev', type=float, default = 0.2, help = "confidence level")
 	parser.add_argument('--wsize', type=int, default = 100, help = "window size")
 	parser.add_argument('--wpsize', type=int, default = 20, help = "window processing step size")
 	parser.add_argument('--warmup', type=int, default = 100, help = "warmup size")
@@ -139,6 +140,21 @@ if __name__ == "__main__":
 				print("{:.3f},{:.3f},{:.3f},{}".format(res[0],res[1],res[2],res[3]))
 				xp.append(i)
 				yd.append(res[3])
+		drawPlot(xp, yd, "predictions", "drift")
+		
+	elif op == "fhddm":
+		""" FHDDM detector """
+		fpath = args.dfpath
+		evals = getFileColumnAsInt(fpath, 2)
+		detector = FHDDM(args.conflev, args.warmup, args.wsize, args.wpsize)
+		xp = list()
+		yd = list()
+		for i in range(len(evals)):
+			res = detector.add(evals[i])
+			if res is not None:
+				print("{:.3f},{}".format(res[0],res[1]))
+				xp.append(i)
+				yd.append(res[1])
 		drawPlot(xp, yd, "predictions", "drift")
 		
 	else:

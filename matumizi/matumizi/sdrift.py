@@ -26,10 +26,10 @@ import random
 import jprops
 import statistics as stat
 from matplotlib import pyplot
-from .util import *
-from .mlutil import *
-from .sampler import *
-from .stats import *
+from matumizi.util import *
+from matumizi.mlutil import *
+from matumizi.sampler import *
+from matumizi.stats import *
 
 class SupConceptDrift(object):
 	"""
@@ -64,13 +64,6 @@ class SupConceptDrift(object):
 		self.evcount = 0
 		self.scount = 0
 		
-		#ECDD
-		self.pr = 0.0
-		self.sd = 0.0
-		self.expf = 0.0
-		self.z = 0.0
-		self.sdz = 0.0
-
 	
 	def add(self, evalue):
 		"""
@@ -175,6 +168,7 @@ class DDM(SupConceptDrift):
 		ws["warmUp"] = self.warmUp
 		ws["warmedUp"] = self.warmedUp
 		ws["wsize"] = self.wsize
+		ws["wpsize"] = self.wpsize
 		ws["prMin"] = self.prMin
 		ws["sdMin"] = self.sdMin
 		ws["threshold"] = self.threshold
@@ -191,6 +185,7 @@ class DDM(SupConceptDrift):
 		self.warmUp = ws["warmUp"]
 		self.warmedUp = ws["warmedUp"]
 		self.wsize = ws["wsize"]
+		self.wpsize = ws["wpsize"]
 		self.prMin = ws["prMin"]
 		self.sdMin = ws["sdMin"]
 		self.threshold = ws["threshold"]
@@ -278,6 +273,7 @@ class EDDM(SupConceptDrift):
 		ws["warmUp"] = self.warmUp
 		ws["warmedUp"] = self.warmedUp
 		ws["wsize"] = self.wsize
+		ws["wpsize"] = self.wpsize
 		ws["diMeanMax"] = self.diMeanMax
 		ws["diSdMax"] = self.diSdMax
 		saveObject(ws, fpath)
@@ -290,7 +286,160 @@ class EDDM(SupConceptDrift):
 		self.warmUp = ws["warmUp"]
 		self.warmedUp = ws["warmedUp"]
 		self.wsize = ws["wsize"]
+		self.wpsize = ws["wpsize"]
 		self.diMeanMax = ws["diMeanMax"]
 		self.diSdMax = ws["diSdMax"]
 
+
+class FHDDM(SupConceptDrift):
+	"""
+	Fast Hoeffding Drift Detection Method (FHDDM)
+	"""
+	def __init__(self, confLevel, warmUp, wsize, wpsize):
+		"""
+		initializer
+	
+		Parameters
+			confLevel : confidence level
+			warmUp : warmup length
+			wsize : window size
+			wpsize : window processing step size
+		"""
+		self.maxAccRate = None
+		threshold = math.sqrt(0.5 * math.log(1 / confLevel) / wsize )
+		super(FHDDM, self).__init__(threshold, warmUp, wsize, wpsize)
+
+		
+	def detect(self, evalues):
+		"""
+		detects drift in batch
+	
+		Parameters
+			evalues : error value list
+		"""
+		warmed = False
+		if not self.warmedUp:
+			assertGreaterEqual(self.wsize, self.warmUp, "window size should be greater than or equal to warmup size")
+			accCount = 0
+			for i in range(self.warmUp):
+				if evalues[i] == 0:
+					accCount += 1
+			self.maxAccRate = accCount / self.warmUp
+			self.warmedUp = True
+			warmed = True
+
+		result = None
+		beg = self.warmUp if  warmed else 0
+		remain = len(evalues) - beg
+		if remain > 20:
+			accCount = 0
+			for i in range(beg, len(evalues), 1):
+				if (evalues[i] == 0):
+					accCount += 1 
+			accRate = accCount / remain
+			if accRate > self.maxAccRate:
+				self.maxAccRate = accRate
+			dr = 1 if (self.maxAccRate - accRate) > threshold else 0
+			result = (accRate, dr)
+
+		return result
+
+	def save(self, fpath):
+		"""
+		save FHDDM algorithm state
+		"""
+		ws = dict()
+		ws["warmUp"] = self.warmUp
+		ws["warmedUp"] = self.warmedUp
+		ws["wsize"] = self.wsize
+		ws["wpsize"] = self.wpsize
+		ws["maxAccRate"] = self.maxAccRate
+		saveObject(ws, fpath)
 			
+	def restore(self, fpath):
+		"""
+		restore FHDDM algorithm state
+		"""
+		ws = restoreObject(fpath)
+		self.warmUp = ws["warmUp"]
+		self.warmedUp = ws["warmedUp"]
+		self.wsize = ws["wsize"]
+		self.wpsize = ws["wpsize"]
+		self.maxAccRate = ws["maxAccRate"]
+		
+class ECDD():
+	"""
+	EWMA for Concept Drift Detection (ECDD)
+	"""
+	def __init__(self, expf, fprate, warmUp):
+		"""
+		initializer
+	
+		Parameters
+			expf : exponential factor
+			fprate : false positive rate for drift
+			warmUp : warmup length
+		"""
+		self.count = 0
+		self.expf = expf
+		self.fprate = fprate
+		self.warmUp = warmUp
+		self.cl = None
+		self.pr = 0
+		self.sd = 0
+		self.sdz = 0
+		self.z = 0
+
+	def add(self, evalue):
+		"""
+		detects drift online
+	
+		Parameters
+			evalue : error value
+		"""
+		self.count += 1
+		t = self.count
+		self.pr = self.pr * t / (t + 1) + evalue / (t + 1)
+		self.sd = self.pr * (1.0 - self.pr)
+		e = 1.0 - self.expf
+		self.sdz = math.sqrt(self.sd * self.expf * (1.0 - e ** (2 * t)) / (2.0 - self.expf))
+		self.z = (1 - self.exp) * self.z + self.exp * evalue
+		
+		res = None
+		if self.count > self.warmUp:
+			if self.fprate == 100:
+				self.cl = 2.76 - 6.23 * self.pr + 18.12 * self.pr ** 3 - 312.45 * self.pr ** 5 + 1002.18 + self.pr ** 7
+			elif self.fprate == 400:
+				self.cl = 3.97 - 6.56 * self.pr + 48.73 * self.pr ** 3 - 330.13 * self.pr ** 5 + 848.18 + self.pr ** 7
+			else:
+				exitWithMsg("invalid false positive rate")	
+			dr = 1 if self.z > self.pr + self.cl * self.sdz else 0
+			res = (self.z, dr)
+			
+		return res
+		
+	def save(self, fpath):
+		"""
+		save ECDD algorithm state
+		"""
+		ws = dict()
+		ws["warmUp"] = self.warmUp
+		ws["count"] = self.count
+		ws["pr"] = self.pr
+		ws["expf"] = self.expf
+		ws["z"] = self.z
+		ws["fprate"] = self.fprate
+		saveObject(ws, fpath)
+
+	def restore(self, fpath):
+		"""
+		restore ECDD algorithm state
+		"""
+		ws = restoreObject(fpath)
+		self.warmUp = ws["warmUp"]
+		self.count = ws["count"]
+		self.pr = ws["pr"]
+		self.expf = ws["expf"]
+		self.z = s["z"]
+		self.fprate = ws["fprate"]
+		
