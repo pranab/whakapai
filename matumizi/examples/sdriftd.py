@@ -86,6 +86,8 @@ if __name__ == "__main__":
 	parser.add_argument('--wsize', type=int, default = 100, help = "window size")
 	parser.add_argument('--wpsize', type=int, default = 20, help = "window processing step size")
 	parser.add_argument('--warmup', type=int, default = 100, help = "warmup size")
+	parser.add_argument('--expf', type=float, default = 0.7, help = "exponential factor")
+	parser.add_argument('--fprate', type=int, default = 100, help = "false positivev rate for drift")
 	args = parser.parse_args()
 	op = args.op
 
@@ -157,6 +159,20 @@ if __name__ == "__main__":
 				yd.append(res[1])
 		drawPlot(xp, yd, "predictions", "drift")
 		
+	elif op == "ecdd":
+		"""ECDD detector """
+		fpath = args.dfpath
+		evals = getFileColumnAsInt(fpath, 2)
+		detector = ECDD(args.expf, args.fprate, args.warmup)
+		xp = list()
+		yd = list()
+		for i in range(len(evals)):
+			res = detector.add(evals[i])
+			if res is not None:
+				print("{:.3f},{}".format(res[0],res[1]))
+				xp.append(i)
+				yd.append(res[1])
+		drawPlot(xp, yd, "predictions", "drift")
 	else:
 		exitWithMsg("invalid command")
 		

@@ -26,10 +26,10 @@ import random
 import jprops
 import statistics as stat
 from matplotlib import pyplot
-from matumizi.util import *
-from matumizi.mlutil import *
-from matumizi.sampler import *
-from matumizi.stats import *
+from .util import *
+from .mlutil import *
+from .sampler import *
+from .stats import *
 
 class SupConceptDrift(object):
 	"""
@@ -339,7 +339,7 @@ class FHDDM(SupConceptDrift):
 			accRate = accCount / remain
 			if accRate > self.maxAccRate:
 				self.maxAccRate = accRate
-			dr = 1 if (self.maxAccRate - accRate) > threshold else 0
+			dr = 1 if (self.maxAccRate - accRate) > self.threshold else 0
 			result = (accRate, dr)
 
 		return result
@@ -403,7 +403,7 @@ class ECDD():
 		self.sd = self.pr * (1.0 - self.pr)
 		e = 1.0 - self.expf
 		self.sdz = math.sqrt(self.sd * self.expf * (1.0 - e ** (2 * t)) / (2.0 - self.expf))
-		self.z = (1 - self.exp) * self.z + self.exp * evalue
+		self.z = (1 - self.expf) * self.z + self.expf * evalue
 		
 		res = None
 		if self.count > self.warmUp:
