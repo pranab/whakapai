@@ -104,6 +104,21 @@ class DDM(SupConceptDrift):
 			wpsize : window processing step size
 		"""
 		super(DDM, self).__init__(threshold, warmUp, wsize, wpsize)
+	
+	@classmethod
+	def create(cls, fpath):
+		"""
+		factory method to create based on restored model
+	
+		Parameters
+			fpath : file path for saved model
+		"""
+		ws = restoreObject(fpath)
+		obj = cls(ws["threshold"], ws["warmUp"], ws["wsize"], ws["wpsize"])
+		obj.warmedUp = ws["warmedUp"]
+		obj.prMin = ws["prMin"]
+		obj.sdMin = ws["sdMin"]
+		return obj
 
 	def reset(self):
 		"""
@@ -162,7 +177,7 @@ class DDM(SupConceptDrift):
 		save DDM algorithm state
 		
 		Parameters
-			fpath : file apth
+			fpath : file path for model checkpointing
 		"""
 		ws = dict()
 		ws["warmUp"] = self.warmUp
@@ -179,7 +194,7 @@ class DDM(SupConceptDrift):
 		restore DDM algorithm state
 		
 		Parameters
-			fpath : file apth
+			fpath : file path for model checkpointing
 		"""
 		ws = restoreObject(fpath)
 		self.warmUp = ws["warmUp"]
@@ -207,6 +222,22 @@ class EDDM(SupConceptDrift):
 		self.maxLim = None
 		super(EDDM, self).__init__(threshold, warmUp, wsize, wpsize)
 
+	@classmethod
+	def create(cls, fpath):
+		"""
+		factory method to create based on restored model
+	
+		Parameters
+			fpath : file path for saved model
+		"""
+		ws = restoreObject(fpath)
+		obj = cls(ws["threshold"], ws["warmUp"], ws["wsize"], ws["wpsize"])
+		obj.warmedUp = ws["warmedUp"]
+		obj.diMeanMax = ws["diMeanMax"]
+		obj.diSdMax = ws["diSdMax"]
+		obj.maxLim = ws["maxLim"]
+		return obj
+			
 	def reset(self):
 		"""
 		resets counts
@@ -268,28 +299,37 @@ class EDDM(SupConceptDrift):
 	def save(self, fpath):
 		"""
 		save EDDM algorithm state
+		
+		Parameters
+			fpath : file path for model checkpointing
 		"""
 		ws = dict()
+		ws["threshold"] = self.threshold
 		ws["warmUp"] = self.warmUp
 		ws["warmedUp"] = self.warmedUp
 		ws["wsize"] = self.wsize
 		ws["wpsize"] = self.wpsize
 		ws["diMeanMax"] = self.diMeanMax
 		ws["diSdMax"] = self.diSdMax
+		ws["maxLim"] = self.maxLim
 		saveObject(ws, fpath)
 
 	def restore(self, fpath):
 		"""
 		restore DDM algorithm state
+		
+		Parameters
+			fpath : file path for model checkpointing
 		"""
 		ws = restoreObject(fpath)
+		self.threshold = ws["threshold"]
 		self.warmUp = ws["warmUp"]
 		self.warmedUp = ws["warmedUp"]
 		self.wsize = ws["wsize"]
 		self.wpsize = ws["wpsize"]
 		self.diMeanMax = ws["diMeanMax"]
 		self.diSdMax = ws["diSdMax"]
-
+		self.maxLim = ws["maxLim"]
 
 class FHDDM(SupConceptDrift):
 	"""
@@ -306,9 +346,23 @@ class FHDDM(SupConceptDrift):
 			wpsize : window processing step size
 		"""
 		self.maxAccRate = None
+		self.confLevel = confLevel
 		threshold = math.sqrt(0.5 * math.log(1 / confLevel) / wsize )
 		super(FHDDM, self).__init__(threshold, warmUp, wsize, wpsize)
 
+	@classmethod
+	def create(cls, fpath):
+		"""
+		factory method to create based on restored model
+	
+		Parameters
+			fpath : file path for saved model
+		"""
+		ws = restoreObject(fpath)
+		obj = cls(ws["confLevel"], ws["warmUp"], ws["wsize"], ws["wpsize"])
+		obj.warmedUp = ws["warmedUp"]
+		obj.maxAccRate = ws["maxAccRate"]
+		return obj
 		
 	def detect(self, evalues):
 		"""
@@ -347,8 +401,12 @@ class FHDDM(SupConceptDrift):
 	def save(self, fpath):
 		"""
 		save FHDDM algorithm state
+		
+		Parameters
+			fpath : file path for model checkpointing
 		"""
 		ws = dict()
+		ws["confLevel"] = self.confLevel
 		ws["warmUp"] = self.warmUp
 		ws["warmedUp"] = self.warmedUp
 		ws["wsize"] = self.wsize
@@ -359,8 +417,12 @@ class FHDDM(SupConceptDrift):
 	def restore(self, fpath):
 		"""
 		restore FHDDM algorithm state
+
+		Parameters
+			fpath : file path for model checkpointing
 		"""
 		ws = restoreObject(fpath)
+		self.confLevel = ws["confLevel"]
 		self.warmUp = ws["warmUp"]
 		self.warmedUp = ws["warmedUp"]
 		self.wsize = ws["wsize"]

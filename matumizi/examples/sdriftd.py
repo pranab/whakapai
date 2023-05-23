@@ -88,6 +88,8 @@ if __name__ == "__main__":
 	parser.add_argument('--warmup', type=int, default = 100, help = "warmup size")
 	parser.add_argument('--expf', type=float, default = 0.7, help = "exponential factor")
 	parser.add_argument('--fprate', type=int, default = 100, help = "false positivev rate for drift")
+	parser.add_argument('--savefp', type=str, default = "none", help = "model save file")
+	parser.add_argument('--restorefp', type=str, default = "none", help = "model restore file")
 	args = parser.parse_args()
 	op = args.op
 
@@ -118,46 +120,72 @@ if __name__ == "__main__":
 		""" DDM detector """
 		fpath = args.dfpath
 		evals = getFileColumnAsInt(fpath, 2)
-		detector = DDM(args.threshold, args.warmup, args.wsize, args.wpsize)
+		
+		if args.restorefp == "none":
+			detector = DDM(args.threshold, args.warmup, args.wsize, args.wpsize)
+		else:
+			detector = DDM.create(args.restorefp)
 		xp = list()
+		ys = list()
 		yd = list()
 		for i in range(len(evals)):
 			res = detector.add(evals[i])
 			if res is not None:
 				print("{:.3f},{:.3f},{:.3f},{}".format(res[0],res[1],res[2],res[3]))
 				xp.append(i)
+				ys.append(res[2])
 				yd.append(res[3])
-		drawPlot(xp, yd, "predictions", "drift")
+		
+		if args.savefp != "none":
+			detector.save(args.savefp)
+		drawPairPlot(xp, ys, yd, "predictions", "value", "score", "drift")
 
 	elif op == "eddm":
 		""" EDDM detector """
 		fpath = args.dfpath
 		evals = getFileColumnAsInt(fpath, 2)
-		detector = EDDM(args.threshold, args.warmup, args.wsize, args.wpsize)
+		if args.restorefp == "none":
+			detector = EDDM(args.threshold, args.warmup, args.wsize, args.wpsize)
+		else:
+			detector = EDDM.create(args.restorefp)
+			
 		xp = list()
+		ys = list()
 		yd = list()
 		for i in range(len(evals)):
 			res = detector.add(evals[i])
 			if res is not None:
 				print("{:.3f},{:.3f},{:.3f},{}".format(res[0],res[1],res[2],res[3]))
 				xp.append(i)
+				ys.append(res[2])
 				yd.append(res[3])
-		drawPlot(xp, yd, "predictions", "drift")
+
+		if args.savefp != "none":
+			detector.save(args.savefp)
+		drawPairPlot(xp, ys, yd, "predictions", "value", "score", "drift")
 		
 	elif op == "fhddm":
 		""" FHDDM detector """
 		fpath = args.dfpath
 		evals = getFileColumnAsInt(fpath, 2)
-		detector = FHDDM(args.conflev, args.warmup, args.wsize, args.wpsize)
+		if args.restorefp == "none":
+			detector = FHDDM(args.conflev, args.warmup, args.wsize, args.wpsize)
+		else:
+			detector = FHDDM.create(args.restorefp)
 		xp = list()
+		ys = list()
 		yd = list()
 		for i in range(len(evals)):
 			res = detector.add(evals[i])
 			if res is not None:
 				print("{:.3f},{}".format(res[0],res[1]))
 				xp.append(i)
+				ys.append(res[0])
 				yd.append(res[1])
-		drawPlot(xp, yd, "predictions", "drift")
+		
+		if args.savefp != "none":
+			detector.save(args.savefp)
+		drawPairPlot(xp, ys, yd, "predictions", "value", "score", "drift")
 		
 	elif op == "ecdd":
 		"""ECDD detector """
