@@ -7,6 +7,7 @@ Data Science utilities including following modules
 * sampler : sampling from various statu=istical distributions
 * daexp : many data exploration functions consoloidating numpy, scipy, statsmodel and scikit
 * mcsim : monte carlo simulation
+* sdrift : supervised machine learning model concept drift detection
 
 ## Instructions
 
