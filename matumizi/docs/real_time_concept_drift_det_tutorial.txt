@@ -1,0 +1,47 @@
+This tutorial is for real time concept drift detection for classification models. it supports 4 algorithms. 
+The implementation is the python package matumizi.
+
+Setup
+=====
+Install matumizi as follows
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.5
+
+Install requirements
+pip3 install -r requirements.txt
+
+Generate error data  
+===================
+python3 ./sdriftd.py --op agen  --nsamp 2000 --oerate 0.1 --trans 0.8 --nerate 0.2  > err.txt
+
+where
+nsamp = no of samples
+oerate	= error rate before onset of drift
+trans = location of drift onset (.8 implies after 80% of the samples)
+nerate = error rate after the onset of drift
+
+Detect drift initial run
+========================
+We will be using EEDM algorithm
+
+When running first time
+python3 ./sdriftd.py --op eddm --dfpath err.txt --threshold 0.8 --warmup 300 --wsize 300 --wpsize 30 --savefp ./model/eddm.mod
+
+where
+dfpath = error data file path
+threshold = drift detection threshold
+warmup = warm up sample size
+wsize = window size
+wpsize = window processing step size
+savefp = model save file path
+
+Detect drift post drift occurence
+=================================
+Generate post drift data
+python3 ./sdriftd.py --op agen  --nsamp 1000 --oerate 0.2   > errd.txt
+
+Detect drift
+python3 ./sdriftd.py --op eddm --dfpath errd.txt   --restorefp ./model/eddm.mod  --savefp ./model/eddm.mod
+
+where
+restorefp = file path for model restoration
+
