@@ -45,3 +45,12 @@ python3 ./sdriftd.py --op eddm --dfpath errd.txt   --restorefp ./model/eddm.mod 
 where
 restorefp = file path for model restoration
 
+Other algorithms
+================
+DDM works more or less the same way as EDDM. Threshoold value is around 2.5
+
+Run FHDDM as below
+./sdriftd.py --op fhddm --dfpath err.txt --conflev 0.1 --warmup 300 --wsize 300 --wpsize 30 --savefp ./model/fhddm.mod
+python3 ./sdriftd.py --op fhddm --dfpath err.txt --restorefp ./model/fhddm.mod  --savefp ./model/fhddm.mod
+
+

@@ -8,13 +8,14 @@ Data Science utilities including following modules
 * daexp : many data exploration functions consoloidating numpy, scipy, statsmodel and scikit
 * mcsim : monte carlo simulation
 * sdrift : supervised machine learning model concept drift detection
+* udrift : data drift and label drift detection for supervised machine learning model (WIP)
 
 ## Instructions
 
 1. Install:
 
 Run
-pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.7
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.8
 
 For installing latest, clone rep and run this at the project root directory
 pip3 install .
@@ -22,7 +23,7 @@ pip3 install .
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/matumizi/0.0.7/
+https://test.pypi.org/project/matumizi/0.0.8/
 
 
 3. Blogs posts
