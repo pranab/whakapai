@@ -33,12 +33,14 @@ https://test.pypi.org/project/matumizi/0.0.8/
 * [Information theory based feature selection](https://pkghosh.wordpress.com/2022/05/29/feature-selection-with-information-theory-based-techniques-in-python/)
 * [Stock Portfolio Balancing with Monte Carlo Simulation](https://pkghosh.wordpress.com/2022/08/23/stock-portfolio-balancing-with-monte-carlo-simulation/)
 * [Synthetic Regression Data Generation in Python](https://pkghosh.wordpress.com/2023/01/22/synthetic-regression-data-generation-in-python/)
+* [Realtime Concept Drift Detection for Machine Learning Classification Models](https://pkghosh.wordpress.com/2023/05/29/realtime-concept-drift-detection-for-machine-learning-classification-models/)
 
 4. Code usage example
 
 Here is some example code that uses all 5 modules. You can find lots of examples in 
 [another repo](https://github.com/pranab/avenir/tree/master/python/app) of mine. There the 
-imports are direct and not through the package matmizi. The example directory also has example code
+imports are direct and not through the package matmizi. The example directory also has complete 
+example code
 
 
 	import sys
