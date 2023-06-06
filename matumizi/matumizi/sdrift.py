@@ -505,3 +505,104 @@ class ECDD():
 		self.z = s["z"]
 		self.fprate = ws["fprate"]
 		
+
+class MultiSupConceptDrift(object):
+	"""
+	supervised cpncept drift detection multi label classification 
+	"""
+	def __init__(self, labels, detype):
+		"""
+		initializer
+	
+		Parameters
+			labels : list of label names
+			detype : detector type
+		"""
+		self.labels = labels
+		self.detype = detype
+		self.detectors = dict()
+	
+	def create(self,  warmUp, wsize=300, wpsize=30, threshold=0.8, confLevel=0.2, expf=0.7, fprate=100):
+		"""
+		creates all  detectors for all labels
+		
+		Parameters
+			warmUp : warmup length
+			wsize : window size
+			wpsize : window processing step size
+			threshold : threshold
+			confLevel : confidence level for FHDDM
+			expf : exponential factor for ECDD
+			fprate : false positive rate for drift for ECDD
+		"""
+		for la in self.labels:
+			if self.detype == "ddm":
+				self.detectors[la] = DDM(threshold, warmUp, wsize, wpsize)
+			elif self.detype == "eddm":
+				self.detectors[la] = EDDM(threshold, warmUp, wsize, wpsize)
+			elif self.detype == "fhddm":
+				self.detectors[la] = FHDDM(confLevel, warmUp, wsize, wpsize)
+			elif self.detype == "ecdd":
+				self.detectors[la] = ECDD(expf, fprate, warmUp)
+			else:
+				exitWithMsg("invalid drift detector type")
+		
+	
+	def add(self, evalues):
+		"""
+		detects drift online for all labels
+	
+		Parameters
+			evalues : error values for all labels
+		"""
+		res = dict()
+		for k in evalues.keys():
+			re = self.detectors[k].add(evalues[k])
+			res[k] = re
+		return res
+		
+	def save(self, fpath):
+		"""
+		save EDDM algorithm state
+		
+		Parameters
+			fpath : file path for model checkpointing
+		"""
+		agfpath = fpath + "_aggr.mod"
+		agdet = dict()
+		agdet["labels"] = self.labels
+		agdet["detype"] = self.detype
+		saveObject(agdet, agfpath)
+		for k in self.detectors.keys():
+			dfpath = fpath + "_" + k + ".mod"
+			self.detectors[k].save(dfpath)
+
+	@classmethod
+	def restore(cls, fpath):
+		"""
+		factory method to restore all detectors for all labels
+	
+		Parameters
+			fpath : file path for saved model
+		"""
+		agfpath = fpath + "_aggr.mod"
+		agdet = restoreObject(agfpath)
+		labels = agdet["labels"]
+		detype = agdet["detype"]
+		mdet = MultiSupConceptDrift(labels, detype)
+		for la in mdet.labels:
+			dfpath = fpath + "_" + la + ".mod"
+			if mdet.detype == "ddm":
+				mdet.detectors[la] = DDM.create(dfpath)
+			elif mdet.detype == "eddm":
+				mdet.detectors[la] = EDDM.create(dfpath)
+			elif mdet.detype == "fhddm":
+				mdet.detectors[la] = FHDDM.create(dfpath)
+			elif mdet.detype == "ecdd":
+				mdet.detectors[la] = ECDD.create(dfpath)
+			else:
+				exitWithMsg("invalid drift detector type")
+		return mdet
+
+			
+		

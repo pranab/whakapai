@@ -201,6 +201,41 @@ if __name__ == "__main__":
 				xp.append(i)
 				yd.append(res[1])
 		drawPlot(xp, yd, "predictions", "drift")
+		
+	elif op == "meddm":
+		""" multi EDDM detector """
+		fpath = args.dfpath
+		labels = ["la1", "la2", "la3"]
+		evals = getFileColumnAsInt(fpath, 2)
+		if args.restorefp == "none":
+			mdetector = MultiSupConceptDrift(labels, "eddm")
+			mdetector.create(args.warmup, wsize=args.wsize, wpsize=args.wpsize, threshold=args.threshold)
+		else:
+			mdetector = MultiSupConceptDrift.restore(args.restorefp)
+			
+		xp = list()
+		ys = list()
+		yd = list()
+		sampler = BernoulliTrialSampler(0.1)
+		for i in range(len(evals)):
+			v1 = evals[i]
+			v2 = 1 if sampler.sample() else 0
+			v3 = 1 if sampler.sample() else 0
+			ev = {"la1":v1, "la2":v2, "la3":v3}
+			
+			res = mdetector.add(ev)["la2"]
+			if res is not None:
+				print("{:.3f},{:.3f},{:.3f},{}".format(res[0],res[1],res[2],res[3]))
+				xp.append(i)
+				ys.append(res[2])
+				yd.append(res[3])
+
+		if args.savefp != "none":
+			mdetector.save(args.savefp)
+		drawPairPlot(xp, ys, yd, "predictions", "value", "score", "drift")
+		
+
+
 	else:
 		exitWithMsg("invalid command")
 		
