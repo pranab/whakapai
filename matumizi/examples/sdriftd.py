@@ -213,28 +213,33 @@ if __name__ == "__main__":
 		else:
 			mdetector = MultiSupConceptDrift.restore(args.restorefp)
 			
-		xp = list()
-		ys = list()
-		yd = list()
+		#all error values
 		sampler = BernoulliTrialSampler(0.1)
+		results = list()
 		for i in range(len(evals)):
 			v1 = evals[i]
 			v2 = 1 if sampler.sample() else 0
 			v3 = 1 if sampler.sample() else 0
 			ev = {"la1":v1, "la2":v2, "la3":v3}
-			
-			res = mdetector.add(ev)["la2"]
-			if res is not None:
-				print("{:.3f},{:.3f},{:.3f},{}".format(res[0],res[1],res[2],res[3]))
-				xp.append(i)
-				ys.append(res[2])
-				yd.append(res[3])
+			res = mdetector.add(ev)
+			results.append(res)
 
+		#plots for all labels
+		for la in labels:
+			xp = list()
+			ys = list()
+			yd = list()
+			for i in range(len(results)):
+				res = results[i][la]
+				if res is not None:
+					print("{:.3f},{:.3f},{:.3f},{}".format(res[0],res[1],res[2],res[3]))
+					xp.append(i)
+					ys.append(res[2])
+					yd.append(res[3])
+			drawPairPlot(xp, ys, yd, la + " predictions", "value", "score", "drift")
+		
 		if args.savefp != "none":
 			mdetector.save(args.savefp)
-		drawPairPlot(xp, ys, yd, "predictions", "value", "score", "drift")
-		
-
 
 	else:
 		exitWithMsg("invalid command")
