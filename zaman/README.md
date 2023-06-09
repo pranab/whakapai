@@ -10,10 +10,11 @@ Everyting time series, EDA, forecasting, classificatio and anomaly detection
 
 1. Install:
 
-Run
+Package install
 pip3 install -i https://test.pypi.org/simple zaman==0.0.2
 
-For installing latest, clone repo and run this at .../whakapai directory 
+Local build and install for the latest
+Clone GirHub repo and run this at the repo root directory
 ./lbi.sh zaman
 
 For dependencies run this form the project root directory
