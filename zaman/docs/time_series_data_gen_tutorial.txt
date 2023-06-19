@@ -21,7 +21,7 @@ all config parameters and how to use them
 
 Generate time series
 ====================
-tsgend.py --op tsn  --cfpath tsgen_test.properties > tsn.cv
+python3 tsgend.py --op tsn  --cfpath tsgen_test.properties > tsn.cv
 
 where
 op = time series type

@@ -22,9 +22,26 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from zaman.tsgen import *
+from tsgen import *
 
+"""
+driver  for time series data generation
+"""
 
+def getNumPlot(data, args):
+	"""
+	get num of plots
+	
+	Parameters
+		data : data
+		args : command line args
+	"""
+	if args.szplots > 0:
+		nplots = int(len(data) / args.szplots)
+	else:
+		nplots = args.nplots
+	return nplots
+	
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
@@ -33,19 +50,22 @@ if __name__ == "__main__":
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
 	parser.add_argument('--prec', type=int, default = 3, help = "floating point precision")
 	parser.add_argument('--nplots', type=int, default = 3, help = "num of plots")
-	parser.add_argument('--yscale', type=int, default = 3, help = "plot yscsale")
+	parser.add_argument('--yscale', type=int, default = -1, help = "plot yscsale")
+	parser.add_argument('--szplots', type=int, default = -1, help = "sizeplots")
 	args = parser.parse_args()
 	op = args.op
 	
 	ovcfpath = None if args.ovcfpath == "none" else args.ovcfpath
 	generator = TimeSeriesGenerator(args.cfpath, ovcfpath)
+	yscale = args.yscale if args.yscale > 0 else None
+	
 	if op == "tsn":
 		""" trend, cycle and noise based generation """
 		da = list()
 		for rec in generator.trendCycleNoiseGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, args.yscale)
+		drawLineParts(da, args.nplots, yscale)
 	
 	if op == "triang":
 		""" triangular cyclic  based generation """
@@ -53,7 +73,7 @@ if __name__ == "__main__":
 		for rec in generator.triangGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, args.yscale)
+		drawLineParts(da, args.nplots, yscale)
 
 	if op == "step":
 		""" step based generation """
@@ -61,7 +81,15 @@ if __name__ == "__main__":
 		for rec in generator.stepGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, args.yscale)
+		drawLineParts(da, args.nplots, yscale)
+
+	if op == "motif":
+		""" motif based generation """
+		da = list()
+		for rec in generator.motifGen():
+			print(rec)
+			da.append(float(rec.split(",")[1]))
+		drawLineParts(da, args.nplots, yscale)
 
 	elif op == "insan":
 		""" insert sequence anomaly """
@@ -69,7 +97,7 @@ if __name__ == "__main__":
 		for rec in generator.insertAnomalySeqGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, args.yscale)
+		drawLineParts(da, args.nplots, yscale)
 	
 	elif op == "insanp":
 		""" insert point anomaly """
@@ -77,4 +105,4 @@ if __name__ == "__main__":
 		for rec in generator.insertAnomalyPointGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, args.yscale)
+		drawLineParts(da, args.nplots, yscale)

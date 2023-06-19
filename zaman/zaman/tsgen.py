@@ -81,6 +81,7 @@ class TimeSeriesGenerator(object):
 		defValues["step.params"] = (None, None)
 		defValues["anomaly.params"] = (None, None)
 		defValues["anomaly.pt.params"] = (None, None)
+		defValues["anomaly.insert"] = ("add", None)
 
 		self.config = Configuration(configFile, defValues)
 		if ovConfigFile is not None:
@@ -487,9 +488,15 @@ class TimeSeriesGenerator(object):
 		"""
 		self.config.assertParams("motif.params")
 		params = self.config.getStringListConfig("motif.params")[0]
-		fpath = params[0]
-		cindex = int(params[0])
-		mdata = getFileColumnAsFloat(fpath, cindex)
+		if len(params) == 2:
+			#in file
+			fpath = params[0]
+			cindex = int(params[1])
+			mdata = getFileColumnAsFloat(fpath, cindex)
+		else:
+			#in config
+			print("motif size ", len(params))
+			mdata = asFloatList(params)
 		mlen = len(mdata)
 		mcnt = 0
 		rsampler = self.__genRandSampler()
@@ -699,6 +706,7 @@ class TimeSeriesGenerator(object):
 		self.config.assertParams("anomaly.params")
 		anParams = self.config.getStringListConfig("anomaly.params")[0]
 		anGenerator = self.__createAnomalyGen(anParams)
+		anIns = self.config.getStringConfig("anomaly.insert")[0]
 		
 		i = 0
 		atype = anGenerator.getType()
@@ -720,7 +728,7 @@ class TimeSeriesGenerator(object):
 					if atype == "meanshift":
 						anVal = anValLast
 						
-				val = float(rec[1]) + anVal
+				val = float(rec[1]) + anVal if anIns == "add" else anVal
 				rec[1] = formatFloat(prec, val)
 			
 			i += 1
