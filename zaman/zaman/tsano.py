@@ -23,6 +23,7 @@ from random import randint
 from datetime import datetime
 from dateutil.parser import parse
 import numpy as np
+from sklearn import preprocessing
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
@@ -66,7 +67,7 @@ class MarkovChainAnomaly:
 		Parameters
 			tsval : time series value list
 		"""
-		vmargin = self.config.getFloatConfig("train..val.margin")[0]
+		vmargin = self.config.getFloatConfig("train.val.margin")[0]
 		dsize = self.config.getFloatConfig("train.discrete.size")[0]
 		toSave = self.config.getBooleanConfig("train.save.model")[0]
 		mfpath = self.config.getStringConfig("train.model.file")[0]
@@ -74,7 +75,7 @@ class MarkovChainAnomaly:
 		if tsval is None:
 			self.config.assertParams("train.data.file", "train.data.field")
 			fpath = self.config.getStringConfig("train.data.file")[0]
-			tscol = self.config.getIntgConfig("train.data.field")[0]
+			tscol = self.config.getIntConfig("train.data.field")[0]
 			tsval = getFileColumnAsFloat(fpath, tscol)
 		
 		vmax = max(tsval)
@@ -92,13 +93,16 @@ class MarkovChainAnomaly:
 		for i in range(len(tsval) - 1):
 			sb = round((tsval[i] - vmin) / dsize)
 			tb = round((tsval[i+1]- vmin) / dsize)
-			stpr[ts][tb] += 1
+			stpr[sb][tb] += 1
 		
 		#normalize rows
+		stpr = preprocessing.minmax_scale(stpr, axis=1)
+		#for i in range(nbins):
+		#	print(stpr[i])
 		
 		if toSave:
 			self.config.assertParams("train.model.file")
-			mod = {"vmin":vmin, "vmax":vmax, "stpr":stpr}
+			mod = {"vmin":vmin, "vmax":vmax, "nbins":nbins, "stpr":stpr}
 			saveObject(mod, mfpath)
 			
 
@@ -117,7 +121,7 @@ class MarkovChainAnomaly:
 		if tsval is None:
 			self.config.assertParams("pred.data.file", "pred.data.field")
 			fpath = self.config.getStringConfig("pred.data.file")[0]
-			tscol = self.config.getIntgConfig("pred.data.field")[0]
+			tscol = self.config.getIntConfig("pred.data.field")[0]
 			tsval = getFileColumnAsFloat(fpath, tscol)
 		
 		#restore model
