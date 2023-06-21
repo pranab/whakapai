@@ -495,7 +495,7 @@ class TimeSeriesGenerator(object):
 			mdata = getFileColumnAsFloat(fpath, cindex)
 		else:
 			#in config
-			print("motif size ", len(params))
+			#print("motif size ", len(params))
 			mdata = asFloatList(params)
 		mlen = len(mdata)
 		mcnt = 0
@@ -727,8 +727,17 @@ class TimeSeriesGenerator(object):
 				else:
 					if atype == "meanshift":
 						anVal = anValLast
+				
+				if anIns == "add":	
+					#add	
+					val = float(rec[1]) + anVal
+				else:
+					#replace
+					if i == abeg or i == aend-1:
+						val =  (float(rec[1]) + anVal) / 2
+					else:
+						val = anVal
 						
-				val = float(rec[1]) + anVal if anIns == "add" else anVal
 				rec[1] = formatFloat(prec, val)
 			
 			i += 1
@@ -953,12 +962,19 @@ class MotifAnomalyGenerator(AnomalyGenerator):
 		Parameters
 			parameters : parameter list
 		"""
-		assertEqual(len(params), 6, "invalid number of parameters")
+		assertGreater(len(params), 5, "invalid number of parameters")
 		sd = float(params[3])
-		fpath = params[4]
-		cindex = int(params[5])
-		self.mdata = getFileColumnAsFloat(fpath, cindex)
-		self.mlen = len(mdata)
+		if len(params) == 6:
+			#in separate file
+			fpath = params[4]
+			cindex = int(params[5])
+			self.mdata = getFileColumnAsFloat(fpath, cindex)
+		else:
+			#in config
+			mdata = params[4:]
+			self.mdata = asFloatList(mdata)
+			
+		self.mlen = len(self.mdata)
 		self.mcnt = 0
 		
 		self.rsampler = NormalSampler(0, sd) if sd > 0 else None
@@ -973,7 +989,7 @@ class MotifAnomalyGenerator(AnomalyGenerator):
 		"""
 		sval = 0
 		if pos >= self.beg and pos < self.end:
-			sval = self.mdata[self.mcount]
+			sval = self.mdata[self.mcnt]
 			sval += self.rsampler.sample() if self.rsampler is not None else 0
 			self.mcnt = (self.mcnt + 1) % self.mlen
 		return sval
