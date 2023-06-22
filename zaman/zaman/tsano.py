@@ -96,7 +96,7 @@ class MarkovChainAnomaly:
 			stpr[sb][tb] += 1
 		
 		#normalize rows
-		stpr = preprocessing.minmax_scale(stpr, axis=1)
+		stpr = preprocessing.normalize(stpr, norm="l1", axis=1)
 		#for i in range(nbins):
 		#	print(stpr[i])
 		
@@ -129,6 +129,8 @@ class MarkovChainAnomaly:
 		vmin = mod["vmin"]
 		stpr = mod["stpr"]
 		
+		cprmin = 1.0
+		imin = 0
 		for i in range(len(tsval) - wsize):
 			cpr = 1.0
 			for j in range(wsize - 1):
@@ -136,7 +138,10 @@ class MarkovChainAnomaly:
 				sb = round((tsval[k] - vmin) / dsize)
 				tb = round((tsval[k+1]- vmin) / dsize)
 				cpr *= stpr[sb][tb]
-				print("cpr {:.6f}".format(cpr))
+				if cpr < cprmin:
+					cprmin = cpr
+					imin = i
+				#print("cpr {:.6f}".format(cpr))
 			if cpr < thresh:
 				print("seq anomaly {}  score {:.6f}  loc index {}".format(str(tsval[i:i+wsize]), cpr, i))
-
+		#print("min prob {:.6f}  loc {}".format(cprmin, imin))

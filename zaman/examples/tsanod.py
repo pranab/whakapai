@@ -35,3 +35,8 @@ if __name__ == "__main__":
 		""" build markov chanin model """
 		ad = MarkovChainAnomaly(args.cfpath)
 		ad.fit()
+		
+	if op == "mcp":
+		""" predict using  markov chanin model """
+		ad = MarkovChainAnomaly(args.cfpath)
+		ad.predict()
