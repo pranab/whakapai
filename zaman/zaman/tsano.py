@@ -55,8 +55,11 @@ class MarkovChainAnomaly:
 		defValues["train.model.file"] = (None, None) 
 		defValues["pred.data.file"] = (None, None)
 		defValues["pred.data.field"] = (None, None)
+		defValues["pred.ts.field"] = (None, None)
 		defValues["pred.window.size"] = (5, None)
 		defValues["pred.ano.threshold"] = (None, "missing cond probability threshold")
+		defValues["pred.output.file"] = (None, "missing output file path")
+		defValues["pred.output.prec"] = (8, None)
 
 		self.config = Configuration(configFile, defValues)
 		
@@ -117,12 +120,18 @@ class MarkovChainAnomaly:
 		mfpath = self.config.getStringConfig("train.model.file")[0]
 		wsize = self.config.getIntConfig("pred.window.size")[0]
 		thresh = self.config.getFloatConfig("pred.ano.threshold")[0]
+		ofpath = self.config.getStringConfig("pred.output.file")[0]
+		oprec = self.config.getIntConfig("pred.output.prec")[0]
+		ts = None
 		
 		if tsval is None:
-			self.config.assertParams("pred.data.file", "pred.data.field")
+			#file path from config
+			self.config.assertParams("pred.data.file", "pred.data.field", "pred.ts.field")
 			fpath = self.config.getStringConfig("pred.data.file")[0]
-			tscol = self.config.getIntConfig("pred.data.field")[0]
-			tsval = getFileColumnAsFloat(fpath, tscol)
+			tsvcol = self.config.getIntConfig("pred.data.field")[0]
+			tsval = getFileColumnAsFloat(fpath, tsvcol)
+			tscol = self.config.getIntConfig("pred.ts.field")[0]
+			ts = getFileColumnAsString(fpath, tscol)
 		
 		#restore model
 		mod = restoreObject(mfpath)
@@ -131,6 +140,7 @@ class MarkovChainAnomaly:
 		
 		cprmin = 1.0
 		imin = 0
+		cprl = list()
 		for i in range(len(tsval) - wsize):
 			cpr = 1.0
 			for j in range(wsize - 1):
@@ -138,10 +148,27 @@ class MarkovChainAnomaly:
 				sb = round((tsval[k] - vmin) / dsize)
 				tb = round((tsval[k+1]- vmin) / dsize)
 				cpr *= stpr[sb][tb]
-				if cpr < cprmin:
-					cprmin = cpr
-					imin = i
+			
+			cprl.append(formatFloat(oprec, cpr))
+			if cpr < cprmin:
+				cprmin = cpr
+				imin = i
 				#print("cpr {:.6f}".format(cpr))
 			if cpr < thresh:
-				print("seq anomaly {}  score {:.6f}  loc index {}".format(str(tsval[i:i+wsize]), cpr, i))
+				cprs = formatFloat(oprec, cpr)
+				print("seq anomaly {}  score {}  loc index {}".format(str(tsval[i:i+wsize]), cprs, i))
 		#print("min prob {:.6f}  loc {}".format(cprmin, imin))
+
+		#output
+		if ts is None:
+			with open(ofpath,'w') as fi:
+				for va in cprl:
+					fi.write(va + '\n')
+		else:
+			#num of cond prob values will ve lower depending on the window size
+			ts = ts[:len(cprl)]
+			with open(ofpath,'w') as fi:
+				for t, v in zip(ts, cprl):
+					fi.write(t +  "," + v + '\n')
+				
+		

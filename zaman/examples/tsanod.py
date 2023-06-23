@@ -28,6 +28,8 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
 	parser.add_argument('--cfpath', type=str, default = "", help = "config file path")
+	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
+	parser.add_argument('--nplots', type=int, default = -1, help = "num of plots")
 	args = parser.parse_args()
 	op = args.op
 
@@ -36,7 +38,13 @@ if __name__ == "__main__":
 		ad = MarkovChainAnomaly(args.cfpath)
 		ad.fit()
 		
-	if op == "mcp":
+	elif op == "mcp":
 		""" predict using  markov chanin model """
 		ad = MarkovChainAnomaly(args.cfpath)
 		ad.predict()
+		
+	elif op == "plot":
+		""" plot  """
+		da = getFileColumnAsFloat(args.dfpath, 1)
+		drawLineParts(da, args.nplots)
+		
