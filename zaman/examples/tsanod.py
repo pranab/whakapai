@@ -30,6 +30,7 @@ if __name__ == "__main__":
 	parser.add_argument('--cfpath', type=str, default = "", help = "config file path")
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
 	parser.add_argument('--nplots', type=int, default = -1, help = "num of plots")
+	parser.add_argument('--ylabel', type=str, default = "", help = "plot y label")
 	args = parser.parse_args()
 	op = args.op
 
@@ -45,6 +46,7 @@ if __name__ == "__main__":
 		
 	elif op == "plot":
 		""" plot  """
+		ts = getFileColumnAsInt(args.dfpath, 0)
 		da = getFileColumnAsFloat(args.dfpath, 1)
-		drawLineParts(da, args.nplots)
+		drawPlotParts(ts, da, "Time", args.ylabel, args.nplots)
 		
