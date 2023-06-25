@@ -5,6 +5,7 @@ Everyting time series, EDA, forecasting, classificatio and anomaly detection
 * nuproph : forecasting with  neuralprophet  (coming)
 * tsutil : varioous utilities for time series, EDA etc
 * tsgen : time series generator
+* tsano : time series anomaly detection
 
 
 
