@@ -1,0 +1,55 @@
+This tutorial is  for markov chain based anomaly detection in time series data. ECG data is used as an example.
+A condition known as Attrial Fibrillation is simulated as anomaly.
+
+Setup
+=====
+Install the package zaman
+pip3 install -i https://test.pypi.org/simple/ zaman==0.0.2
+
+For local build and istallation run this from the repo root directory whakapi
+./lbi.sh zaman
+
+Install dependencies, by running this from the package root directory
+pip3 install -r requirements.txt
+
+Data generattion
+================
+The module tsgen is is used for synthetic time series generation. This module supports various kinds of time series
+data generation. We will be using motif based time series generation. You define a motif with a set of points. It repeated 
+with some random noise added
+
+Generate normal data for training
+Make sure window size is window.size is 200000 or more
+Run
+python3 tsgend.py --op motif  --cfpath tsgen_test.properties --ovcfpath tsgen_ecg.properties --nplots -1 > ecgt.csv
+
+where
+op = time of time series
+cfpath = config file path
+ovcfpath = overriding config file path
+nplots = no of plot for data generated (-1 for no plot)
+
+Generate normal data for prediction
+Make sure window size is window.size is 10000 or more
+Run
+python3 tsgend.py --op motif  --cfpath tsgen_test.properties --ovcfpath tsgen_ecg.properties --nplots 4 > ecgn.csv
+
+Add anomaly to data for prediction
+Run
+python3 tsgend.py --op insan  --cfpath tsgen_test.properties --ovcfpath tsgen_ecg.properties --dfpath ecgn.csv  --prec 3 --nplots 4 > ecgp.csv
+
+Build the model of state transition probability matrix
+======================================================
+Run
+python3 tsanod.py --op mcm --cfpath tsano_mc_ecg.properties
+Make sure model got saved in the path specified with train.model.file
+
+Detect anomaly
+==============
+Run
+python3 tsanod.py --op mcp --cfpath tsano_mc_ecg.properties
+
+You can plot anomaly score. Values below thehold specified in pred.ano.threshold are anomalous sequences
+Run
+python3 tsanod.py --op plot --dfpath ecga.csv --nplots 5
+
