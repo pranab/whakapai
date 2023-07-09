@@ -545,6 +545,63 @@ class NormalSamplerWithTrendCycle:
 		return s
 
 
+class NormalSamplerWithShift:
+	"""
+	normal sampler with gradual distribution shift
+	"""
+	def __init__(self, mean, stdDev, step, mstep, sdstep, mstop=None, stdstop=None):
+		"""
+		initializer
+		
+		Parameters
+			mean : mean
+			stdDev : std deviation
+			step : sample step size range
+			mstep : mean shift step
+			sdstep : std dev shift step
+			mstop : stopping value for mean
+			stdstop : stopping value for std dev
+		"""
+		self.cmean = mean
+		self.cstdDev = stdDev
+		self.csampler = NormalSampler(self.cmean, self.cstdDev)
+		self.step = step
+		self.mstep = mstep
+		self.sdstep = sdstep
+		self.mstop = mstop
+		self.sdstop = sdstop
+		self.mstopped = False
+		self.sdstopped = False
+		
+		self.scount = 0
+		self.nstep = randomInt(self.step[0],self. step[1])
+
+	def isNumeric(self):
+		return True
+
+	def sample(self):
+		"""
+		samples value
+		"""
+		self.scount += 1
+		if self.scount == self.nstep and not self.mstopped and not self.sdstopped:
+			self.cmean += self.mstep
+			tostop = abs(self.cmean) > abs(self.mstop)
+			if self.mstop is not None and not self.mstopped and tostop:
+				self.cmean = self.mstop
+				self.mstopped = True
+			
+			self.cstdDev += self.sdstep
+			tostop = (self.sdstep > 0 and self.cstdDev > self.sdstop) or (self.sdstep < 0 and self.cstdDev < self.sdstop)
+			if self.sdstop is not None and not self.sdstopped and tostop:
+				self.cstdDev = self.sdstop
+				self.sdstopped = True
+
+			self.csampler = NormalSampler(self.cmean, self.cstdDev)
+			self.scount = 0
+			self.nstep = randomInt(self.step[0],self. step[1])
+		return self.csampler.sample()
+
 class ParetoSampler:
 	"""
 	pareto sampler
