@@ -346,6 +346,8 @@ class FeedForwardNetwork(torch.nn.Module):
 		elif lossFnName == "triplet":
 			marg = config.getFloatConfig("train.loss.margin")[0]
 			lossFunc = torch.nn.TripletMarginLoss(margin=marg, reduction=lossRed)
+		elif lossFnName == "nll":
+			lossFunc = torch.nn.NLLLoss(reduction=lossRed)
 		else:
 			exitWithMsg("invalid loss function name " + lossFnName)
 		return lossFunc

@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import sklearn as sk
@@ -35,7 +36,7 @@ from matumizi.mlutil import *
 from .tnn import FeedForwardNetwork
 
 """
-Transformer implementation
+Transformer implementation with encoder and decoder
 Inspired by https://towardsdatascience.com/a-detailed-guide-to-pytorchs-nn-transformer-module-c80afbc9ffb1
 https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 """
@@ -44,6 +45,12 @@ class Transformer(nn.Module):
 	"""
 	"""
 	def __init__(self, configFile):
+		"""
+		initializer
+		
+		Parameters
+			configFile : config file path
+		"""
 		defValues = dict()
 		defValues["common.model.directory"] = ("model", None)
 		defValues["common.model.file"] = (None, None)
@@ -56,7 +63,7 @@ class Transformer(nn.Module):
 		defValues["train.data.type"] = ("numeric", None)
 		defValues["train.data.delim"] = (",", None)
 		defValues["train.hidden.size"] = (None, "missing  hidden size")
-		defValues["train.embed.dict.size"] = (1000000, None)
+		defValues["train.voc.size"] = (1000000, None)
 		defValues["train.seq.len"] = (1, None)
 		defValues["train.batch.size"] = (32, None)
 		defValues["train.batch.first"] = (False, None)
@@ -72,7 +79,7 @@ class Transformer(nn.Module):
 		defValues["train.opt.alpha"] = (0.99, None)
 		defValues["train.out.sequence"] = (True, None)
 		defValues["train.out.activation"] = ("sigmoid", None)
-		defValues["train.loss.fn"] = ("mse", None) 
+		defValues["train.loss.fn"] = ("nll", None) 
 		defValues["train.loss.reduction"] = ("mean", None)
 		defValues["train.grad.clip"] = (5, None) 
 		defValues["train.num.iterations"] = (500, None)
@@ -103,14 +110,14 @@ class Transformer(nn.Module):
 		self.ffSize = self.config.getIntConfig("train.ff.size")[0]
 		self.activation = self.config.getStringConfig("train.activation")[0]
 		self.device = FeedForwardNetwork.getDevice(self)
-		embedDicSize = self.config.getIntConfig("train.embed.dict.size")[0]
+		vocSize = self.config.getIntConfig("train.voc.size")[0]
 		self.positionalEncoder = PositionalEncoding(self.modSize, self.dropProb)
-		self.embedding = nn.Embedding(embedDicSize, self.modSize)
+		self.embedding = nn.Embedding(vocSize, self.modSize)
 		self.model = nn.Transformer(d_model=self.modSize, nhead=self.numHeads, num_encoder_layers=self.numEncLayer,
 			num_decoder_layers=self.numDecLayer, dim_feedforward=self.ffSize, dropout=self.dropProb, activation=self.activation, batch_first=True)
-		self.out = nn.Linear(self.modSize, self.seqLen)
-		self.SOSToken = np.array([2])
-		self.EOSToken = np.array([3])
+		self.out = nn.Linear(self.modSize, vocSize)
+		self.SOSToken = np.array([vocSize-2])
+		self.EOSToken = np.array([vocSize-1])
 		
 		optimizerName = self.config.getStringConfig("train.optimizer")[0]
 		self.optimizer = FeedForwardNetwork.createOptimizer(self, optimizerName)
@@ -120,6 +127,7 @@ class Transformer(nn.Module):
 	def forward(self, src, tgt, tgtMask=None, srcPadMask=None, tgtPadMask=None):
 		"""
 		forward pass
+		
 		Parameters
 			src : source tensor (batch_size, src sequence length)
 			tgt : target tensor (batch_size, tgt sequence length)
@@ -135,8 +143,7 @@ class Transformer(nn.Module):
 		#transformer blocks - Out size = (sequence length, batch_size, num_tokens)
 		tout = self.model(src, tgt, tgt_mask=tgtMask, src_key_padding_mask=srcPadMask, tgt_key_padding_mask=tgtPadMask)
 		out = self.out(tout)
-		
-		return out
+		return torch.nn.LogSoftmax(out, dim=-1)
       
 	def getTgtMask(self, size):
 		"""
@@ -165,18 +172,18 @@ class Transformer(nn.Module):
 		Parameter
 			fpath: data file path
 		"""
-		dataFile = self.config.getStringConfig("train.data.file")[0]
-		data = np.loadtxt(file, delimiter=",")
+		data = np.loadtxt(fpath, delimiter=",")
 		pdata = list()
 		for r in data:
 			x = np.concatenate((self.SOSToken, r, self.EOSToken))
 			y = np.concatenate((self.SOSToken, r, self.EOSToken))
 			pdata.append([x, y])
 		np.random.shuffle(pdata)
+		
 		batches = list()
 		nbatch = int(len(pdata) / self.batchSize)
 		for idx in range(0, nbatch * self.batchSize, self.batchSize):
-			batches.append(np.array(data[idx : idx +  self.batchSize]).astype(np.int64))
+			batches.append(np.array(pdata[idx : idx +  self.batchSize]).astype(np.int64))
 		return batches
     	
 	def train(self):
@@ -191,14 +198,14 @@ class Transformer(nn.Module):
 			b = 0
 			for batch in batches:
 				x, y = batch[:, 0], batch[:, 1]
-				x, y = torch.tensor(X).to(self.device), torch.tensor(y).to(self.device)
+				x, y = torch.tensor(x).to(self.device), torch.tensor(y).to(self.device)
     			
 				#we shift the tgt by one so with the <SOS> we predict the token at pos 1
 				yInp = y[:,:-1]
 				yExp = y[:,1:]
 				
 				#get mask to mask out the next words
-				tgtMask = self.getTgtMask(self.seqLen).to(self.device)
+				tgtMask = self.getTgtMask(yInp.size(1)).to(self.device)
 				
 				#predict
 				yPred = self.model(x, yInp, tgtMask)
@@ -215,20 +222,24 @@ class Transformer(nn.Module):
 		self.validate()
     	
 	def validate(self):
+		"""
+		validate model
+		
+		"""
 		self.eval()
 		batches = self.loadData(self.config.getStringConfig("valid.data.file")[0])
     		
 		with torch.no_grad():
 			for batch in batches:
 				x, y = batch[:, 0], batch[:, 1]
-				x, y = torch.tensor(X).to(self.device), torch.tensor(y).to(self.device)
+				x, y = torch.tensor(x).to(self.device), torch.tensor(y).to(self.device)
 				
 				#we shift the tgt by one so with the <SOS> we predict the token at pos 1
 				yInp = y[:,:-1]
 				yExp = y[:,1:]
 				
 				#get mask to mask out the next words
-				tgtMask = self.getTgtMask(self.seqLen).to(self.device)
+				tgtMask = self.getTgtMask(yInp.size(1)).to(self.device)
 				
 				#predict
 				yPred = self.model(x, yInp, tgtMask)
@@ -236,10 +247,43 @@ class Transformer(nn.Module):
 				tloss += loss.detach().item()
 		return tloss / len(batches)			
 
+
+	def predict(self, xInp, maxLength=15):
+		"""
+		make prediction
+		
+		Parameter
+			xInp: input sequence
+			maxLength : max length of output
+		"""
+		self.eval()
+		yInp = torch.tensor([[self.SOSToken]], dtype=torch.long, device=self.device)
+		
+		for _ in range(maxLength):
+			tgtMask = self.getTgtMask(yInp.size(1)).to(self.device)
+			yPred = self(xInp, yInp, tgtMask)
+			nextItem = yPred.topk(1)[1].view(-1)[-1].item()
+			nextItem = torch.tensor([[nextItem]], device=self.device)
+			
+			# Concatenate previous input with predicted best word
+			yInp = torch.cat((yInp, nextItem), dim=1)
+			
+			# Stop if model predicts end of sentence
+			if nextItem.view(-1).item() == self.EOSToken:
+				break
+				
+		return yInp.view(-1).tolist()
+		
+
 class PositionalEncoding(nn.Module):
 	def __init__(self, modelSize, dropoutProb, maxLen=5000):
 		"""
+    	initializer
     	
+		Parameter
+			modelSize: hidden dimension
+    		dropoutProb : dropout probability
+    		maxLen : maximum length
 		"""
 		super().__init__()
 		self.dropout = nn.Dropout(dropoutProb)
