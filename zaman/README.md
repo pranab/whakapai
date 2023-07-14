@@ -12,7 +12,7 @@ Everyting time series, EDA, forecasting, classificatio and anomaly detection
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple zaman==0.0.3
+pip3 install -i https://test.pypi.org/simple zaman==0.0.4
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory

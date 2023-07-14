@@ -42,8 +42,22 @@ if __name__ == "__main__":
 	elif op == "mcp":
 		""" predict using  markov chanin model """
 		ad = MarkovChainAnomaly(args.cfpath)
-		ad.predict()
+		res = ad.predict()
+		for r in res:
+			print(r)
 		
+	if op == "lhm":
+		""" build look ahead predictor model """
+		ad = LookAheadPredictorAnomaly(args.cfpath)
+		ad.fit()
+
+	elif op == "lhp":
+		""" predict using look ahead predictor model """
+		ad = LookAheadPredictorAnomaly(args.cfpath)
+		res = ad.predict()
+		for r in res:
+			print(r)
+
 	elif op == "plot":
 		""" plot  """
 		ts = getFileColumnAsInt(args.dfpath, 0)
