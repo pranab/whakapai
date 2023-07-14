@@ -59,7 +59,7 @@ class MarkovChainAnomaly:
 		defValues["pred.ts.field"] = (None, None)
 		defValues["pred.window.size"] = (5, None)
 		defValues["pred.ano.threshold"] = (None, "missing cond probability threshold")
-		defValues["pred.output.file"] = (None, "missing output file path")
+		defValues["pred.output.file"] = (None, None)
 		defValues["pred.output.prec"] = (8, None)
 
 		self.config = Configuration(configFile, defValues)
