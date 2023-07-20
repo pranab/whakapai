@@ -619,6 +619,31 @@ def strToFloatArray(line, delim=","):
 	arr = line.split(delim)
 	return [float(a) for a in arr]
 
+def intArrayToString(ivalues, prec=3, delem=","):	
+	"""
+	delim separated string from int array
+	
+	Parameters
+		fvalues ; int array
+		delem : delemeter
+	"""
+	svalues = list(map(lambda v : str(v), ivalues))
+	delem = " " if delem is None else delem
+	return delem.join(svalues)
+
+def floatArrayToString(fvalues, prec=3, delem=","):	
+	"""
+	delim separated string from float array
+	
+	Parameters
+		fvalues ; float array
+		prec : precision
+		delem : delemeter
+	"""
+	svalues = list(map(lambda v : formatFloat(prec, v), fvalues))
+	delem = " " if delem is None else delem
+	return delem.join(svalues)
+
 def strListOrRangeToIntArray(line):	
 	"""
 	int array from delim separated string or range
