@@ -31,37 +31,39 @@ class LinUpperConfBound(object):
 	linear upper conf bound multi arm bandit (lin ucb1)
 	"""
 	
-	def __init__(self, actions, nfeat, transientAction, reg, horizon, pthresh, logFilePath, logLevName):
+	def __init__(self, actions, nfeat, horizon, totPlays=0, reg=None, pthresh=None, a=None, b=None, alpha=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
 		
 		Parameters
 			actions : action names
 			nfeat : feature size
-			transientAction ; if decision involves some tied up resource it should be set False
 			reg ; regularizing param (lambda)
 			horizon : num of plays
 			pthresh: probability threshold (delta)
+			a : regression matrix
+			b : regression vector
+			alpha : constant
 			logFilePath : log file path set None for no logging
 			logLevName : log level e.g. info, debug
 		"""
 		self.actions = actions
 		self.naction = len(actions)
-		self.totPlays = 0
-		self.transientAction = transientAction
+		self.totPlays = totPlays
 		self.nfeat = nfeat
 		self.reg = reg
 		self.horizon = horizon
 		self.pthresh = pthresh
-		self.a = np.identity(nfeat) * reg
-		self.b = np.zeros(nfeat)
-		self.alpha = 1 + sqrt(0.5 * math.log(2 * horizon * self.naction / pthresh))
+		self.a = np.identity(nfeat) * reg if a is None else a
+		self.b = np.zeros(nfeat) if b is None else b
+		self.horizon = horizon
+		self.alpha = 1 + sqrt(0.5 * math.log(2 * horizon * self.naction / pthresh)) if alpha is None else alpha
 		self.sactions = dict()
 		
 		self.logger = None
 		if logFilePath is not None: 		
-			self.logger = createLogger(mname, logFilePath, logLevName)
-			self.logger.info("******** stating new  session of " + clname)
+			self.logger = createLogger(__name__, logFilePath, logLevName)
+			self.logger.info("******** stating new  session of " + "LinUpperConfBound")
 		
 	def getAction(self, features):
 		"""
@@ -78,9 +80,10 @@ class LinUpperConfBound(object):
 		saf = None
 		for i in range(np.shape(features)[0]):
 			af = features[i]
+			af = np.array(af)
 			aft = np.transpose(af)
-			t = np.matmul(af, inva)
-			t = np.matmul(t, aft)
+			t = np.matmul(aft, inva)
+			t = np.matmul(t, af)
 			s = np.dot(aft, theta) + self.alpha * sqrt(t)
 			
 			if smax is None or s > smax:
@@ -89,6 +92,9 @@ class LinUpperConfBound(object):
 				saf = af	
 				
 		self.sactions[sact] = saf
+		if self.logger is not None:
+			self.logger.info("play count {}  action {}  reward upper bound {:.3f}".format(self.totPlays + 1, sact,  smax))
+
 		self.totPlays += 1
 		return sact
 		
@@ -102,32 +108,50 @@ class LinUpperConfBound(object):
 			reward : reward value
 		"""
 		af = self.sactions[aname]
-		taf = np.transpose(af)
-		self.a = np.add(self.a, np.matmul(taf, af))
-		self.b = np.add(self.b, taf * reward)
+		aft = np.transpose(af)
+		self.a = np.add(self.a, np.matmul(af, aft))
+		self.b = np.add(self.b, af * reward)
 		if self.logger is not None:
-			self.logger.info("action {}  feature {}  reward {:.3f}".format(aname, floatArrayToString(af, delem=None), reward))
+			self.logger.info("action {}  feature {}  actual reward {:.3f}".format(aname, floatArrayToString(af, delem=None), reward))
 		self.sactions.pop(aname)
 	
-	def save(self, filePath):
+	def save(self, fpath):
 		"""
 		saves object
 				
 		Parameters
-			filePath : file path
+			fpath : file path
 		"""
-		pass
+		mod = dict()
+		mod["actions"] = self.actions
+		mod["nfeat"] = self.nfeat
+		mod["horizon"] = self.horizon
+		mod["a"] = self.a
+		mod["b"] = self.b
+		mod["alpha"] = self.alpha
+		mod["totPlays"] = self.totPlays
+		saveObject(mod, fpath)
 		
 	@staticmethod
-	def restore(filePath):
+	def create(fpath, logFilePath=None, logLevName=None):
 		"""
 		restores object
 				
 		Parameters
-			filePath : file path
+			fpath : file path
+			logFilePath : log file path set None for no logging
+			logLevName : log level e.g. info, debug
 		"""
-		pass
-			
+		mod = restoreObject(fpath)
+		actions = mod["actions"]
+		nfeat = mod["nfeat"]
+		horizon = mod["horizon"]
+		a = mod["a"]
+		b = mod["b"]
+		alpha = mod["alpha"]
+		totPlays = mod["totPlays"]
+		linUcb = LinUpperConfBound(actions, nfeat, horizon, totPlays=totPlays, a=a, b=b, alpha=alpha, logFilePath=logFilePath, logLevName=logLevName)
+		return linUcb
 
 class LinThompsonSampling(object):
 	"""
@@ -166,7 +190,7 @@ class LinThompsonSampling(object):
 		
 		self.logger = None
 		if logFilePath is not None: 		
-			self.logger = createLogger(mname, logFilePath, logLevName)
+			self.logger = createLogger(__name__, logFilePath, logLevName)
 			self.logger.info("******** stating new  session of " + clname)
 			
 	def getAction(self, features):
@@ -187,6 +211,7 @@ class LinThompsonSampling(object):
 		saf = None
 		for i in range(np.shape(features)[0]):
 			af = features[i]
+			af = np.array(af)
 			aft = np.transpose(af)
 			s = np.dot(aft, mu)
 			
