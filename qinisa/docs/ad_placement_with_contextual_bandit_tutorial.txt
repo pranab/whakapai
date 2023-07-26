@@ -1,0 +1,52 @@
+This tutorial is for online advertisement placement using Linear Upper Confidence Boumd (LinUCB)
+contextual banditr algorithm
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.8
+
+Install reinforcement learning package qinisa
+pip3 install -i https://test.pypi.org/simple/ qinisa==0.0.3
+
+It's recommended that you copy adpl.py  to a working directory and work  from there. Make sure the 
+sub directories "model", "app" and "log" exist under the working directory
+
+Run first time
+==============
+python3 ./adpl.py --algo linucb --nads 5 --nsites 10 --nplay 50 --ntplay 500 --reg 5.0 --pthresh .05  --savefp ./model/linucb.mod
+
+where
+algo = contextual bandit algorithm
+nads = number of advertisements 
+nsites = num of web sites
+nplay = num of plays in this session i.e num of iterations
+ntplay = total num of plays aka time horizon
+reg = ridge regression regularizer
+pthresh = probability threshold
+savefp = file wehere  linUCB model will be saved
+
+At the end of the session the model  and related data is checkpointed
+
+Running subsequently
+==================== 
+python3 ./adpl.py --algo linucb  --nplay 50 --ntplay 500  --savefp ./model/linucb.mod --restorefp ./model/linucb.mod
+
+where
+savefp = file wehere  linUCB model will be saved
+restorefp = file from wehere linUCB model will be restored
+
+At the end of the session an updated  model  and related data is checkpointed
+
+Output
+======
+Here is some sample console output
+
+site site_5   adv adv_5  features 0.600 0.559 0.656 0.935  reward 0.659
+site site_1   adv adv_5  features 0.981 0.700 0.475 0.712  reward 0.729
+site site_2   adv adv_2  features 0.642 0.606 0.484 0.895  reward 0.574
+site site_7   adv adv_3  features 0.892 0.912 0.425 0.416  reward 0.603
+site site_9   adv adv_2  features 0.901 0.925 0.416 0.422  reward 0.673
+site site_1   adv adv_5  features 0.981 0.700 0.475 0.451  reward 0.653
+
+You can check the log file also at ./model/linucb.log

@@ -132,6 +132,9 @@ class LinUpperConfBound(object):
 		mod["totPlays"] = self.totPlays
 		saveObject(mod, fpath)
 		
+		if self.logger is not None:
+			self.logger.info("cherckpointed model")
+		
 	@staticmethod
 	def create(fpath, logFilePath=None, logLevName=None):
 		"""
@@ -151,6 +154,9 @@ class LinUpperConfBound(object):
 		alpha = mod["alpha"]
 		totPlays = mod["totPlays"]
 		linUcb = LinUpperConfBound(actions, nfeat, horizon, totPlays=totPlays, a=a, b=b, alpha=alpha, logFilePath=logFilePath, logLevName=logLevName)
+		
+		if linUcb.logger is not None:
+			linUcb.logger.info("restored model from cherckpoint")
 		return linUcb
 
 class LinThompsonSampling(object):
