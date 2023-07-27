@@ -3,6 +3,7 @@
 Reinforcement Learning(RL) and Multi Arm Bandit(MAB)
 * bandit : base class for MAB
 * mab : various MAB implementation classes
+* cmab : various contextual MAB implementation classes
 * rlba : RL base class
 * reinfl : TD learning , Q learning, First visit Monte Carlo(in latest)
 
