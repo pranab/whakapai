@@ -104,7 +104,7 @@ class LinUpperConfBound(object):
 		reward feedback for action
 			
 		Parameters
-			act : action
+			aname : action name
 			reward : reward value
 		"""
 		af = self.sactions[aname]
@@ -164,40 +164,40 @@ class LinThompsonSampling(object):
 	linear thompson sampling multi arm bandit (lin ts)
 	"""
 	
-	def __init__(self, actions, nfeat, transientAction, subgaus, horizon, eps, pthresh, logFilePath, logLevName):
+	def __init__(self, actions, nfeat,  subgaus, eps, pthresh, totPlays=None, b=None, mean=None, f=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
 		
 		Parameters
 			actions : action names
 			nfeat : feature size
-			transientAction ; if decision involves some tied up resource it should be set False
 			subgaus ; sub gaussian (R)
-			horizon : num of plays
 			eps : parameter (epsilon)
 			pthresh: probability threshold (delta)
+			totPlays : total plays so far
+			b : b param
+			mean : mean vector linear params
+			f : f param
 			logFilePath : log file path set None for no logging
 			logLevName : log level e.g. info, debug
 		"""
 		self.actions = actions
 		self.naction = len(actions)
-		self.totPlays = 0
-		self.transientAction = transientAction
+		self.totPlays = 0 if totPlays is None else totPlays
 		self.nfeat = nfeat
 		self.subgaus = subgaus
-		self.horizon = horizon
 		self.eps = eps
 		self.pthresh = pthresh
-		self.b = np.identity(nfeat)
-		self.mean = np.zeros(nfeat)
-		self.f = np.zeros(nfeat)
+		self.b = np.identity(nfeat) if b is None else b
+		self.mean = np.zeros(nfeat) if mean is None else mean
+		self.f = np.zeros(nfeat) if f is None else f
 		
 		self.sactions = dict()
 		
 		self.logger = None
 		if logFilePath is not None: 		
 			self.logger = createLogger(__name__, logFilePath, logLevName)
-			self.logger.info("******** stating new  session of " + clname)
+			self.logger.info("******** stating new session of LinThompsonSampling")
 			
 	def getAction(self, features):
 		"""
@@ -207,7 +207,7 @@ class LinThompsonSampling(object):
 			features : features for all actions with 1 row per action
 		"""
 		self.totPlays += 1
-		v = self.subgaus *  sqrt(24 * self.nfeat * math.log(self.totPlays  / pthresh) / self.eps)
+		v = self.subgaus *  sqrt(24 * self.nfeat * math.log(self.totPlays  / self.pthresh) / self.eps)
 		v2 = v * v
 		invb = np.linalg.inv(self.b)
 		sd = invb * v2
@@ -227,6 +227,8 @@ class LinThompsonSampling(object):
 				saf = af	
 
 		self.sactions[sact] = saf
+		if self.logger is not None:
+			self.logger.info("play count {}  action {}  expected reward {:.3f}".format(self.totPlays, sact,  smax))
 		return sact
 
 	def setReward(self, aname, reward):
@@ -240,12 +242,56 @@ class LinThompsonSampling(object):
 		af = self.sactions[aname]
 		taf = np.transpose(af)
 		self.b = np.add(self.b, np.matmul(taf, af))
-		self.f = np.add(self.f, taf * reward)
+		self.f = np.add(self.f, af * reward)
 		invb = np.linalg.inv(self.b)
 		self.mean = np.matmul(invb, f)
 		if self.logger is not None:
 			self.logger.info("action {}  feature {}  reward {:.3f}".format(aname, floatArrayToString(af, delem=None), reward))
 		self.sactions.pop(aname)
 		
+	def save(self, fpath):
+		"""
+		saves object
+				
+		Parameters
+			fpath : file path
+		"""
+		mod = dict()
+		mod["actions"] = self.actions
+		mod["nfeat"] = self.nfeat
+		mode["subgaus"] = self.subgaus
+		mod["eps"] = self.eps
+		mod["pthresh"] = self.pthresh
+		mod["b"] = self.b
+		mode["mean"] = self.mean
+		mod["f"] = self.f
+		mod["totPlays"] = self.totPlays
+		saveObject(mod, fpath)
+		
+	@staticmethod
+	def create(fpath, logFilePath=None, logLevName=None):
+		"""
+		restores object
+				
+		Parameters
+			fpath : file path
+			logFilePath : log file path set None for no logging
+			logLevName : log level e.g. info, debug
+		"""
+		mod = restoreObject(fpath)
+		actions = mod["actions"]
+		nfeat = mod["nfeat"]
+		subgaus = mode["subgaus"]
+		eps = mod["eps"]
+		pthresh = mod["pthresh"]
+		b = mod["b"]
+		mean = mode["mean"]
+		f = mod["f"]
+		totPlays = mod["totPlays"]
+		linThSamp = LinThompsonSampling(actions, nfeat, subgaus, eps, pthresh,totPlays=totPlays, b=b, mean=mean, f=f, logFilePath=logFilePath, logLevName=logLevName)
+		
+		if linThSamp.logger is not None:
+			linThSamp.logger.info("restored model from cherckpoint")
+		return linThSamp
 		
 		
