@@ -24,6 +24,7 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
 from .rlba import *
+from .mab import *
 
 class TempDifferenceValue:
 	"""
@@ -282,22 +283,30 @@ class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
 	"""
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, logFilePath, logLevName):
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, policy=None, onPolicy=False, logFilePath=None, logLevName=None):
 		"""
 		initializer
 		
 		Parameters
+			states : all states
+			actions : all actions
 			banditAlgo : bandit algo (rg, ucb)
 			banditParams : bandit algo params
 			lrate : learning rate
 			dfactor : discount factor
 			istate : initial state
+			policy : current policy (optional)
+			onPolicy : True if on policy
+			logFilePath : log file path
+			logLevName : log level
 		"""
-		self.states = states
 		avalues = list(map(lambda a : [a, 0], actions))
-		self.qvalues = dict(list(map(lambda s : (s, avalues.copy()), states)))
+		self.qvalues = dict(list(map(lambda s : [s, avalues.copy()], states)))
 		if banditAlgo == "rg":
-			self.policy = RandomGreedyPolicy(qvalues, banditParams["epsilon"], banditParams["redPolicy"])
+			qvalues = self.qvalues if policy is None else None
+			pol = policy if policy is not None else None
+			self.policy = RandomGreedyPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, policy=pol, 
+			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"])
 		elif banditAlgo == "ucb":
 			self.policy = UpperConfBoundPolicy(qvalues)
 		else:
@@ -307,6 +316,7 @@ class TempDifferenceControl:
 		self.dfactor = dfactor
 		self.state = istate
 		self.action = None
+		self.onPolicy = onPolicy
 		
 		self.logger = None
 		if logFilePath is not None: 		
@@ -328,18 +338,35 @@ class TempDifferenceControl:
 			rwarde : reward
 			nstate : next state
 		"""
+		#current q value
 		cv = None
 		for a in self.qvalues[self.state]:
 			if a[0] == self.action:
 				cv = a[1]
-		nmv = 0	
-		for a in self.qvalues[nstate]:
-			if a[1] > nmv:
-				nmv = a[1]
+				break
+		
+		
+		if self.onPolicy:
+			#on policy with action per policy
+			naction = self.policy.getAction(nstate)
+			nmv = 0	
+			for a in self.qvalues[nstate]:
+				if a[0] == naction:
+					nmv = a[1]
+					break
+		else:
+			#off policy with action for max q value
+			nmv = 0	
+			for a in self.qvalues[nstate]:
+				if a[1] > nmv:
+					nmv = a[1]
 
 		delta = self.lrate * (reward + self.dfactor * nmv - cv)
+		qval = 0
 		for a in self.qvalues[self.state]:
 			if a[0] == self.action:
 				a[1] += delta
-		self.logger.info("state {}  action {} incr value {:.3f}  cur value {:.3f}".format(self.state, self.action, delta, self.values[self.state]))
+				qval = a[1]
+				break
+		self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
 		self.state = nstate

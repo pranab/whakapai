@@ -358,19 +358,33 @@ class RandomGreedyPolicy:
 	"""
 	random greedy multi arm bandit policy (epsilon greedy)
 	"""
-	def __init__(self, qvalues, epsilon, redPolicy="linear"):
+	def __init__(self, states, actions, epsilon, qvalues=None, policy=None, redPolicy="linear", redParam=None):
 		"""
 		initializer
 		
 		Parameters
-			qvalues : q values
+			states : all states
+			actions : all actions
 			epsilon : random selection probability 
+			qvalues : q values
+			policy : list of state,action tuple
 			redPolicy : epsilon reduction policy
+			redParam : epsilon reduction parameter
 		""" 
-		self.qvalues = qvalues
 		self.epsilon = epsilon
-		self.states = list(self.qvalues.keys())
-		self.actions = list(map(lambda a : a[0], self.qvalues[self.states[0]]))
+		self.redPolicy = redPolicy
+		self.redParam = redParam
+		self.qvalues = None
+		self.states = states
+		self.actions = actions
+		if qvalues is not None:
+			#qvalues
+			self.qvalues = qvalues
+		elif policy is not None:
+			#policy
+			self.policy = policy
+		else:
+			exitWithMsg("either qvalues or policy needs to be provided")	
 		self.totPlays = dict(map(lambda s : (s, 0), self.states))
 		
 	def getAction(self, state):
@@ -380,20 +394,37 @@ class RandomGreedyPolicy:
 		Parameters
 			state : state
 		"""
-		actions = self.qvalues[state]
-		vmax = 0
-		sact = None
-		for a in actions:
-			if a[1] > vmax:
-				sact = a[0]
-				vmax = a[1]
-		
+		#greedy action
+		if self.qvalues is not None:
+			actions = self.qvalues[state]
+			vmax = 0
+			sact = None
+			for a in actions:
+				if a[1] > vmax:
+					sact = a[0]
+					vmax = a[1]
+		else:
+			sact = self.policy[state]
+			
 		tp = self.totPlays[state]
+		eps = self.epsilon
 		if tp > 0:
-			redFact = 1.0 / tp if self.redPolicy == "linear" else math.log(tp) / tp
-			eps = self.epsilon * redFact
-			if random.random() < eps:
-				sact = selectRandomFromList(self.actions)
+			if self.redPolicy == "stepred":
+				eps = self.epsilon - tp * self.redParam
+				eps = max(0, eps)
+			elif self.redPolicy == "linear":
+				redFact = 1.0 / tp  
+				eps = self.epsilon * redFact
+			elif self.redPolicy == "loglinear":
+				redFact = math.log(tp) / tp
+				eps = self.epsilon * redFact
+			else:
+				exitWithMsg("invalid epsilon reduction strategy")
+			
+		
+		#random action
+		if random.random() < eps:
+			sact = selectRandomFromList(self.actions)
 		incrKeyedCounter(self.totPlays, state)		
 		return sact
 
@@ -408,9 +439,11 @@ class UpperConfBoundPolicy:
 		Parameters
 			qvalues : q values
 		""" 
+		#qvalues
 		self.qvalues = qvalues
 		self.states = list(self.qvalues.keys())
 		self.actions = list(map(lambda a : a[0], self.qvalues[self.states[0]]))
+		
 		self.totPlays = dict(map(lambda s : (s, 0), self.states))
 		self.actPlays = dict()
 		for s in self.states:
