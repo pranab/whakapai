@@ -1,0 +1,25 @@
+This tutorial is for store inventory replenishment  usingusing TD Sarsa reinforcement learning algorithm
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.8
+
+Install reinforcement learning package qinisa
+pip3 install -i https://test.pypi.org/simple/ qinisa==0.0.4
+
+It's recommended that you copy invrepl.py  to a working directory and work  from there. Make sure the 
+sub directories "model", "log" exist under the working directory
+
+Run policy improvement RL
+=========================
+./invrepl.py --algo sarsa --ndays 3000 --lrate 0.25 --dfactor 0.9 --eps 0.5 --eprpol stepred --eprp .0001
+
+where
+algo = TD algorithm to run
+lrate = learning rate 
+dfactor = discount factor
+eps = epsilon in random greedy bandit
+eprpol = epsilon reduction policy with values stepred, linear, logLinear
+eprp = epsilon step reduction value
+

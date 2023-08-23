@@ -35,9 +35,20 @@ def reward(inv):
 	""" calculates  reward from left over inventory """
 	
 	#max at 10 falls sharply as inventory reaches 0
-	r = 0.1 * inv if inv <= 10 else 1.0 - .005 * (inv - 10) 
-	return r
+	if inv <= 5:
+		r = 0.2 * inv
+	elif inv <= 15:
+		r = 1.0
+	else:
+		r = 1.0 - .005 * (inv - 15)
 	
+	return r
+
+def printPolicy(policy, states):
+	""" print policy """	
+	for st in states:
+		print("{}\t{}".format(st, policy[st]))
+		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--algo', type=str, default = "rg", help = "bandit algo")
@@ -51,31 +62,45 @@ if __name__ == "__main__":
 	
 	if args.algo == "sarsa":
 		csize = 10
-		wkndDem = NormalSampler(90, 8)
+		ncase = 16
+		wkndDem = NormalSampler(100, 6)
 		wkndDem.sampleAsIntValue()
-		wkdDem = NormalSampler(60, 10)
+		wkdDem = NormalSampler(45, 8)
 		wkdDem.sampleAsIntValue()
 		
 		states = list()
-		for d in range(7):
-			dw = 0 if d < 5 else 1
-			for inv in range(12):
+		for dw in range(2):
+			for inv in range(ncase):
 				states.append((dw, inv))
-		actions = list(range(12))
+		actions = list(range(ncase))
+		print(states)
+		print(actions)
 		
 		policy = dict()
 		for s in states:
 			if s[0] == 0:
 				#week days
-				a = 7 - s[1] if s[1] <= 7 else 0
+				a = 6 - s[1] if s[1] <= 6 else 0
 			else:
 				#week end
-				a = 10 - s[1] if s[1] <= 10 else 0
+				a = 8 - s[1] if s[1] <= 8 else 0
 			policy[s] = a		
+		print("current policy")
+		printPolicy(policy, states)
 		
-		banditParams = {"epsilon" : args.eps, "redPolicy":args.eprpol, "redParam":args.eprp}
+		#non greedy actions  for exploration around policy only
+		ngacts = dict()
+		for a in range(ncase):
+			if a == 0:
+				ngacts[a] = [a + 1, a + 2]
+			elif a == ncase - 1:
+				ngacts[a] = [a - 2, a - 1]
+			else:
+				ngacts[a] = [a - 1, a + 1]
+		
+		banditParams = {"epsilon" : args.eps, "redPolicy":args.eprpol, "redParam":args.eprp, "nonGreedyActions":ngacts}
 		istate = (0, 1)
-		inv = randomInt(10, 19)
+		inv = randomInt(1, 9)
 		model = TempDifferenceControl(states, actions, "rg", banditParams, args.lrate, args.dfactor, istate, policy=policy, 
 		onPolicy=True, logFilePath="./log/reifl.log", logLevName="info")
 		
@@ -95,6 +120,19 @@ if __name__ == "__main__":
 			ns = (dw, invc)
 			model.setReward(re, ns)
 			
+		print("updated policy")
+		npolicy = model.getPolicy()
+		for st in states:
+			ac = npolicy[st]
+			oac = policy[st]
+			msg = "no change"
+			if ac is None:
+				ac = oac
+				msg = "action default to existing policy"
+			elif ac != oac:
+				msg = "change to eixting policy action {}".format(oac)
+			print("{}\t{}\t{}".format(st, ac, msg))
+
 			
 		
 		

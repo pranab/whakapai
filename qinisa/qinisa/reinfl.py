@@ -23,7 +23,7 @@ import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from .rlba import *
+from rlba import *
 from .mab import *
 
 class TempDifferenceValue:
@@ -300,13 +300,17 @@ class TempDifferenceControl:
 			logFilePath : log file path
 			logLevName : log level
 		"""
-		avalues = list(map(lambda a : [a, 0], actions))
-		self.qvalues = dict(list(map(lambda s : [s, avalues.copy()], states)))
+		self.states = states
+		self.qvalues = dict()
+		for s in states:
+			avalues = list(map(lambda a : [a, 0], actions))
+			self.qvalues[s] = avalues
+			
 		if banditAlgo == "rg":
 			qvalues = self.qvalues if policy is None else None
 			pol = policy if policy is not None else None
 			self.policy = RandomGreedyPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, policy=pol, 
-			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"])
+			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"], nonGreedyActions=banditParams["nonGreedyActions"])
 		elif banditAlgo == "ucb":
 			self.policy = UpperConfBoundPolicy(qvalues)
 		else:
@@ -332,7 +336,7 @@ class TempDifferenceControl:
 
 	def setReward(self, reward, nstate):
 		"""
-		initializer
+		sets reward
 		
 		Parameters
 			rwarde : reward
@@ -370,3 +374,21 @@ class TempDifferenceControl:
 				break
 		self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
 		self.state = nstate
+		
+	def getPolicy(self):
+		"""
+		get policy from qvaluese
+		"""
+		policy = dict()
+		for st in self.states:
+			actions = self.qvalues[st]
+			self.logger.info("state {}   actions {}".format(st, str(actions)))
+			vmax = 0
+			sact = None
+			for a in actions:
+				if a[1] > vmax:
+					sact = a[0]
+					vmax = a[1]
+			policy[st] = sact
+		
+		return policy

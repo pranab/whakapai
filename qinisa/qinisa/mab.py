@@ -358,7 +358,7 @@ class RandomGreedyPolicy:
 	"""
 	random greedy multi arm bandit policy (epsilon greedy)
 	"""
-	def __init__(self, states, actions, epsilon, qvalues=None, policy=None, redPolicy="linear", redParam=None):
+	def __init__(self, states, actions, epsilon, qvalues=None, policy=None, redPolicy="linear", redParam=None, nonGreedyActions=None):
 		"""
 		initializer
 		
@@ -370,13 +370,16 @@ class RandomGreedyPolicy:
 			policy : list of state,action tuple
 			redPolicy : epsilon reduction policy
 			redParam : epsilon reduction parameter
+			nonGreedyActions ; hints for non greedy actions 
 		""" 
 		self.epsilon = epsilon
 		self.redPolicy = redPolicy
 		self.redParam = redParam
 		self.qvalues = None
+		self.policy = None
 		self.states = states
 		self.actions = actions
+		self.nonGreedyActions = nonGreedyActions
 		if qvalues is not None:
 			#qvalues
 			self.qvalues = qvalues
@@ -424,7 +427,10 @@ class RandomGreedyPolicy:
 		
 		#random action
 		if random.random() < eps:
-			sact = selectRandomFromList(self.actions)
+			if self.policy is not None and self.nonGreedyActions is not None:
+				sact = selectRandomFromList(self.nonGreedyActions[sact])
+			else:
+				sact = selectRandomFromList(self.actions)
 		incrKeyedCounter(self.totPlays, state)		
 		return sact
 
