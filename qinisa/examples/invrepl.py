@@ -37,45 +37,51 @@ def reward(inv):
 	#max at 10 falls sharply as inventory reaches 0
 	if inv <= 5:
 		r = 0.2 * inv
-	elif inv <= 15:
+	elif inv <= 10:
 		r = 1.0
 	else:
-		r = 1.0 - .005 * (inv - 15)
+		r = 1.0 - .1 * (inv - 10)
 	
 	return r
 
 def printPolicy(policy, states):
 	""" print policy """	
 	for st in states:
-		print("{}\t{}".format(st, policy[st]))
+		print("{}\t\t{}".format(st, policy[st]))
 		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--algo', type=str, default = "rg", help = "bandit algo")
 	parser.add_argument('--ndays', type=int, default = 100, help = "num of of days")
+	parser.add_argument('--bandit', type=str, default = "rg", help = "bandit algorithm")
+	parser.add_argument('--demstat', type=str, default = "80,6,50,8", help = "deman distr parameters")
 	parser.add_argument('--lrate', type=float, default = 0.1, help = "learning rate")
 	parser.add_argument('--dfactor', type=float, default = 0.9, help = "decay rate")
 	parser.add_argument('--eps', type=float, default = 0.1, help = "bandit algo epsilon")
 	parser.add_argument('--eprpol', type=str, default = "linear", help = "bandit algo eps reduction policy")
 	parser.add_argument('--eprp', type=float, default = 0, help = "bandit algo epsilon reduction parameter")
+	parser.add_argument('--savefp', type=str, default = "none", help = "model save file")
+	parser.add_argument('--restorefp', type=str, default = "none", help = "model restore file")
 	args = parser.parse_args()
+
+	csize = 10
+	ncase = 16
+	dparams = strToFloatArray(args.demstat)
+	wkndDem = NormalSampler(dparams[0], dparams[1])
+	wkndDem.sampleAsIntValue()
+	wkdDem = NormalSampler(dparams[2], dparams[3])
+	wkdDem.sampleAsIntValue()
+	
+	states = list()
+	for dw in range(2):
+		for inv in range(ncase):
+			states.append((dw, inv))
+	actions = list(range(ncase))
+	print(states)
+	print(actions)
+	
 	
 	if args.algo == "sarsa":
-		csize = 10
-		ncase = 16
-		wkndDem = NormalSampler(100, 6)
-		wkndDem.sampleAsIntValue()
-		wkdDem = NormalSampler(45, 8)
-		wkdDem.sampleAsIntValue()
-		
-		states = list()
-		for dw in range(2):
-			for inv in range(ncase):
-				states.append((dw, inv))
-		actions = list(range(ncase))
-		print(states)
-		print(actions)
-		
 		policy = dict()
 		for s in states:
 			if s[0] == 0:
@@ -133,7 +139,50 @@ if __name__ == "__main__":
 				msg = "change to eixting policy action {}".format(oac)
 			print("{}\t{}\t{}".format(st, ac, msg))
 
-			
+
+	elif args.algo == "qlearn":
+		banditParams = {"epsilon" : args.eps, "redPolicy":args.eprpol, "redParam":args.eprp, "nonGreedyActions":None}
+		istate = (0, 1)
+		inv = randomInt(1, 9)
 		
+		qvPath = args.restorefp if args.restorefp != "none" else None
+		model = TempDifferenceControl(states, actions, args.bandit, banditParams, args.lrate, args.dfactor, istate, qvPath=qvPath, 
+		logFilePath="./log/reifl.log", logLevName="info")
+		
+		if qvPath is not None:
+			cpolicy = model.getPolicy()
+			
+		nbounds = 0
+		for i in range(args.ndays):
+			d = i % 7
+			dem = wkdDem.sample() if d < 5 else wkndDem.sample()
+			supl = model.getAction() * csize
+			print("day {} inventory {}  supply {} demand {}".format(d, inv, supl, dem))
+			inv = inv + supl - dem
+			inv = max(0, inv)
+			re = reward(inv)
+			print("new inventory {}  reward {:.3f}".format(inv, re))
+			
+			nd = (i+1) % 7
+			dw = 0 if nd < 5 else 1
+			invc = round(inv / csize)
+			if invc >= ncase - 1:
+				invc = ncase - 1
+				nbounds += 1
+			ns = (dw, invc)
+			model.setReward(re, ns)
+		
+		print("outside bounds {}".format(nbounds))
+		
+		if qvPath is not None:
+			print("current policy")
+			printPolicy(cpolicy, states)
+		
+		npolicy = model.getPolicy()
+		print("new policy")
+		printPolicy(npolicy, states)
+			
+		if args.savefp != "none":
+			model.save(args.savefp)
 		
 	

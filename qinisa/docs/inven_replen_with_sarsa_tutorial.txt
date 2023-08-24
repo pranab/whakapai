@@ -1,4 +1,5 @@
-This tutorial is for store inventory replenishment  usingusing TD Sarsa reinforcement learning algorithm
+This tutorial is for store inventory replenishment  usingusing TD Q reinforcement learning algorithm.
+We will try 2 different bandit based policies , Random Greedy and Boltzman
 
 Setup
 =====
@@ -11,15 +12,45 @@ pip3 install -i https://test.pypi.org/simple/ qinisa==0.0.4
 It's recommended that you copy invrepl.py  to a working directory and work  from there. Make sure the 
 sub directories "model", "log" exist under the working directory
 
-Run policy improvement RL
-=========================
-./invrepl.py --algo sarsa --ndays 3000 --lrate 0.25 --dfactor 0.9 --eps 0.5 --eprpol stepred --eprp .0001
+
+Run first time with Random Greedy Policy
+========================================
+python3 ./invrepl.py --algo qlearn --ndays 5000  --bandit rg --lrate 0.10 --dfactor 0.9 --eps 0.5 --eprpol stepred --eprp .0001 
+--demstat 120,8,100,6 --savefp ./model/invrepl_rg.mod
 
 where
 algo = TD algorithm to run
+ndays = num of days to run
+bandit = bandit algo
 lrate = learning rate 
 dfactor = discount factor
 eps = epsilon in random greedy bandit
 eprpol = epsilon reduction policy with values stepred, linear, logLinear
 eprp = epsilon step reduction value
+demstat = demans statistical distr parameters weekend mean, weekend std dev, weekday mean, weekday std dev
+savefp = model save file path
 
+Run subsequent times with Random Greedy Policy
+==============================================
+python3 ./invrepl.py --algo qlearn --ndays 5000  --bandit rg --lrate 0.10 --dfactor 0.9 --eps 0.5 --eprpol stepred --eprp .0001 
+--demstat 120,8,100,6 --savefp ./model/invrepl_rg.mod --restorefp ./model/invrepl_rg.mod
+
+where
+savefp = model restore file path
+
+you can change the demand distribution to see the model learns a new policy e.g --demstat 110,8,80,6
+
+Run first time with Boltzman Policy
+===================================
+python3 ./invrepl.py --algo qlearn --ndays 4995 --bandit boltz --lrate 0.10 --dfactor 0.9 --eps 5.0 --eprpol stepred --eprp .001 
+--demstat 120,8,100,6 --savefp ./model/invrepl_bo.mod --restorefp ./model/invrepl_bo.mod
+
+Run subsequent times with Boltzman Policy
+=========================================
+python3 ./invrepl.py --algo qlearn --ndays 4995 --bandit boltz --lrate 0.10 --dfactor 0.9 --eps 5.0 --eprpol stepred --eprp .001 
+--demstat 120,8,100,6 --savefp ./model/invrepl_bo.mod --restorefp ./model/invrepl_bo.mod
+
+Retrain for different demand distribution
+=========================================
+You can change the demand distribution to see the model learns a new policy e.g --demstat 110,8,80,6. 
+Note the difference with existing policy

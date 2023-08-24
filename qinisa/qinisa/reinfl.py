@@ -23,7 +23,7 @@ import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from rlba import *
+from .rlba import *
 from .mab import *
 
 class TempDifferenceValue:
@@ -283,7 +283,7 @@ class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
 	"""
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, policy=None, onPolicy=False, logFilePath=None, logLevName=None):
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=None, policy=None, onPolicy=False, logFilePath=None, logLevName=None):
 		"""
 		initializer
 		
@@ -295,23 +295,34 @@ class TempDifferenceControl:
 			lrate : learning rate
 			dfactor : discount factor
 			istate : initial state
+			qvPath : state action  values file path
 			policy : current policy (optional)
 			onPolicy : True if on policy
 			logFilePath : log file path
 			logLevName : log level
 		"""
 		self.states = states
-		self.qvalues = dict()
-		for s in states:
-			avalues = list(map(lambda a : [a, 0], actions))
-			self.qvalues[s] = avalues
-			
+		if qvPath is None:
+			self.qvalues = dict()
+			for s in states:
+				avalues = list(map(lambda a : [a, randomFloat(.01, .10)], actions))
+				self.qvalues[s] = avalues
+		else:
+			self.qvalues = restoreObject(qvPath)
+		
 		if banditAlgo == "rg":
+			#random greedy
 			qvalues = self.qvalues if policy is None else None
 			pol = policy if policy is not None else None
 			self.policy = RandomGreedyPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, policy=pol, 
 			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"], nonGreedyActions=banditParams["nonGreedyActions"])
+		if banditAlgo == "boltz":
+			#boltzman
+			qvalues = self.qvalues 
+			self.policy = BoltzmanPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, 
+			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"])
 		elif banditAlgo == "ucb":
+			#ucb
 			self.policy = UpperConfBoundPolicy(qvalues)
 		else:
 			exitWithMsg("invalid bandit algo")
@@ -392,3 +403,12 @@ class TempDifferenceControl:
 			policy[st] = sact
 		
 		return policy
+		
+	def save(self, fpath):
+		"""
+		saves object
+				
+		Parameters
+			fpath : file path
+		"""
+		saveObject(self.qvalues, fpath)

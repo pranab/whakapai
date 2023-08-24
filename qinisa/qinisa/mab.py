@@ -406,6 +406,8 @@ class RandomGreedyPolicy:
 				if a[1] > vmax:
 					sact = a[0]
 					vmax = a[1]
+			if sact is None:
+				sact = selectRandomFromList(actions)[0]
 		else:
 			sact = self.policy[state]
 			
@@ -431,6 +433,66 @@ class RandomGreedyPolicy:
 				sact = selectRandomFromList(self.nonGreedyActions[sact])
 			else:
 				sact = selectRandomFromList(self.actions)
+		incrKeyedCounter(self.totPlays, state)		
+		return sact
+
+class BoltzmanPolicy:
+	"""
+	boltzman multi arm bandit policy (epsilon greedy)
+	"""
+	def __init__(self, states, actions, epsilon, qvalues, redPolicy="linear", redParam=None):
+		"""
+		initializer
+		
+		Parameters
+			states : all states
+			actions : all actions
+			epsilon : random selection probability 
+			qvalues : q values
+			redPolicy : epsilon reduction policy
+			redParam : epsilon reduction parameter
+		""" 
+		self.epsilon = epsilon
+		self.redPolicy = redPolicy
+		self.redParam = redParam
+		self.qvalues = None
+		self.states = states
+		self.actions = actions
+		self.qvalues = qvalues
+		self.totPlays = dict(map(lambda s : (s, 1), self.states))
+		
+	def getAction(self, state):
+		"""
+		next play return selected action
+		
+		Parameters
+			state : state
+		"""
+		tp = self.totPlays[state]
+		eps = self.epsilon
+		if tp > 0:
+			if self.redPolicy == "stepred":
+				eps = self.epsilon - tp * self.redParam
+				eps = max(0, eps)
+			elif self.redPolicy == "linear":
+				redFact = 1.0 / tp  
+				eps = self.epsilon * redFact
+			elif self.redPolicy == "loglinear":
+				redFact = math.log(tp+1) / tp
+				eps = self.epsilon * redFact
+			else:
+				exitWithMsg("invalid epsilon reduction strategy")
+			
+		
+		#boltzman distr action
+		actions = self.qvalues[state]
+		sact = None
+		bvalues = list(map(lambda a : math.exp(eps * a[1]),actions))
+		bvalues = norm(bvalues, 1)
+		acts = list(map(lambda a : a[0],actions))
+		sampler = CategoricalRejectSampler(list(zip(acts, bvalues)))
+		sact = sampler.sample()
+		
 		incrKeyedCounter(self.totPlays, state)		
 		return sact
 
