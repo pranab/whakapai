@@ -12,7 +12,7 @@ Reinforcement Learning(RL) and Multi Arm Bandit(MAB)
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple qinisa==0.0.3
+pip3 install -i https://test.pypi.org/simple qinisa==0.0.4
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory
@@ -24,14 +24,14 @@ pip3 install -r requirements.txt
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/qinisa/0.0.3/
+https://test.pypi.org/project/qinisa/0.0.4/
 
 
 3. Blogs posts
 
 * [Workforce scheduling with ucb bandit algorithms](https://pkghosh.wordpress.com/2022/03/28/gig-economy-workforce-scheduling-with-reinforcement-learning/)
 * [Pricing Policy Evaluation and Comparison with Temporal Difference Learning](https://pkghosh.wordpress.com/2022/07/31/pricing-policy-evaluation-and-comparison-with-temporal-difference-learning/)
-
+* [Online Advertisement Placement with Contextual Bandit](https://pkghosh.wordpress.com/2023/07/27/online-advertisement-placement-with-contextual-bandit/)
 
 4. Code usage example
 
