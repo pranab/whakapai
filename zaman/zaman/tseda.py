@@ -25,6 +25,7 @@ from dateutil.parser import parse
 import pandas as pd
 import numpy as np
 from fbprophet import Prophet
+import pywt
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
@@ -490,3 +491,63 @@ class MeanStdShiftDetector(SlidingWindowProcessor):
 				self.msdiff = sdiff
 				self.si = self.pcount
 				self.means = (m1, m2)
+
+class WaveletExpl(object):
+	"""
+	time and freq domain exploration with wavelet
+	"""
+	def __init__(self,  data, wavelet, sampf, scales=None, freqs=None):
+		"""
+		initilizers
+		
+		Parameters
+			data : data
+			wavelet : wavelet function
+			sampf : sampling frequency
+			scales : scale list
+			freqs ; frequency list should be specified if no scales specified
+		"""
+		self.data = data
+		self.wavelet = wavelet
+		self.sampf = sampf
+		if scales is None:
+			freqs = np.array(freqs) / sampf
+			self.scales = pywt.frequency2scale(self.wvlet, freqs)
+		else:
+			self.scales = scales
+		
+	
+	def transform(self):
+		"""
+		wavelet transform
+		"""
+		self.tcoef, self.tfreqs = pywt.cwt(self.data, self.scales, self.wvlet, sampling_period=1.0/self.sampf)
+		
+	def atFreq(self, iscale, doPlot=True, nparts=2):
+		"""
+		contrubtion of a freq at all times
+		
+		Parameters
+			iscale : index into freq or scale list list
+			doPlot : true if to be plotted
+			nparts : num of plots
+		"""	
+		trform = self.tcoef[iscale]
+		if doPlot:
+			drawPlotParts(None, trform, "time", "value", nparts)
+		return trform
+		
+	def atTime(self, itime, doPlot=True):
+		"""
+		contrubtion of a freq at all times
+		
+		Parameters
+			iscale : index into freq or scale list list
+			doPlot : true if to be plotted
+			nparts : num of plots
+		"""	
+		trform = self.tcoef[:,itime]
+		if doPlot:
+			drawPlot(self.tfreqs, trform, "freq", "value")
+		return trform
+		

@@ -2041,10 +2041,9 @@ def drawLine(data, yscale=None):
 		yscale : y axis scale
 	"""
 	plt.plot(data)
-	if yscale:
-		step = int(yscale / 10)
-		step = int(step / 10) * 10
-		plt.yticks(range(0, yscale, step))
+	if yscale is not None:
+		ticks = np.linspace(0, yscale, 5)
+		plt.yticks(ticks=ticks)
 	plt.show()
 
 def drawLineParts(data, nparts, yscale=None):
