@@ -25,6 +25,7 @@ from dateutil.parser import parse
 import pandas as pd
 import numpy as np
 from fbprophet import Prophet
+from scipy import signal
 import pywt
 from matumizi.util import *
 from matumizi.mlutil import *
@@ -303,6 +304,22 @@ def fft(ds, srate):
 	res = createExplResult("frquency", xf, "fft", np.abs(yf))
 	return res
 	
+	
+def bhpassFilter(ds, cutoff, fs, order=5):
+	"""
+	high pass filter
+		
+	Parameters
+		ds: list containing file name and col index or list of data
+		cutoff : cut off frequency
+		fs : sampling frequency
+		order : order	
+	"""
+	data = getListData(ds)
+	b, a = __bhpass(cutoff, fs, order=order)
+	y = signal.filtfilt(b, a, data)
+	return y
+
 def getListData(ds):
 	"""
 	gets lists data from file column or returns list as is
@@ -380,6 +397,20 @@ def __shuffleData(config, bsize, dataFileConf, shDataFpath):
 	
 	# set config with shugffled data file path
 	config.setParam(dataFileConf, shDataFpath)
+
+def __bhpass(cutoff, fs, order=5):
+	"""
+	creates high pass filter
+		
+	Parameters
+		cutoff : cut off frequency
+		fs : sampling frequency
+		order : filter order	
+	"""
+	nyq = 0.5 * fs
+	ncutoff = cutoff / nyq
+	b, a = signal.butter(order, ncutoff, btype='high', analog=False)
+	return b, a
 
 def createExplResult(*values):
 	"""

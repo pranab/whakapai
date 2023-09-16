@@ -363,7 +363,7 @@ class TimeSeriesGenerator(object):
 		for rec in self.__autRegGen(arparams):
 			yield rec
 
-	def multSineGen(self, exscomp):
+	def multSineGen(self, exscomp=None):
 		"""
 		generates mutiple sine function based time series
 
@@ -373,7 +373,7 @@ class TimeSeriesGenerator(object):
 		self.config.assertParams("si.params", "output.value.nsamples")
 		siParams = self.config.getFloatListConfig("si.params")[0]	
 		ocomps = None
-		if exscomp != "none":
+		if exscomp is not None:
 			addSine = toFloatList(exscomp.split(","))
 			osiParams = siParams.copy()
 			osiParams.extend(addSine)
@@ -404,7 +404,7 @@ class TimeSeriesGenerator(object):
 				if oformat == "long":	
 					#multiple rec per time series
 					dt = self.__getDateTime(sampTm)
-					rec = ouForm.format(dt, val)
+					rec = self.ouForm.format(dt, val)
 					yield rec
 				else:
 					values.append(val)
@@ -718,8 +718,11 @@ class TimeSeriesGenerator(object):
 				if i < aend:
 					if atype == "multsine":
 						#time stamp needed for multi sine 
-						utcTm = time.strptime(rec[0], self.tsTimeFormat)
-						epochTm = timegm(utcTm)
+						if self.tsTimeFormat == "epoch":
+							epochTm = int(rec[0])
+						else:
+							utcTm = time.strptime(rec[0], self.tsTimeFormat)
+							epochTm = timegm(utcTm)
 						anVal = anGenerator.sample(i, epochTm)
 					else :
 						anVal = anGenerator.sample(i) 
@@ -876,7 +879,7 @@ class TimeSeriesGenerator(object):
 		"""
 		val = 0
 		for c in comps:
-			t = 2.0 * math.pi * (sampTm % c[1]) / c[1]
+			t = 2.0 * math.pi * sampTm / c[1]
 			val += c[0] * math.sin(c[2] + t)
 		return val
 
@@ -1018,9 +1021,11 @@ class MultSineAnomalyGenerator(AnomalyGenerator):
 		sval = 0
 		if pos >= self.beg and pos < self.end:
 			for c in self.scomps:
-				t = sampTm + c[2]
-				t = 2.0 * math.pi * (t % c[1]) / c[1]
-				sval += c[0] * math.sin(t)
+				amp = float(c[0])
+				per = float(c[1])
+				ph = float(c[2])
+				t = 2.0 * math.pi * sampTm / per + ph
+				sval += amp * math.sin(t)
 			sval += self.rsampler.sample() if self.rsampler is not None else 0
 		return sval
 

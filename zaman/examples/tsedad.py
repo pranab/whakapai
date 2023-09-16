@@ -23,24 +23,12 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
 from zaman.tseda import *
+from tsgend import getNumPlot
 
 """
 driver  for time series data exploration
 """
 
-def getNumPlot(data, args):
-	"""
-	get num of plots
-	
-	Parameters
-		data : data
-		args : command line args
-	"""
-	if args.szplots > 0:
-		nplots = int(len(data) / args.szplots)
-	else:
-		nplots = args.nplots
-	return nplots
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -51,10 +39,21 @@ if __name__ == "__main__":
 	parser.add_argument('--period', type=int, default = 0, help = "seasonal period")
 	parser.add_argument('--nplots', type=int, default = -1, help = "num of plots")
 	parser.add_argument('--szplots', type=int, default = -1, help = "sizeplots")
+	parser.add_argument('--pbeg', type=int, default = -1, help = "plot begin offset")
+	parser.add_argument('--pend', type=int, default = -1, help = "plot end offset")
+	parser.add_argument('--yscale', type=int, default = -1, help = "plot yscsale")
 	parser.add_argument('--wlen', type=int, default = -1, help = "window length")
 	parser.add_argument('--pstep', type=int, default = -1, help = "window processing step size")
+	parser.add_argument('--wvlet', type=str, default = "morl", help = "wavelet function")
+	parser.add_argument('--wscales', type=str, default = "none", help = "wavelet transform scales")
+	parser.add_argument('--wfreqs', type=str, default = "none", help = "wavelet transform frequencies")
+	parser.add_argument('--sampf', type=float, default = 100, help = "samplig freq")
+	parser.add_argument('--cutoff', type=float, default = -1, help = "cut off frequency")
+	parser.add_argument('--forder', type=float, default = 5, help = "filter order")
 	args = parser.parse_args()
 	op = args.op
+
+	yscale = args.yscale if args.yscale > 0 else None
 	
 	if op == "fft":
 		""" fft """
@@ -65,8 +64,8 @@ if __name__ == "__main__":
 		""" get trend, cycle and remainder """
 		res = components([args.dfpath, args.dfcol], "additive", args.period, False, True)	
 		seas = res["seasonal"]	
-		nplots = getNumPlot(seas, args)
-		drawPlotParts(None, seas, "time", "value", nplots)
+		pdata, nplots = getNumPlot(seas, args)
+		drawPlotParts(None, pdata, "time", "value", nplots)
 	
 	elif op == "tsstat":
 		""" two sample statistic  """
@@ -83,9 +82,47 @@ if __name__ == "__main__":
 		print(res)
 		
 		diffs = detector.getDiffList()
-		nplots = getNumPlot(diffs[0], args)
-		drawPlotParts(None, diffs[0], "time", "mean diff", nplots)
+		pdata, nplots = getNumPlot(diffs[0], args)
+		drawPlotParts(None, pdata, "time", "mean diff", nplots)
+
+	elif op == "hpfilt":
+		""" high pass filter """
+		ts = getListData([args.dfpath, 0])
+		data = getListData([args.dfpath, args.dfcol])
+		fdata = bhpassFilter(data, args.cutoff, args.srate, args.forder)		
+		
+		pdata, nplots = getNumPlot(fdata, args)
+		if nplots > 0:
+			drawLineParts(pdata, nplots, yscale)
 	
+	elif op == "wlet":
+		""" wavelet transform  """
+		data = getListData([args.dfpath, args.dfcol])
+		wtrans = None
+		if args.wscales != "none":
+			scales = strToFloatArray(args.wscales)
+			wtrans = WaveletExpl(data, args.wvlet, args.sampf, scales=scales)
+		elif args.wfreqs != "none":
+			freqs = strToFloatArray(args.wfreqs)
+			wtrans = WaveletExpl(data, args.wvlet, args.sampf, freqs=freqs)
+		else:
+			exitWithmsg("eithre scales or frequencies should be provided")
+			
+		wtrans.transform()
+		while true:
+			cmd = input()
+			cmds = cmd.split()
+			if cmds[0] == "freq":
+				iscale = int(cmds[1])
+				doPlot = cmds[2] == "true"
+				nparts = int(cmds[3])
+				wtrans.atFreq(iscale, doPlot, nparts)
+			elif cmds[0] == "time":
+				itime = int(cmds[1])
+				doPlot = cmds[2] == "true"
+				wtrans.atTime(itime, doPlot)
+			elif cmds[0] == "quit":
+				break
 	else:
 		exitWithMsg("invalid command")	
 			

@@ -36,11 +36,13 @@ def getNumPlot(data, args):
 		data : data
 		args : command line args
 	"""
+	pdata = data[args.pbeg:args.pend] if args.pbeg >= 0 and args.pend > 0 else data
 	if args.szplots > 0:
-		nplots = int(len(data) / args.szplots)
+		nplots = int(len(pdata) / args.szplots)
+		#print("num plots", nplots)
 	else:
 		nplots = args.nplots
-	return nplots
+	return pdata, nplots
 	
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -49,9 +51,12 @@ if __name__ == "__main__":
 	parser.add_argument('--ovcfpath', type=str, default = "none", help = "overriding config file path")
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
 	parser.add_argument('--prec', type=int, default = 3, help = "floating point precision")
-	parser.add_argument('--nplots', type=int, default = 3, help = "num of plots")
+	parser.add_argument('--nplots', type=int, default = -1, help = "num of plots")
 	parser.add_argument('--yscale', type=int, default = -1, help = "plot yscsale")
-	parser.add_argument('--szplots', type=int, default = -1, help = "sizeplots")
+	parser.add_argument('--szplots', type=int, default = -1, help = "size of plots")
+	parser.add_argument('--pbeg', type=int, default = -1, help = "plot begin offset")
+	parser.add_argument('--pend', type=int, default = -1, help = "plot end offset")
+	parser.add_argument('--exscomp', type=str, default = "none", help = "additional sine components")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -65,7 +70,8 @@ if __name__ == "__main__":
 		for rec in generator.trendCycleNoiseGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, yscale)
+		if args.nplots > 0:
+			drawLineParts(da, args.nplots, yscale)
 	
 	if op == "triang":
 		""" triangular cyclic  based generation """
@@ -73,7 +79,8 @@ if __name__ == "__main__":
 		for rec in generator.triangGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, yscale)
+		if args.nplots > 0:
+			drawLineParts(da, args.nplots, yscale)
 
 	if op == "step":
 		""" step based generation """
@@ -81,7 +88,8 @@ if __name__ == "__main__":
 		for rec in generator.stepGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, yscale)
+		if args.nplots > 0:
+			drawLineParts(da, args.nplots, yscale)
 
 	if op == "motif":
 		""" motif based generation """
@@ -89,7 +97,20 @@ if __name__ == "__main__":
 		for rec in generator.motifGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, yscale)
+		if args.nplots > 0:
+			drawLineParts(da, args.nplots, yscale)
+
+	if op == "sine":
+		"""multiple sine function based generation """
+		da = list()
+		exscomp = args.exscomp if args.exscomp != "none" else None
+		#print(exscomp)
+		for rec in generator.multSineGen(exscomp):
+			print(rec)
+			da.append(float(rec.split(",")[1]))
+		pdata, nplots = getNumPlot(da, args)
+		if nplots > 0:
+			drawLineParts(pdata, nplots, yscale)
 
 	elif op == "insan":
 		""" insert sequence anomaly """
@@ -97,7 +118,9 @@ if __name__ == "__main__":
 		for rec in generator.insertAnomalySeqGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, yscale)
+		pdata, nplots = getNumPlot(da, args)
+		if nplots > 0:
+			drawLineParts(pdata, nplots, yscale)
 	
 	elif op == "insanp":
 		""" insert point anomaly """
@@ -105,4 +128,14 @@ if __name__ == "__main__":
 		for rec in generator.insertAnomalyPointGen(args.dfpath, args.prec):			
 			print(rec)
 			da.append(float(rec.split(",")[1]))
-		drawLineParts(da, args.nplots, yscale)
+		pdata, nplots = getNumPlot(da, args)
+		if nplots > 0:
+			drawLineParts(pdata, args.nplots, yscale)
+			
+	elif op == "plot":
+		ts = getFileColumnAsInt(args.dfpath, 0)
+		da = getFileColumnAsFloat(args.dfpath, 1)
+		pdata, nplots = getNumPlot(da, args)
+		if nplots > 0:
+			drawLineParts(pdata, nplots, yscale)
+	
