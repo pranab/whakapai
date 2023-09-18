@@ -541,20 +541,31 @@ class WaveletExpl(object):
 		self.data = data
 		self.wavelet = wavelet
 		self.sampf = sampf
+		self.pfreqs = None
 		if scales is None:
-			freqs = np.array(freqs) / sampf
-			self.scales = pywt.frequency2scale(self.wvlet, freqs)
+			assertNotNone(freqs, "either scales or frequencies should be provided")
+			self.pfreqs = np.array(freqs) / sampf
+			self.scales = pywt.frequency2scale(self.wavelet, self.pfreqs)
 		else:
 			self.scales = scales
 		
 	
-	def transform(self):
+	def transform(self, wavelet=None):
 		"""
 		wavelet transform
-		"""
-		self.tcoef, self.tfreqs = pywt.cwt(self.data, self.scales, self.wvlet, sampling_period=1.0/self.sampf)
 		
-	def atFreq(self, iscale, doPlot=True, nparts=2):
+		Parameters
+			wavelet : wavelet function
+		"""
+		if wavelet is not None:
+			self.wavelet = wavelet
+			if self.pfreqs is not None:
+				self.scales = pywt.frequency2scale(self.wavelet, self.pfreqs)
+				
+		self.tcoef, self.tfreqs = pywt.cwt(self.data, self.scales, self.wavelet, sampling_period=1.0/self.sampf)
+	
+		
+	def atFreq(self, iscale, doPlot=False, nparts=2):
 		"""
 		contrubtion of a freq at all times
 		
@@ -568,17 +579,34 @@ class WaveletExpl(object):
 			drawPlotParts(None, trform, "time", "value", nparts)
 		return trform
 		
-	def atTime(self, itime, doPlot=True):
+	def atTime(self, itime, doPlot=False):
 		"""
 		contrubtion of a freq at all times
 		
 		Parameters
 			iscale : index into freq or scale list list
 			doPlot : true if to be plotted
-			nparts : num of plots
 		"""	
 		trform = self.tcoef[:,itime]
 		if doPlot:
 			drawPlot(self.tfreqs, trform, "freq", "value")
 		return trform
+	
+	def atSection(self, tbeg, tend):
+		"""
+		contrubtion of all freq at time segment
+		
+		Parameters
+			tbeg : begin time
+			tend : end time
+		"""	
+		tm = np.array(list(range(tbeg,tend,1)))
+		fr = self.tfreqs
+		#print("coeff shape" , str(self.tcoef.shape))
+		va =  self.tcoef[:,tbeg:tend]
+		#print("fr shape", str(fr.shape))
+		#print("tm shape", str(tm.shape))
+		#print("va shape", str(va.shape))
+		return fr,tm,va
+	
 		

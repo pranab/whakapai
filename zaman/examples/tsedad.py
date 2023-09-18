@@ -19,6 +19,11 @@
 import os
 import sys
 import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
+from mpl_toolkits import mplot3d
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
@@ -28,8 +33,29 @@ from tsgend import getNumPlot
 """
 driver  for time series data exploration
 """
-
-
+def plot3D(fr,tm,va):
+	ax = plt.figure().add_subplot(projection='3d')
+	ax.plot3D(fr, tm, va, cmap=cm.coolwarm)
+	ax.set_xlabel('frequency')
+	ax.set_ylabel('time')
+	ax.set_zlabel('value')
+	plt.show()
+	
+def surface3D(fr,tm,va):
+	fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+	tm,fr = np.meshgrid(tm,fr)
+	#print("meshgrid fr shape", str(fr.shape))
+	#print("meshgrid tm shape", str(tm.shape))
+	surf = ax.plot_surface(fr, tm, va, cmap=cm.coolwarm,linewidth=0, antialiased=False)
+	ax.zaxis.set_major_locator(LinearLocator(10))
+	ax.zaxis.set_major_formatter('{x:.03f}')
+	fig.colorbar(surf, shrink=0.5, aspect=5)
+	ax.set_xlabel('frequency')
+	ax.set_ylabel('time')
+	ax.set_zlabel('value')
+	plt.show()
+	
+	
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
@@ -47,7 +73,6 @@ if __name__ == "__main__":
 	parser.add_argument('--wvlet', type=str, default = "morl", help = "wavelet function")
 	parser.add_argument('--wscales', type=str, default = "none", help = "wavelet transform scales")
 	parser.add_argument('--wfreqs', type=str, default = "none", help = "wavelet transform frequencies")
-	parser.add_argument('--sampf', type=float, default = 100, help = "samplig freq")
 	parser.add_argument('--cutoff', type=float, default = -1, help = "cut off frequency")
 	parser.add_argument('--forder', type=float, default = 5, help = "filter order")
 	args = parser.parse_args()
@@ -101,28 +126,49 @@ if __name__ == "__main__":
 		wtrans = None
 		if args.wscales != "none":
 			scales = strToFloatArray(args.wscales)
-			wtrans = WaveletExpl(data, args.wvlet, args.sampf, scales=scales)
+			wtrans = WaveletExpl(data, args.wvlet, args.srate, scales=scales)
 		elif args.wfreqs != "none":
 			freqs = strToFloatArray(args.wfreqs)
-			wtrans = WaveletExpl(data, args.wvlet, args.sampf, freqs=freqs)
+			wtrans = WaveletExpl(data, args.wvlet, args.srate, freqs=freqs)
 		else:
 			exitWithmsg("eithre scales or frequencies should be provided")
 			
 		wtrans.transform()
-		while true:
+		print("entering command loop")
+		while  True:
+			print("command:")
 			cmd = input()
 			cmds = cmd.split()
 			if cmds[0] == "freq":
 				iscale = int(cmds[1])
 				doPlot = cmds[2] == "true"
 				nparts = int(cmds[3])
-				wtrans.atFreq(iscale, doPlot, nparts)
+				wdata = wtrans.atFreq(iscale, doPlot, nparts)
+				pdata, nplots = getNumPlot(wdata, args)
+				if nplots > 0:
+					drawLineParts(pdata, nplots, yscale)
+				
 			elif cmds[0] == "time":
 				itime = int(cmds[1])
 				doPlot = cmds[2] == "true"
-				wtrans.atTime(itime, doPlot)
+				wdata = wtrans.atTime(itime, doPlot)
+			
+			elif cmds[0] == "all":
+				tbeg =  int(cmds[1])
+				tend =  int(cmds[2])
+				fr,tm,va = wtrans.atSection(tbeg, tend)
+				surfacePlot(fr,tm,va,'frequency', 'time', 'value')
+			
+			elif cmds[0] == "wlfun":
+				wavelet = cmds[1]
+				#print(wavelet)
+				wtrans.transform(wavelet)
+				
 			elif cmds[0] == "quit":
 				break
+		
+		print("exiting command loop")
+	
 	else:
 		exitWithMsg("invalid command")	
 			

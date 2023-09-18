@@ -18,12 +18,12 @@ Generate Training Data
 Set output.value.nsamples=1000 in tsgen_mach.properties
 
 Run
-python3 tsgen.py --op sine --cfpath tsgen_mach.properties  > maa_tr.txt
+python3 tsgend.py --op sine --cfpath tsgen_mach.properties  > maa_tr.txt
 
 Set output.value.nsamples=100 in  tsgen_mach.properties
 
 Run
-python3 tsgen.py --op sine --cfpath tsgen_mach.properties  > maa_va.txt
+python3 tsgedn.py --op sine --cfpath tsgen_mach.properties  > maa_va.txt
 
 
 Train Model
@@ -38,7 +38,7 @@ generate Test Data
 Set output.value.nsamples=10 in tsgen_mach.properties
 
 Run
-python3 tsgen.py --op sine --cfpath tsgen_mach.properties --exscomp 1.2,20,0.7,12  > maa_pr.txt
+python3 tsgend.py --op sine --cfpath tsgen_mach.properties --exscomp 1.2,20,0.7,12  > maa_pr.txt
 
 The argument exscomp inserts some additional sinusoidal conmponents, making the 10th record anamolous
 

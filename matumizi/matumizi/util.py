@@ -25,6 +25,9 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
+from mpl_toolkits import mplot3d
 import numpy as np
 import logging
 import logging.handlers
@@ -2136,6 +2139,29 @@ def drawHist(ldata, myTitle, myXlabel, myYlabel, nbins=10):
 	plt.ylabel(myYlabel)
 	plt.show()	
 	
+def surfacePlot(x,y,z,xlabel,ylabel,zlabel):
+	"""
+	draw 3D surface plot
+
+	Parameters
+		x : x values
+		y : y values
+		z : z values
+		xlabel : x labbel
+		ylabel : y label
+		zlabel : z label
+	"""
+	fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+	y,x = np.meshgrid(y,x)
+	surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm,linewidth=0, antialiased=False)
+	ax.zaxis.set_major_locator(LinearLocator(10))
+	ax.zaxis.set_major_formatter('{x:.03f}')
+	fig.colorbar(surf, shrink=0.5, aspect=5)
+	ax.set_xlabel(xlabel)
+	ax.set_ylabel(ylabel)
+	ax.set_zlabel(zlabel)
+	plt.show()
+
 def saveObject(obj, filePath):
 	"""
 	saves an object
@@ -2216,6 +2242,16 @@ def isCategorical(data):
 	"""
 	re = next((d for d in data if not (type(d) == int or type(d) == str)), None)
 	return (re is None)
+
+def assertNotNone(value, msg):
+	"""
+	assert not None
+
+	Parameters
+		value : value
+		msg : error msg
+	"""
+	assert value is not None , msg
 
 def assertEqual(value, veq, msg):
 	"""
