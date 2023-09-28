@@ -27,7 +27,7 @@ from mpl_toolkits import mplot3d
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from zaman.tseda import *
+from tseda import *
 from tsgend import getNumPlot
 
 """
@@ -44,8 +44,6 @@ def plot3D(fr,tm,va):
 def surface3D(fr,tm,va):
 	fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 	tm,fr = np.meshgrid(tm,fr)
-	#print("meshgrid fr shape", str(fr.shape))
-	#print("meshgrid tm shape", str(tm.shape))
 	surf = ax.plot_surface(fr, tm, va, cmap=cm.coolwarm,linewidth=0, antialiased=False)
 	ax.zaxis.set_major_locator(LinearLocator(10))
 	ax.zaxis.set_major_formatter('{x:.03f}')
@@ -55,7 +53,8 @@ def surface3D(fr,tm,va):
 	ax.set_zlabel('value')
 	plt.show()
 	
-	
+
+		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
@@ -122,7 +121,9 @@ if __name__ == "__main__":
 	
 	elif op == "wlet":
 		""" wavelet transform  """
+		ts = getFileColumnAsInt(args.dfpath, 0)
 		data = getListData([args.dfpath, args.dfcol])
+		#print("data", len(data))
 		wtrans = None
 		if args.wscales != "none":
 			scales = strToFloatArray(args.wscales)
@@ -140,31 +141,47 @@ if __name__ == "__main__":
 			cmd = input()
 			cmds = cmd.split()
 			if cmds[0] == "freq":
+				#time domain for given frequency usage: freq frequecy_index false nparts xlabel ylabel
 				iscale = int(cmds[1])
 				doPlot = cmds[2] == "true"
 				nparts = int(cmds[3])
 				wdata = wtrans.atFreq(iscale, doPlot, nparts)
-				pdata, nplots = getNumPlot(wdata, args)
-				if nplots > 0:
-					drawLineParts(pdata, nplots, yscale)
+				
+				if not doPlot:
+					xlabel = None
+					if len(cmds) > 4:
+						xlabel = cmds[4]
+						ylabel = cmds[5]
+					pdata, nplots = getNumPlot(wdata, args)
+					#print("wdata", len(wdata))
+					if nplots > 0:
+						if xlabel is None:
+							drawLineParts(pdata, nplots, yscale)
+						else:
+							pts = ts[args.pbeg:args.pend] if args.pbeg >= 0 and args.pend > 0 else ts
+							drawPlotParts(pts, pdata, xlabel, ylabel, nplots)
+						
 				
 			elif cmds[0] == "time":
+				#frequency domain for given time usage: time time_index true
 				itime = int(cmds[1])
 				doPlot = cmds[2] == "true"
 				wdata = wtrans.atTime(itime, doPlot)
 			
 			elif cmds[0] == "all":
+				#frequency and time domain
 				tbeg =  int(cmds[1])
 				tend =  int(cmds[2])
 				fr,tm,va = wtrans.atSection(tbeg, tend)
 				surfacePlot(fr,tm,va,'frequency', 'time', 'value')
 			
 			elif cmds[0] == "wlfun":
+				#transform for a wavelet function
 				wavelet = cmds[1]
-				#print(wavelet)
 				wtrans.transform(wavelet)
 				
 			elif cmds[0] == "quit":
+				#quit
 				break
 		
 		print("exiting command loop")

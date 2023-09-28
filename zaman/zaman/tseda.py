@@ -589,7 +589,7 @@ class WaveletExpl(object):
 		"""	
 		trform = self.tcoef[:,itime]
 		if doPlot:
-			drawPlot(self.tfreqs, trform, "freq", "value")
+			drawPlot(self.tfreqs, trform, "frequency", "value")
 		return trform
 	
 	def atSection(self, tbeg, tend):
@@ -608,5 +608,19 @@ class WaveletExpl(object):
 		#print("tm shape", str(tm.shape))
 		#print("va shape", str(va.shape))
 		return fr,tm,va
+	
+	def waveletFun(self, familly=None):
+		"""
+		return wavelet familiy names or function names
+		
+		Parameters
+			familly : wavelet family
+		"""	
+		#familiy list if family is None otherwise  wavelet functions for a family
+		return pywt.families() if family is None else pywt.wavelist(family)
+		
+		
+			
+		
 	
 		

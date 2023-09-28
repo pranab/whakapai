@@ -22,7 +22,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from zaman.tsgen import *
+from tsgen import *
 
 """
 driver  for time series data generation
@@ -57,6 +57,8 @@ if __name__ == "__main__":
 	parser.add_argument('--pbeg', type=int, default = -1, help = "plot begin offset")
 	parser.add_argument('--pend', type=int, default = -1, help = "plot end offset")
 	parser.add_argument('--exscomp', type=str, default = "none", help = "additional sine components")
+	parser.add_argument('--xlabel', type=str, default = "none", help = "plot x label")
+	parser.add_argument('--ylabel', type=str, default = "none", help = "plot y label")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -137,5 +139,9 @@ if __name__ == "__main__":
 		da = getFileColumnAsFloat(args.dfpath, 1)
 		pdata, nplots = getNumPlot(da, args)
 		if nplots > 0:
-			drawLineParts(pdata, nplots, yscale)
+			if args.xlabel == "none":
+				drawLineParts(pdata, nplots, yscale)
+			else:
+				pts = ts[args.pbeg:args.pend] if args.pbeg >= 0 and args.pend > 0 else ts
+				drawPlotParts(pts, pdata, args.xlabel, args.ylabel, nplots)
 	

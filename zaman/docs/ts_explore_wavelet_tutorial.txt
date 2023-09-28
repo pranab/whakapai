@@ -1,0 +1,113 @@
+This tutorial is  for time series exploration in frequency and time domain with wavelet transform. 
+Macinary vobration  data is used as an example.
+
+
+Setup
+=====
+Install the package zaman
+pip3 install -i https://test.pypi.org/simple/ zaman==0.0.6
+
+For local build and istallation run this from the repo root directory whakapi
+./lbi.sh zaman
+
+Install dependencies, by running this from the package root directory
+pip3 install -r requirements.txt
+
+
+Data generattion
+================
+python3 ./tsgend.py --op sine --cfpath tsgen_gear.properties --pbeg 0 --pend 100 --szplots 40 > gearn.csv
+
+where 
+
+op 		operation to perform
+cfpath	config file path
+pbeg	begin index in data for plot
+pend	end index in data for plot
+szplots	size of each plot
+
+If you don't want plots, skip pbeg, pend and szplots. Edit config file tsgen_gear.properties according to your needs
+
+
+Insert anomaly
+==============
+python3 ./tsgend.py --op insan --cfpath tsgen_gear.properties --dfpath gearn.csv --pbeg 980 --pend 1110 --szplots  50 > geara.csv
+
+where 
+dfpath 	data file path
+
+Wavelet transform
+=================
+python3 ./tsedad.py --op wlet  --dfpath geara.csv --dfcol 1 --wvlet mexh  --srate 500 --wfreqs 10,20,30,40,50 --pbeg 960 
+--pend 1150 --szplots  50 --yscale 1
+
+
+where
+dfcol	col index for time series values
+wvlet	wavelet function
+srate 	sampling rate in Hz
+wfreqs	list of frequencies for wavelet transform
+yscale 	y scale for plots
+
+With this a command loop srarts for visualization of wavelet transform results. The commands are
+
+1)Time domann at given frequency
+
+freq freq_ind false nparts xlabel ylabel
+
+where 
+freq_ind	index of frequency in the list e.g 1 for 20
+nparts 		num of plots
+xlabel 		x axis label
+ylabel 		x axis label
+
+The API can do plots also. To use that feature make the 3rd argument "true"
+
+2)Frequency domain at given time
+
+time tm_ind true
+
+where
+tm_ind		index into time series e.g 99 for the 100th sample
+true		for plotting
+
+3)Time and frequency domain
+
+all tbeg tend
+
+where
+tbeg		begin time index
+tend		end time index
+
+It will do a 3D surface plot within the time range and all frequencies specified
+
+4)Quit command loop
+
+quit
+
+Wavelet functions
+=================
+
+These are the different wavelet families
+
+'haar', 'db', 'sym', 'coif', 'bior', 'rbio', 'dmey', 'gaus', 'mexh', 'morl', 'cgau', 'shan', 'fbsp', 'cmor'
+
+These are the different wavelet functions
+
+'bior1.1', 'bior1.3', 'bior1.5', 'bior2.2', 'bior2.4', 'bior2.6', 'bior2.8', 'bior3.1', 'bior3.3', 'bior3.5', 
+'bior3.7', 'bior3.9', 'bior4.4', 'bior5.5', 'bior6.8', 'cgau1', 'cgau2', 'cgau3', 'cgau4', 'cgau5', 'cgau6', 
+'cgau7', 'cgau8', 'cmor', 'coif1', 'coif2', 'coif3', 'coif4', 'coif5', 'coif6', 'coif7', 'coif8', 'coif9', 
+'coif10', 'coif11', 'coif12', 'coif13', 'coif14', 'coif15', 'coif16', 'coif17', 'db1', 'db2', 'db3', 'db4', 
+'db5', 'db6', 'db7', 'db8', 'db9', 'db10', 'db11', 'db12', 'db13', 'db14', 'db15', 'db16', 'db17', 'db18', 
+'db19', 'db20', 'db21', 'db22', 'db23', 'db24', 'db25', 'db26', 'db27', 'db28', 'db29', 'db30', 'db31', 
+'db32', 'db33', 'db34', 'db35', 'db36', 'db37', 'db38', 'dmey', 'fbsp', 'gaus1', 'gaus2', 'gaus3', 'gaus4', 
+'gaus5', 'gaus6', 'gaus7', 'gaus8', 'haar', 'mexh', 'morl', 'rbio1.1', 'rbio1.3', 'rbio1.5', 'rbio2.2', 
+'rbio2.4', 'rbio2.6', 'rbio2.8', 'rbio3.1', 'rbio3.3', 'rbio3.5', 'rbio3.7', 'rbio3.9', 'rbio4.4', 'rbio5.5', 
+'rbio6.8', 'shan', 'sym2', 'sym3', 'sym4', 'sym5', 'sym6', 'sym7', 'sym8', 'sym9', 'sym10', 'sym11', 'sym12', 
+'sym13', 'sym14', 'sym15', 'sym16', 'sym17', 'sym18', 'sym19', 'sym20'
+
+
+
+
+
+
