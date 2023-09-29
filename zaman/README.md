@@ -3,7 +3,7 @@
 Everyting time series, EDA, forecasting, classificatio and anomaly detection
 * proph : forecasting with fbprophet
 * nuproph : forecasting with  neuralprophet  (coming)
-* tsutil : varioous utilities for time series, EDA etc
+* tseda : varioous utilities and data exploration for time series
 * tsgen : time series generator
 * tsano : time series anomaly detection
 
@@ -12,7 +12,7 @@ Everyting time series, EDA, forecasting, classificatio and anomaly detection
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple zaman==0.0.5
+pip3 install -i https://test.pypi.org/simple zaman==0.0.6
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory
