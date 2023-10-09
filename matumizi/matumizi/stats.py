@@ -20,6 +20,7 @@ import random
 import time
 import math
 import numpy as np
+from scipy import stats
 import statistics 
 from .util import *
 
@@ -465,8 +466,56 @@ class SlidingWindowStat:
 		"""
 		s = (self.count, self.sum, self.sumSq)
 		return s
-		
 
+class SlidingWindowAverage:
+	"""
+	sliding window stats
+	"""
+	def __init__(self, wsize):
+		"""
+		initializer
+		
+		Parameters
+			wsize : window size
+		"""
+		self.mean = None
+		self.wsize = wsize
+		self.values = list()
+		self.beg = None
+		
+	def add(self, value):
+		"""
+		adds new value
+		
+		Parameters
+			value : value to add
+		"""
+		self.values.append(value)		
+		if len(self.values) == self.wsize:
+			self.mean = sum(self.values) / self.wsize
+			hsize = int(self.wsize / 2) + 1
+			self.beg = self.values[:hsize].copy()
+		elif len(self.values) > self.wsize:
+			self.mean += (self.values[-1] - self.values[0]) / self.wsize
+			self.values.pop(0)
+		return self.mean
+
+	def getEnds(self):
+		"""
+		gets 2 half windows at ends with linear regression
+		"""
+		xd = list(range(len(self.beg)))
+		slope, intercept, rvalue, pvalue, stderr = stats.linregress(xd, self.beg)	
+		rsize = int(self.wsize / 2)
+		bvalues = list(map(lambda x : x * slope + intercept, list(range(rsize))))
+		
+		hsize = int(self.wsize / 2)
+		end = self.values[hsize:].copy()
+		slope, intercept, rvalue, pvalue, stderr = stats.linregress(xd, end)
+		evalues = list(map(lambda x : x * slope + intercept, list(range(1,rsize+1,1))))
+		
+		return bvalues, evalues
+		
 def basicStat(ldata):
 	"""
 	mean and std dev

@@ -29,6 +29,7 @@ https://test.pypi.org/project/zaman/0.0.3/
 3. Blogs posts
 * [Synthetic Time Series Data Generation](https://pkghosh.wordpress.com/2023/03/29/synthetic-time-series-data-generation/)
 * [Time Series Sequence Anomaly Detection with Markov Chain](https://pkghosh.wordpress.com/2023/06/28/time-series-sequence-anomaly-detection-with-markov-chain/)
+* [Time Series Data Exploration with Wavelet Transform](https://pkghosh.wordpress.com/2023/09/29/time-series-data-exploration-with-wavelet-transform/)
 
 
 4. Code usage example
