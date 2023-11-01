@@ -3045,6 +3045,89 @@ class DataExplorer:
 		
 		result = self.__printResult("selFeatures", sfds[:nfeatures])
 		return result
+
+
+	def getRegrMaxRelMinRedFeatures(self, fds, tds, nfeatures):
+		"""
+		get top n features based on max relevance and min redudancy	algorithm
+		
+		Parameters
+			fds: list of  data set name or list or numpy array 
+			tds: target data set name or list or numpy array 
+			nfeatures : desired no of features
+		"""	
+		self.__printBanner("doing max relevance min redundancy feature selection for regression")
+		return self.getRegrPearCorrFeatures(fds, tds, nfeatures, "mrmr")	
+	
+	def getRegrPearCorrFeatures(self, fds, tds, nfeatures, algo):
+		"""
+		get top n features based on variou pearson correlation based algorithm for regression
+		ref: Conditional likelihood maximisation : A unifying framework for information 
+		theoretic feature selection, Gavin Brown (adopted for regression)
+		
+		Parameters
+			fds: list of  data set name or list or numpy array 
+			tds: target data set name or list or numpy array 
+			nfeatures : desired no of features
+			algo: mi based feature selection algorithm
+		"""	
+		#verify num of features
+		nfeatGiven = len(fds)
+		assertGreater(nfeatGiven, nfeatures, "no of features should be greater than no of features to be selected")
+		algos = ["mrmr", "jmi", "cmim", "icap"]
+		assertInList(algo, algos, "invalid feature selection algo " + algo)
+		#print(fds)
+		
+		sfds = list()
+		selected = set()
+		relevancies = dict()
+		for i in range(nfeatures):
+			#print(i)
+			scorem = None
+			dsm = None
+			dsmt = None
+			for ds in fds:
+				#print(ds, dt)
+				if ds not in selected:
+					#relevancy
+					if ds in relevancies:
+						pcoff = relevancies[ds]
+					else:
+						pcoff = self.getPearsonCorr(ds, tds)["stat"]
+						relevancies[ds] = pcoff
+					relev = pcoff
+					#print("relev", relev)
+					
+					#redundancy
+					reds = list()
+					for sds, _ in sfds:
+						#print(sds, sdt)
+						pcoff = self.getPearsonCorr(ds, sds)["stat"]
+						red = pcoff
+						reds.append(red)	
+						
+					if algo == "mrmr" or algo == "jmi":
+						redun = sum(reds) / len(sfds) if len(sfds) > 0 else 0
+					elif algo == "cmim" or algo == "icap":
+						redun = max(reds) if len(sfds) > 0 else 0
+						if algo == "icap":
+							redun = max(0, redun)
+					#print("redun", redun)
+					
+					#feature score
+					score = relev - redun
+					if scorem is None or score > scorem:
+						scorem = score
+						dsm = ds
+						
+			pa = (dsm, scorem)
+			#print(pa)
+			sfds.append(pa)
+			selected.add(dsm)
+			
+		selFeatures = list(map(lambda r : (r[0], r[1]), sfds))
+		result = self.__printResult("selFeatures", selFeatures)
+		return result
 				
 	def __stackData(self, *dsl):
 		"""

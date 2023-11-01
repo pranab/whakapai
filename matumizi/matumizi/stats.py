@@ -482,6 +482,23 @@ class SlidingWindowAverage:
 		self.wsize = wsize
 		self.values = list()
 		self.beg = None
+	
+	def extendEnds(self, data):
+		"""
+		extends at 2 ends by hal;f window
+		
+		Parameters
+			data : data array
+		"""
+		hsize = int(self.wsize/2)
+		bav = statistics.mean(data[:hsize])
+		beg = [bav] * hsize
+		eav = statistics.mean(data[-hsize:])
+		end = [eav] * hsize
+		edata = beg
+		edata.extend(data.copy())
+		edata.extend(end)
+		return edata
 		
 	def add(self, value):
 		"""
