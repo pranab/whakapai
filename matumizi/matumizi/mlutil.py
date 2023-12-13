@@ -578,16 +578,23 @@ class RegressionDataGenerator:
 		niter = self.config.getIntConfig("common.weight.niter")[0]
 		yvals = list()
 		for i in range(niter):
-			y = self.sample()[1]
+			y = self.sample(False)[1]
 			yvals.append(y)
 		
 		#scale weights by sampled mean and target mean
 		my = statistics.mean(yvals)	
 		myt =(self.tvarlim[1] - self.tvarlim[0]) / 2
-		sc = (myt - self.bias) / (my - self.bias)
-		#print("weight scale {:.3f}".format(sc))
+		print("my {:.6f}   myt {:.6f}".format(my, myt))
+		if myt > self.bias and my > self.bias:
+			sc = (myt - self.bias) / (my - self.bias)
+		elif myt < self.bias and my < self.bias:
+			sc = (self.bias - myt) / (self.bias - my)
+		else:
+			exitWithMsg("failed to scale weights")
+			
+		print("weight scale {:.3f}".format(sc))
 		self.lweights = list(map(lambda w : w * sc, self.lweights))
-		#print("weights {}".format(toStrFromList(self.lweights, 3)))
+		print("weights {}".format(toStrFromList(self.lweights, 3)))
 		
 		for k in self.sqweight.keys():
 			self.sqweight[k] *= sc
@@ -596,10 +603,12 @@ class RegressionDataGenerator:
 			self.crweight[k] *= sc
 			
 			
-	def sample(self):
+	def sample(self, addnoise=True):
 		"""
 		sample predictor variables and target variable
 		
+		Parameters
+			addnoise : if True add noise to target
 		"""
 		pvd = list(map(lambda s : s.sample(), self.samplers))
 		
@@ -621,8 +630,11 @@ class RegressionDataGenerator:
 		lsum = self.bias
 		for i in range(self.npvar):
 			#range limit
+			t = pvd[i]
 			if  self.pvranges[i] is not None:
 				pvd[i] = rangeLimit(pvd[i], self.pvranges[i][0], self.pvranges[i][1])
+			if type(t) == int:
+				pvd[i] = round(pvd[i])
 			spvd.append(pvd[i])
 			
 			#scale
@@ -642,7 +654,8 @@ class RegressionDataGenerator:
 			crsum += self.crweight[k] * pvd[vi] * pvd[vj]
 			
 		y = lsum + ssum + crsum
-		y = preturbScalar(y, self.noise, self.ndistr)
+		if addnoise:
+			y = preturbScalar(y, self.noise, self.ndistr)
 		if self.callback is not None:
 			ufy = self.callback(spvd)
 			y += ufy

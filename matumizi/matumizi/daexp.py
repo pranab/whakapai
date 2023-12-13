@@ -1305,19 +1305,24 @@ class DataExplorer:
 			drawLine(diff)
 		return diff
 
-	def getTrend(self, ds, doPlot=False):
+	def getTrend(self, ds, sqTerm=False, doPlot=False):
 		"""
 		get trend
 		
 		Parameters
 			ds: data set name or list or numpy array
+			sqTerm : if True include square term in input
 			doPlot: true if plotting needed
 		"""
 		self.__printBanner("getting trend")
 		data = self.getNumericData(ds)
 		sz = len(data)
-		X = list(range(0, sz))
-		X = np.reshape(X, (sz, 1))
+		x1 = list(range(0, sz))
+		if sqTerm:
+			x2 = list(map(lambda x : x * x, x1))
+			X = np.column_stack((x1,x2))
+		else:	
+			X = np.array(x1)
 		model = LinearRegression()
 		model.fit(X, data)
 		trend = model.predict(X)
@@ -3066,10 +3071,10 @@ class DataExplorer:
 		theoretic feature selection, Gavin Brown (adopted for regression)
 		
 		Parameters
-			fds: list of  data set name or list or numpy array 
-			tds: target data set name or list or numpy array 
+			fds: feature list of  data set name or list or numpy array 
+			tds: target list of data set name or list or numpy array 
 			nfeatures : desired no of features
-			algo: mi based feature selection algorithm
+			algo: correlation based feature selection algorithm
 		"""	
 		#verify num of features
 		nfeatGiven = len(fds)
@@ -3091,27 +3096,16 @@ class DataExplorer:
 				if ds not in selected:
 					#relevancy
 					if ds in relevancies:
-						pcoff = relevancies[ds]
+						acorr = relevancies[ds]
 					else:
-						pcoff = self.getPearsonCorr(ds, tds)["stat"]
-						relevancies[ds] = pcoff
-					relev = pcoff
+						acorr = self.__aggrCorr(ds, tds, algo)
+						relevancies[ds] = acorr
+					relev = acorr
 					#print("relev", relev)
 					
 					#redundancy
-					reds = list()
-					for sds, _ in sfds:
-						#print(sds, sdt)
-						pcoff = self.getPearsonCorr(ds, sds)["stat"]
-						red = pcoff
-						reds.append(red)	
-						
-					if algo == "mrmr" or algo == "jmi":
-						redun = sum(reds) / len(sfds) if len(sfds) > 0 else 0
-					elif algo == "cmim" or algo == "icap":
-						redun = max(reds) if len(sfds) > 0 else 0
-						if algo == "icap":
-							redun = max(0, redun)
+					sds = list(map(lambda sfd : sfd[0], sfds))	
+					redun = self.__aggrCorr(ds, sds, algo)		
 					#print("redun", redun)
 					
 					#feature score
@@ -3128,6 +3122,30 @@ class DataExplorer:
 		selFeatures = list(map(lambda r : (r[0], r[1]), sfds))
 		result = self.__printResult("selFeatures", selFeatures)
 		return result
+
+	def __aggrCorr(self, ds, ods, algo):
+		"""
+		get aggregate correlatioin
+		
+		Parameters
+			ds: data set name or list or numpy array 
+			ods: list otgher data set name or list or numpy array 
+			algo: correlation based feature selection algorithm
+		"""	
+		corrs = list()
+		for sds in ods:
+			#print(sds, sdt)
+			pcoff = self.getPearsonCorr(ds, sds)["stat"]
+			corrs.append(pcoff)	
+	
+		if algo == "mrmr" or algo == "jmi":
+			acorr = sum(corrs) / len(corrs) if len(corrs) > 0 else 0
+		elif algo == "cmim" or algo == "icap":
+			acorr = max(corrs) if len(corrs) > 0 else 0
+			if algo == "icap":
+				acorr = max(0, acorr)
+			
+		return acorr
 				
 	def __stackData(self, *dsl):
 		"""

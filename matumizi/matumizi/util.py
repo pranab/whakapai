@@ -422,15 +422,16 @@ def preturbScalarAbs(value, vrange):
 	delta = - vrange + 2.0 * vrange * random.random() 
 	return value + delta
 
-def preturbVector(values, vrange):
+def preturbVector(values, vrange, distr="uniform"):
 	"""
 	preturbs a list within range
 	
 	Parameters
 		values : list data
 		vrange : value delta  fraction
+		distr : noise distribution type
 	"""
-	nValues = list(map(lambda va: preturbScalar(va, vrange), values))
+	nValues = list(map(lambda va: preturbScalar(va, vrange, distr), values))
 	return nValues
 
 def randomShiftVector(values, smin, smax):
