@@ -26,6 +26,7 @@ import numpy as np
 import joblib
 from matumizi.util import *
 from matumizi.mlutil import *
+from matumizi.daexp import *
 
 """
 Forecasting using simple network with decomposed time series
@@ -47,7 +48,6 @@ class DecmpNetwork(object):
 		defValues["common.model.file.remain"] = (None, None)
 		defValues["common.trend.config.file"] = (None, "missing trend model config file")
 		defValues["common.rem.config.file"] = (None, "missing remain model config file")
-		defValues["decomp.maverage.window.size"] = (25, None)
 		defValues["train.data.file"] = (None, "missing training data file")
 		defValues["train.data.file.trend"] = (None, "missing training data file")
 		defValues["train.data.file.remain"] = (None, "missing training data file")
@@ -56,6 +56,7 @@ class DecmpNetwork(object):
 		defValues["train.data.ts.col"] = (0, None)
 		defValues["train.data.value.col"] = (1, None)
 		defValues["train.data.split"] = (0.8, None)
+		defValues["train.data.regr.sqterm"] = (False, None)
 		defValues["valid.data.file.trend"] = (None, "missing validation data file")
 		defValues["valid.data.file.remain"] = (None, "missing validation data file")
 		defValues["output.data.precision"] = (3, None)
@@ -71,14 +72,13 @@ class DecmpNetwork(object):
 		dfpath = self.config.getStringConfig("train.data.file")[0]
 		tcol = self.config.getIntConfig("train.data.ts.col")[0]
 		vcol = self.config.getIntConfig("train.data.value.col")[0]
-		mawsz =  self.config.getIntConfig("decomp.maverage.window.size")[0]
 		prec = self.config.getIntConfig("output.data.precision")[0]
 		trfpathTr = self.config.getStringConfig("train.data.file.trend")[0]
 		refpathTr = self.config.getStringConfig("train.data.file.remain")[0]
 		trfpathVa = self.config.getStringConfig("valid.data.file.trend")[0]
 		refpathVa = self.config.getStringConfig("valid.data.file.remain")[0]
 		
-		lbsize = self.config.getIntConfig("train.data.lookback.size")[0]
+		self.lbsize = self.config.getIntConfig("train.data.lookback.size")[0]
 		fcsize = self.config.getIntConfig("train.data.forecast.size")[0]
 		tsize = lbsize + fcsize
 		
@@ -90,13 +90,14 @@ class DecmpNetwork(object):
 		trsplit = int(trsplit * dlen)
 		vasplit = dlen - trsplit
 		
-		#trend
-		mawindow = SlidingWindowAverage(mawsz)
-		trmid = list(map(lambda d : mawindow.add(d), tdata))
-		trb, tre = mawindow.getEnds()
-		trend = trb.extend(trmid)
-		trend.extend(tre)
 		
+		#trend
+		expl = DataExplorer()	
+		expl.addListNumericData(tdata, "tdata")
+		self.sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
+		res = expl.getTrend("tdata", sqTerm=self.sqTerm)
+		trend = res["trend"]
+			
 		#trend training
 		samples = list(map(lambda i : ternd[i:i+tsize], range(len(trend)-tsize)))
 		with open(trfpathTr, "w") as ftrTr:
@@ -109,8 +110,8 @@ class DecmpNetwork(object):
 				ftrVa.write(floatArrayToString(samples[i], prec) + "\n")
 			
 		#remainder training
-		remain = np.array(tdata) - np.array(trend)	
-		remain = remain.tolist
+		remain = np.subtract(np.array(tdata) - np.array(trend))
+		remain = remain.tolist()
 		samples = list(map(lambda i : remain[i:i+tsize], range(len(remain)-tsize)))
 		with open(refpathTr, "w") as freTr:
 			for i in range(trsplit):
@@ -138,8 +139,37 @@ class DecmpNetwork(object):
 		remod = FeedForwardNetwork(recfpath)
 		remod.train()
 		
+	def predict(self, data):
+		"""
+		fit models for trend and remaining
 		
+		Parameters
+			data: data, list or numpy array with earliest data at beggining
+		"""
+		expl = DataExplorer()	
+		expl.addListNumericData(data, "data")
+		res = expl.getTrend("data", sqTerm=self.sqTerm)
+		trend = res["trend"]
+		
+		remain = np.subtract(np.array(data) - np.array(trend))
+		remain = remain.tolist()
 			
+		trcfpath = self.config.getStringConfig("common.trend.config.file")[0]
+		recfpath = self.config.getStringConfig("common.rem.config.file")[0]
+		
+		#trend
+		trmod = FeedForwardNetwork(trcfpath)
+		trPred = trmod.predict(trend)
+		
+		#remain
+		remod = FeedForwardNetwork(recfpath)
+		remPred = remod.predict()
+		
+		finPred = np.add(trPred, remPred)
+		return finPred
+		
+		
+
 		
 		
 		

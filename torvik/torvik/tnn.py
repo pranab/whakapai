@@ -464,8 +464,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		    	
 		# target data
 		if includeOutFld:
-			outFieldIndices = model.config.getStringConfig("train.data.out.fields")[0]
-			outFieldIndices = strToIntArray(outFieldIndices, ",")
+			outFieldIndices = model.config.getIntListConfig("train.data.out.fields")[0]
 			if isDataFile:
 				outData = data[:,outFieldIndices]
 			else:
@@ -580,15 +579,24 @@ class FeedForwardNetwork(torch.nn.Module):
 				#return prob of pos class for binary classifier 
 				yPred = yPred[:, 1]
 			else:
-				#return  class value and probability for multi classifier 
+				#return  class index (ot value) and probability for multi classifier 
 				yCl = np.argmax(yPred, axis=1)
 				yPred = list(map(lambda y : y[0][y[1]], zip(yPred, yCl)))
 				yPred = zip(yCl, yPred)
 				
 				if self.clabels is not None:
 					yPred = list(map(lambda y : (self.clabels[y[0]], y[1]), yPred))
-		else:
+		
+		elif outType == "discrete":
+			#return class index or value
 			yPred = np.argmax(yPred, axis=1)
+			if self.clabels is not None:
+				yPred =  list(map(lambda y : self.clabels[y], yPred))
+		
+		else:
+			#raw for multi output regression
+			pass
+			
 		return yPred
 		
 	@staticmethod
