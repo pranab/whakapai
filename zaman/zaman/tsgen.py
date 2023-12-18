@@ -208,12 +208,27 @@ class TimeSeriesGenerator(object):
 			raise ValueError("invalid base type")
 		
 		tsTrendType = self.config.getStringConfig("ts.trend")[0]
-		items = self.config.getStringConfig("ts.trend.params")[0].split(self.delim)
+		items = self.config.getStringListConfig("ts.trend.params")[0]
 		if tsTrendType == "linear":
+			#linear
 			tsTrendSlope = float(items[0])
+		
 		elif tsTrendType == "quadratic":
+			#linear and quadratic
 			tsTrendQuadParams = toFloatList(items)
+
+		elif tsTrendType == "pwlinear":
+			#linear and multiple piecewise linear segments
+			tsTrendQuadParams = items
+			tsTrendQuadLin = float(tsTrendQuadParams[0])
+			tsTrendQuadSteps = list()
+			for i in range(1, len(tsTrendQuadParams), 1):
+				qterms = tsTrendQuadParams[i].split(":")
+				step = (int(qterms[0]), float(qterms[1]))
+				tsTrendQuadSteps.append(step)
+		
 		elif tsTrendType == "logistic":
+			#logistic
 			tsTrendLogParams = toFloatList(items)
 		else:
 			raise ValueError("invalid trend type")
@@ -263,12 +278,27 @@ class TimeSeriesGenerator(object):
 
 			#trend
 			if tsTrendType == "linear":
+				#linear
 				curVal += counter * tsTrendSlope
+				
 			elif tsTrendType == "quadratic":
+				#linear and quadratic
 				curVal += tsTrendQuadParams[0] * counter + tsTrendQuadParams[1] * counter * counter
+
+			elif tsTrendType == "pwlinear":
+				#peicewise linear
+				curVal += tsTrendQuadLin * counter
+				for st in tsTrendQuadSteps:
+					#st : segment begin and local linear step
+					t = counter - st[0]
+					qval = t * st[1] if t > 0 else 0
+					curVal += qval
+			
 			elif tsTrendType == "logistic":
+				#logistic
 				ex = math.exp(-tsTrendLogParams[0] * counter)
 				curVal += tsTrendLogParams[0] * (1.0 - ex) / (1.0 + ex)
+			
 			counter += 1
 		
 			#cycle

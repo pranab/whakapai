@@ -69,6 +69,7 @@ class DecmpNetwork(object):
 		decomposes TS into trend and remaining and reformats based on tookback and forecast size
 		
 		"""
+		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
 		dfpath = self.config.getStringConfig("train.data.file")[0]
 		tcol = self.config.getIntConfig("train.data.ts.col")[0]
 		vcol = self.config.getIntConfig("train.data.value.col")[0]
@@ -80,16 +81,13 @@ class DecmpNetwork(object):
 		
 		self.lbsize = self.config.getIntConfig("train.data.lookback.size")[0]
 		fcsize = self.config.getIntConfig("train.data.forecast.size")[0]
-		tsize = lbsize + fcsize
+		tsize = self.lbsize + fcsize
 		
-		ts = getFileColumnAsString(dfpath, vcol)
+		ts = getFileColumnAsString(dfpath, tcol)
 		tdata = getFileColumnAsFloat(dfpath, vcol)
 
 		trsplit =  self.config.getFloatConfig("train.data.split")[0]
 		dlen = len(tdata)
-		trsplit = int(trsplit * dlen)
-		vasplit = dlen - trsplit
-		
 		
 		#trend
 		expl = DataExplorer()	
@@ -97,29 +95,38 @@ class DecmpNetwork(object):
 		self.sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
 		res = expl.getTrend("tdata", sqTerm=self.sqTerm)
 		trend = res["trend"]
+		
+		if self.verbose:
+			drawLine(trend)
 			
 		#trend training
-		samples = list(map(lambda i : ternd[i:i+tsize], range(len(trend)-tsize)))
+		samples = list(map(lambda i : trend[i:i+tsize], range(dlen - tsize)))
+		slen = len(samples)
+		trsplit = int(trsplit * slen)
+		vasplit = slen - trsplit
 		with open(trfpathTr, "w") as ftrTr:
 			for i in range(trsplit):
 				ftrTr.write(floatArrayToString(samples[i], prec) + "\n")
 		
 		#trend validationg		
 		with open(trfpathVa, "w") as ftrVa:
-			for i in range(trsplit,dlen,1):
+			for i in range(trsplit,slen,1):
 				ftrVa.write(floatArrayToString(samples[i], prec) + "\n")
 			
 		#remainder training
-		remain = np.subtract(np.array(tdata) - np.array(trend))
+		remain = np.subtract(np.array(tdata), np.array(trend))
 		remain = remain.tolist()
-		samples = list(map(lambda i : remain[i:i+tsize], range(len(remain)-tsize)))
+		if self.verbose:
+			drawLine(remain)
+		
+		samples = list(map(lambda i : remain[i:i+tsize], range(dlen - tsize)))
 		with open(refpathTr, "w") as freTr:
 			for i in range(trsplit):
 				freTr.write(floatArrayToString(samples[i], prec) + "\n")
 		
 		#remaining validationg		
 		with open(refpathVa, "w") as freVa:
-			for i in range(trsplit,dlen,1):
+			for i in range(trsplit,slen,1):
 				freVa.write(floatArrayToString(samples[i], prec) + "\n")
 
 		
@@ -132,10 +139,14 @@ class DecmpNetwork(object):
 		recfpath = self.config.getStringConfig("common.rem.config.file")[0]
 		
 		#traun trend model
+		if self.verbose:
+			print("training trend data model")
 		trmod = FeedForwardNetwork(trcfpath)
 		trmod.train()
 		
 		#train remain model
+		if self.verbose:
+			print("training remain data  model")
 		remod = FeedForwardNetwork(recfpath)
 		remod.train()
 		
