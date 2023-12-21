@@ -697,12 +697,11 @@ class FeedForwardNetwork(torch.nn.Module):
 				xBatch, yBatch = xBatch.to(model.device), yBatch.to(model.device)
 				yPred = model(xBatch)
 				
-				
-				# Compute and print loss
-				if model.outputSize > 2:
-					yBatch = torch.flatten(yBatch.long())
+				#if model.verbose:
 					#print(yPred.shape)
 					#print(yBatch.shape)
+				
+				# Compute and print loss
 				loss = model.lossFn(yPred, yBatch)
 				if model.verbose and t % epochIntv == 0 and b % model.batchIntv == 0:
 					print("epoch {}  batch {}  loss {:.6f}".format(t, b, loss.item()))
@@ -744,6 +743,8 @@ class FeedForwardNetwork(torch.nn.Module):
 		print(yActual)
 		print(yPred)
 		print(formatFloat(3, score, "perf score"))
+		model.yActual = yActual.data.cpu().numpy()
+		model.yPred = yPred
 
 		#save
 		modelSave = model.config.getBooleanConfig("train.model.save")[0]
@@ -758,6 +759,13 @@ class FeedForwardNetwork(torch.nn.Module):
 			for param in model.parameters():
 				print(param.data)
 		return score
+
+	def fit(self):
+		"""
+		train with batch data
+		
+		"""
+		FeedForwardNetwork.batchTrain(self)
 
 	@staticmethod
 	def errorPlot(model, trErr, vaErr=None):
@@ -777,6 +785,14 @@ class FeedForwardNetwork(torch.nn.Module):
 		if vaErr is not None:
 			plt.legend(["training error", "validation error"], loc='upper left')
 		plt.show()
+
+	def getModelValidationData(self):
+		"""
+		get actual and prediction for validation data
+		
+		"""
+		r = (self.yActual, self.yPred)
+		return r
 
 	@staticmethod
 	def modelPredict(model, dataSource = None):
@@ -807,7 +823,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		yPred = yPred.data.cpu().numpy()
 		#print(yPred)
 		
-		if model.outputSize >= 2:
+		if model.outputSize > 1:
 			#classification
 			yPred = FeedForwardNetwork.processClassifOutput(yPred, model.config)
 			
@@ -839,8 +855,6 @@ class FeedForwardNetwork(torch.nn.Module):
 			yPred = model(model.validFeatData)
 			#yPred = yPred.data.cpu().numpy()
 			yActual = model.validOutData
-			if model.outputSize > 2:
-				yActual = torch.flatten(yActual.long())
 
 			score = model.lossFn(yPred, yActual).item()
 		model.train()
@@ -870,7 +884,7 @@ class FeedForwardNetwork(torch.nn.Module):
 	@staticmethod
 	def validateModel(model, retPred=False):
 		"""
-		pmodel validation
+		model validation
 		
 		Parameters
 			model : torch model
@@ -878,26 +892,47 @@ class FeedForwardNetwork(torch.nn.Module):
 		"""
 		model.eval()
 		yPred = model(model.validFeatData)
+		#print("ypred ", yPred.shape)
 		yPred = yPred.data.cpu().numpy()
-		model.yPred = yPred
 		yActual = model.validOutData
+		#print("yActual ", yActual.shape)
+		model.yActual = yActual.data.cpu().numpy()
+		model.yPred = yPred
+		
 		vsize = yPred.shape[0]
 		if model.verbose:
 			print("\npredicted \t actual")
-			for i in range(vsize):
-				print("{:.3f}\t\t{:.3f}".format(yPred[i][0], yActual[i][0]))
+			if model.outputSize == 1:
+				for i in range(vsize):
+					print("{:.3f}\t\t{:.3f}".format(yPred[i][0], yActual[i][0]))
+			else:
+				for i in range(vsize):
+					print("{}\t\t{}".format(str(yPred[i]), str(yActual[i])))
+				
 			
 		score = perfMetric(model.accMetric, yActual, yPred)
 		print(formatFloat(3, score, "perf score"))
 		
 		if retPred:
-			y = list(map(lambda i : (yPred[i][0], yActual[i][0]), range(vsize)))
+			if model.outputSize == 1:
+				y = list(map(lambda i : (yPred[i][0], yActual[i][0]), range(vsize)))
+			else:
+				y = list(map(lambda i : (yPred[i], yActual[i]), range(vsize)))
 			res = (y, score)
 			return res
 		else:	
 			return score
  		
+	def validate(self, dataSource=None):
+		"""
+		model validation
 		
+		Parameters
+			dataSource : data source
+		"""
+		FeedForwardNetwork.prepValidate(self, dataSource)
+		return FeedForwardNetwork.validateModel(self, True)
+	
 	
 		
    	

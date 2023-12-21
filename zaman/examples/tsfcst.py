@@ -30,6 +30,9 @@ if __name__ == "__main__":
 	parser.add_argument('--cfpath', type=str, default = "", help = "config file path")
 	parser.add_argument('--prec', type=int, default = 3, help = "floating point precision")
 	parser.add_argument('--nplots', type=int, default = -1, help = "num of plots")
+	parser.add_argument('--findex', type=int, default = -1, help = "forecast woindow index")
+	parser.add_argument('--tibeg', type=int, default = -1, help = "time begin index")
+	parser.add_argument('--tiend', type=int, default = -1, help = "time end index")
 
 	args = parser.parse_args()
 	op = args.op
@@ -38,3 +41,12 @@ if __name__ == "__main__":
 	
 	if op == "decomp":
 		dn.decompose()
+
+	elif op == "train":
+		dn.fit()
+
+	elif op == "validate":
+		dn.validate(args.findex, args.tibeg, args.tiend)
+		
+	else:
+		exitWithMsg("invalid command")

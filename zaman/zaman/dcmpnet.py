@@ -27,6 +27,7 @@ import joblib
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
+from torvik.tnn import *
 
 """
 Forecasting using simple network with decomposed time series
@@ -61,6 +62,7 @@ class DecmpNetwork(object):
 		defValues["valid.data.file.remain"] = (None, "missing validation data file")
 		defValues["output.data.precision"] = (3, None)
 		self.config = Configuration(configFile, defValues)
+		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
 		super(DecmpNetwork, self).__init__()
 		
 
@@ -69,7 +71,6 @@ class DecmpNetwork(object):
 		decomposes TS into trend and remaining and reformats based on tookback and forecast size
 		
 		"""
-		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
 		dfpath = self.config.getStringConfig("train.data.file")[0]
 		tcol = self.config.getIntConfig("train.data.ts.col")[0]
 		vcol = self.config.getIntConfig("train.data.value.col")[0]
@@ -92,8 +93,8 @@ class DecmpNetwork(object):
 		#trend
 		expl = DataExplorer()	
 		expl.addListNumericData(tdata, "tdata")
-		self.sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
-		res = expl.getTrend("tdata", sqTerm=self.sqTerm)
+		sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
+		res = expl.getTrend("tdata", sqTerm=sqTerm)
 		trend = res["trend"]
 		
 		if self.verbose:
@@ -136,19 +137,60 @@ class DecmpNetwork(object):
 		
 		"""
 		trcfpath = self.config.getStringConfig("common.trend.config.file")[0]
-		recfpath = self.config.getStringConfig("common.rem.config.file")[0]
+		recfpath = self.config.getStringConfig("common.remain.config.file")[0]
 		
 		#traun trend model
 		if self.verbose:
 			print("training trend data model")
 		trmod = FeedForwardNetwork(trcfpath)
-		trmod.train()
+		trmod.buildModel()
+		trmod.fit()
+		yActual, yPred = trmod.getModelValidationData()
+		yp0 = yPred[:0]
+		ya0 = yActual[:0]
 		
 		#train remain model
 		if self.verbose:
 			print("training remain data  model")
 		remod = FeedForwardNetwork(recfpath)
-		remod.train()
+		remod.buildModel()
+		remod.fit()
+		
+	def validate(self, findex, tibeg, tiend):
+		"""
+		validates models for trend and remaining
+		
+		Parameters
+			findex : forecast window index
+			tibeg : time index begin
+			tiend : time index end
+		"""
+		trcfpath = self.config.getStringConfig("common.trend.config.file")[0]
+		recfpath = self.config.getStringConfig("common.remain.config.file")[0]
+		
+		#traun trend model
+		trmod = FeedForwardNetwork(trcfpath)
+		trmod.buildModel()
+		trmod.validate()
+		yActual, yPred = trmod.getModelValidationData()
+		ypt = yPred[:,findex]
+		yat = yActual[:,findex]
+		x = list(range(tibeg, tiend, 1))
+		drawPairPlot(x, ypt[tibeg:tiend], yat[tibeg:tiend], "time", "tren value", "prediction", "actual")
+		
+		#traun remain model
+		remod = FeedForwardNetwork(recfpath)
+		remod.buildModel()
+		remod.validate()
+		yActual, yPred = remod.getModelValidationData()
+		ypr = yPred[:,findex]
+		yar = yActual[:,findex]
+		drawPairPlot(x, ypr[tibeg:tiend], yar[tibeg:tiend], "time", "remaining value", "prediction", "actual")
+		
+		#total
+		yp = np.add(ypt, ypr)
+		ya = np.add(yat, yar)
+		drawPairPlot(x, yp[tibeg:tiend], ya[tibeg:tiend], "time", "value", "prediction", "actual")
 		
 	def predict(self, data):
 		"""
@@ -159,10 +201,11 @@ class DecmpNetwork(object):
 		"""
 		expl = DataExplorer()	
 		expl.addListNumericData(data, "data")
-		res = expl.getTrend("data", sqTerm=self.sqTerm)
+		sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
+		res = expl.getTrend("data", sqTerm=sqTerm)
 		trend = res["trend"]
 		
-		remain = np.subtract(np.array(data) - np.array(trend))
+		remain = np.subtract(np.array(data), np.array(trend))
 		remain = remain.tolist()
 			
 		trcfpath = self.config.getStringConfig("common.trend.config.file")[0]
