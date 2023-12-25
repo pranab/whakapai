@@ -33,6 +33,8 @@ if __name__ == "__main__":
 	parser.add_argument('--findex', type=int, default = -1, help = "forecast woindow index")
 	parser.add_argument('--tibeg', type=int, default = -1, help = "time begin index")
 	parser.add_argument('--tiend', type=int, default = -1, help = "time end index")
+	parser.add_argument('--trvafile', type=str, default = "none", help = "trend validation file")
+	parser.add_argument('--revafile', type=str, default = "none", help = "remian validation file")
 
 	args = parser.parse_args()
 	op = args.op
@@ -46,7 +48,9 @@ if __name__ == "__main__":
 		dn.fit()
 
 	elif op == "validate":
-		dn.validate(args.findex, args.tibeg, args.tiend)
+		trVaFpath = args.trvafile if args.trvafile != "none" else None
+		reVaFpath = args.revafile if args.revafile != "none" else None
+		dn.validate(args.findex, args.tibeg, args.tiend, trVaFpath, reVaFpath)
 		
 	else:
 		exitWithMsg("invalid command")

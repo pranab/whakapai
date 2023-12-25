@@ -156,7 +156,7 @@ class DecmpNetwork(object):
 		remod.buildModel()
 		remod.fit()
 		
-	def validate(self, findex, tibeg, tiend):
+	def validate(self, findex, tibeg, tiend, trVaFpath=None, reVaFpath=None):
 		"""
 		validates models for trend and remaining
 		
@@ -164,12 +164,16 @@ class DecmpNetwork(object):
 			findex : forecast window index
 			tibeg : time index begin
 			tiend : time index end
+			trVaFpath : trend validation file path
+			reVaFpath : remain validation file path
 		"""
 		trcfpath = self.config.getStringConfig("common.trend.config.file")[0]
 		recfpath = self.config.getStringConfig("common.remain.config.file")[0]
 		
 		#traun trend model
 		trmod = FeedForwardNetwork(trcfpath)
+		if trVaFpath is not None:
+			trmod.setConfigParam("valid.data.file", trVaFpath)
 		trmod.buildModel()
 		trmod.validate()
 		yActual, yPred = trmod.getModelValidationData()
@@ -180,6 +184,8 @@ class DecmpNetwork(object):
 		
 		#traun remain model
 		remod = FeedForwardNetwork(recfpath)
+		if reVaFpath is not None:
+			remod.setConfigParam("valid.data.file", reVaFpath)
 		remod.buildModel()
 		remod.validate()
 		yActual, yPred = remod.getModelValidationData()

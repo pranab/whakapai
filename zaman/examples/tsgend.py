@@ -59,12 +59,16 @@ if __name__ == "__main__":
 	parser.add_argument('--exscomp', type=str, default = "none", help = "additional sine components")
 	parser.add_argument('--xlabel', type=str, default = "none", help = "plot x label")
 	parser.add_argument('--ylabel', type=str, default = "none", help = "plot y label")
+	parser.add_argument('--oconfig', type=str, default = "none", help = "overirde config")
 	args = parser.parse_args()
 	op = args.op
 	
 	ovcfpath = None if args.ovcfpath == "none" else args.ovcfpath
 	generator = TimeSeriesGenerator(args.cfpath, ovcfpath)
 	yscale = args.yscale if args.yscale > 0 else None
+	if args.oconfig != "none":
+		parts = args.oconfig.split("=")
+		generator.config.setParam(parts[0], parts[1])
 	
 	if op == "tsn":
 		""" trend, cycle and noise based generation """
@@ -72,8 +76,9 @@ if __name__ == "__main__":
 		for rec in generator.trendCycleNoiseGen():
 			print(rec)
 			da.append(float(rec.split(",")[1]))
+		pdata, nplots = getNumPlot(da, args)
 		if args.nplots > 0:
-			drawLineParts(da, args.nplots, yscale)
+			drawLineParts(pdata, nplots, yscale)
 	
 	if op == "triang":
 		""" triangular cyclic  based generation """

@@ -1,0 +1,57 @@
+This tutorial is for time series forecasting with decomposition and 2 linear neural networks. Retail deman data is used as an example.
+
+
+Setup
+=====
+Install the package zaman
+pip3 install -i https://test.pypi.org/simple/ zaman==0.0.7
+
+Install the package matumizi
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.1.0
+
+Install the package torvik
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.5
+
+
+For local build and istallation run this from the repo root directory whakapi
+./lbi.sh zaman
+
+Install dependencies, by running this from the package root directory
+pip3 install -r requirements.txt
+
+Data generattion
+================
+python3 ./tsgend.py --op tsn --cfpath tsgen_ret.properties --prec 2 > > ret_tr.csv
+
+where 
+op = command
+cfpath = config file path
+prec = precision
+
+Decompose into trend and remaining with formatting based on look back widow and forecast window size.
+it will generate training and validation data for trend and remaining
+python3 ./tsfcst.py --op decomp  --cfpath dcmpnet_retail.properties
+
+where 
+op = command
+cfpath = config file path
+
+Training MLP models for trend and remaining
+===========================================
+python3 ./tsfcst.py --op train  --cfpath dcmpnet_retail1.properties
+
+Validation
+==========
+python3 ./tsfcst.py --op validate --findex 0  --tibeg 40 --tiend 60 --cfpath dcmpnet_retail.properties
+
+where 
+op = command
+findex = forecast window index for plot
+tibeg = time index begin for plot
+tiend = time index end for plot
+cfpath = config file path
+
+Generalization test
+===================
+Modify the weekly cycle parameter ts.cycle.week.params in tsgen_ret.properties
+Follow the steps for data gegeration and then validation
