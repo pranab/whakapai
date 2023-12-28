@@ -23,7 +23,7 @@ import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from dcmpnet import *
+from zaman.dcmpnet import *
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
