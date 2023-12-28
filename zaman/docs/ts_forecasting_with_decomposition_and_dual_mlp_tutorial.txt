@@ -38,7 +38,7 @@ cfpath = config file path
 
 Training MLP models for trend and remaining
 ===========================================
-python3 ./tsfcst.py --op train  --cfpath dcmpnet_retail1.properties
+python3 ./tsfcst.py --op train  --cfpath dcmpnet_retail.properties
 
 Validation
 ==========
@@ -54,4 +54,4 @@ cfpath = config file path
 Generalization test
 ===================
 Modify the weekly cycle parameter ts.cycle.week.params in tsgen_ret.properties
-Follow the steps for data gegeration and then validation
+Follow the steps for data generation and then validation

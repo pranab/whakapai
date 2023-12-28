@@ -130,6 +130,68 @@ class DecmpNetwork(object):
 			for i in range(trsplit,slen,1):
 				freVa.write(floatArrayToString(samples[i], prec) + "\n")
 
+	def decomposeOne(self, training):
+		"""
+		decomposes TS into trend and remaining and reformats based on lookback and forecast size
+		
+		Parameters
+			training : True if training data
+		"""
+		dfpath = self.config.getStringConfig("train.data.file")[0]
+		tcol = self.config.getIntConfig("train.data.ts.col")[0]
+		vcol = self.config.getIntConfig("train.data.value.col")[0]
+		prec = self.config.getIntConfig("output.data.precision")[0]
+		if training:
+			trfpathTr = self.config.getStringConfig("train.data.file.trend")[0]
+			refpathTr = self.config.getStringConfig("train.data.file.remain")[0]
+		else:
+			trfpathVa = self.config.getStringConfig("valid.data.file.trend")[0]
+			refpathVa = self.config.getStringConfig("valid.data.file.remain")[0]
+		
+		self.lbsize = self.config.getIntConfig("train.data.lookback.size")[0]
+		fcsize = self.config.getIntConfig("train.data.forecast.size")[0]
+		tsize = self.lbsize + fcsize
+		
+		ts = getFileColumnAsString(dfpath, tcol)
+		tdata = getFileColumnAsFloat(dfpath, vcol)
+		dlen = len(tdata)
+		
+		#trend
+		expl = DataExplorer()	
+		expl.addListNumericData(tdata, "tdata")
+		sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
+		res = expl.getTrend("tdata", sqTerm=sqTerm)
+		trend = res["trend"]
+		
+		if self.verbose:
+			drawLine(trend)
+			
+		#trend
+		samples = list(map(lambda i : trend[i:i+tsize], range(dlen - tsize)))
+		if training:
+			with open(trfpathTr, "w") as ftrTr:
+				for s in samples:
+					ftrTr.write(floatArrayToString(s, prec) + "\n")
+		else:
+			with open(trfpathVa, "w") as ftrVa:
+				for s in samples:
+					ftrVa.write(floatArrayToString(s, prec) + "\n")
+			
+		#remainder 
+		remain = np.subtract(np.array(tdata), np.array(trend))
+		remain = remain.tolist()
+		if self.verbose:
+			drawLine(remain)
+		
+		samples = list(map(lambda i : remain[i:i+tsize], range(dlen - tsize)))
+		if training:
+			with open(refpathTr, "w") as freTr:
+				for s in samples:
+					freTr.write(floatArrayToString(s, prec) + "\n")
+		else:	
+			with open(refpathVa, "w") as freVa:
+				for s in samples:
+					freVa.write(floatArrayToString(s, prec) + "\n")
 		
 	def fit(self):
 		"""

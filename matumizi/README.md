@@ -26,7 +26,7 @@ pip3 install -r requirements.txt
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/matumizi/0.0.8/
+https://test.pypi.org/project/matumizi/0.1.0/
 
 
 3. Blogs posts

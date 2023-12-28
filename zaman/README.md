@@ -23,7 +23,7 @@ pip3 install -r requirements.txt
 
 2. Project page in testpypi
 
-https://test.pypi.org/project/zaman/0.0.3/
+https://test.pypi.org/project/zaman/0.0.7/
 
 
 3. Blogs posts

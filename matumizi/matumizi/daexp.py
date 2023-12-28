@@ -1305,13 +1305,14 @@ class DataExplorer:
 			drawLine(diff)
 		return diff
 
-	def getTrend(self, ds, sqTerm=False, doPlot=False):
+	def getTrend(self, ds, sqTerm=False, cuTerm=False, doPlot=False):
 		"""
 		get trend
 		
 		Parameters
 			ds: data set name or list or numpy array
 			sqTerm : if True include square term in input
+			cuTerm ; if True square and cube terms
 			doPlot: true if plotting needed
 		"""
 		self.__printBanner("getting trend")
@@ -1321,8 +1322,13 @@ class DataExplorer:
 		if sqTerm:
 			x2 = list(map(lambda x : x * x, x1))
 			X = np.column_stack((x1,x2))
+		elif cuTerm:
+			x2 = list(map(lambda x : x * x, x1))
+			x3 = list(map(lambda x : x * x * x, x1))
+			X = np.column_stack((x1,x2,x3))
 		else:	
 			X = np.array(x1)
+		
 		model = LinearRegression()
 		model.fit(X, data)
 		trend = model.predict(X)

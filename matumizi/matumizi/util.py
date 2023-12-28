@@ -20,6 +20,7 @@ from random import randint
 import random
 import time
 import uuid
+import statistics 
 from datetime import datetime
 import math
 import numpy as np
@@ -953,18 +954,18 @@ def getFileColumnsAsString(dirPath, indexes, delim=","):
 			columns[i].append(rec[indexes[i]])	
 	return columns
 
-def getFileColumnAsFloat(dirPath, index, delim=","):
+def getFileColumnAsFloat(dirPath, cindex, delim=","):
 	"""
 	get float fileds from a file
 	
 	Parameters
 		dirPath : file path
-		index : index
+		cindex : column index
 		delim : delemeter
 
 	"""
 	#print("{}  {}".format(dirPath, index))
-	fields = getFileColumnAsString(dirPath, index, delim)
+	fields = getFileColumnAsString(dirPath, cindex, delim)
 	return list(map(lambda v:float(v), fields))
 	
 def getFileColumnAsInt(dirPath, index, delim=","):
@@ -1419,6 +1420,32 @@ def fileFiltSelFieldsRecGen(filePath, filt, columns, delim = ","):
 			if filt(line):
 				selected = extractList(line, columns)
 				yield selected
+
+def fileRemMeanRecGen(filePath, cindex, prec=3, delim=","):
+	"""
+	file record generator with mean value subtracted
+
+	Parameters
+		filePath ; file path
+		cindex : column indexe 
+		prec : floating point precision
+		delim : delemeter
+	"""
+	col = getFileColumnAsFloat(filePath, cindex, delim)
+	mean = statistics.mean(col)
+	with open(filePath, "r") as fp:
+		for line in fp:	
+			line = line[:-1]
+			if delim is not None:
+				line = line.split(delim)
+				fval = float(line[cindex])
+				line[cindex] = formatFloat(prec, fval - mean)
+				re = delim.join(line) 
+			else:
+				fval = float(line)
+				re = formatFloat(prec, fval - mean)
+			
+			yield re
 
 def fileTypedRecGen(filePath, ftypes, delim = ","):
 	"""

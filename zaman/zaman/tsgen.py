@@ -217,6 +217,10 @@ class TimeSeriesGenerator(object):
 			#linear and quadratic
 			tsTrendQuadParams = toFloatList(items)
 
+		elif tsTrendType == "cubic":
+			#linear, quadratic and cubic
+			tsTrendCubicParams = toFloatList(items)
+
 		elif tsTrendType == "pwlinear":
 			#linear and multiple piecewise linear segments
 			tsTrendQuadParams = items
@@ -284,6 +288,10 @@ class TimeSeriesGenerator(object):
 			elif tsTrendType == "quadratic":
 				#linear and quadratic
 				curVal += tsTrendQuadParams[0] * counter + tsTrendQuadParams[1] * counter * counter
+
+			elif tsTrendType == "cubic":
+				#linear and quadratic
+				curVal += tsTrendQuadParams[0] * counter + tsTrendQuadParams[1] * counter * counter + tsTrendQuadParams[2] * counter * counter * counter
 
 			elif tsTrendType == "pwlinear":
 				#peicewise linear
