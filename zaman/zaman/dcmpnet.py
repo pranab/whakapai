@@ -57,7 +57,7 @@ class DecmpNetwork(object):
 		defValues["train.data.ts.col"] = (0, None)
 		defValues["train.data.value.col"] = (1, None)
 		defValues["train.data.split"] = (0.8, None)
-		defValues["train.data.regr.sqterm"] = (False, None)
+		defValues["train.data.regr.type"] = ("linear", None)
 		defValues["valid.data.file.trend"] = (None, "missing validation data file")
 		defValues["valid.data.file.remain"] = (None, "missing validation data file")
 		defValues["output.data.precision"] = (3, None)
@@ -91,11 +91,7 @@ class DecmpNetwork(object):
 		dlen = len(tdata)
 		
 		#trend
-		expl = DataExplorer()	
-		expl.addListNumericData(tdata, "tdata")
-		sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
-		res = expl.getTrend("tdata", sqTerm=sqTerm)
-		trend = res["trend"]
+		trend =  self.__extractTrend()
 		
 		if self.verbose:
 			drawLine(trend)
@@ -157,11 +153,7 @@ class DecmpNetwork(object):
 		dlen = len(tdata)
 		
 		#trend
-		expl = DataExplorer()	
-		expl.addListNumericData(tdata, "tdata")
-		sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
-		res = expl.getTrend("tdata", sqTerm=sqTerm)
-		trend = res["trend"]
+		trend =  self.__extractTrend()
 		
 		if self.verbose:
 			drawLine(trend)
@@ -267,11 +259,7 @@ class DecmpNetwork(object):
 		Parameters
 			data: data, list or numpy array with earliest data at beggining
 		"""
-		expl = DataExplorer()	
-		expl.addListNumericData(data, "data")
-		sqTerm = self.config.getBooleanConfig("train.data.regr.sqterm")[0]
-		res = expl.getTrend("data", sqTerm=sqTerm)
-		trend = res["trend"]
+		trend =  self.__extractTrend()
 		
 		remain = np.subtract(np.array(data), np.array(trend))
 		remain = remain.tolist()
@@ -290,6 +278,23 @@ class DecmpNetwork(object):
 		finPred = np.add(trPred, remPred)
 		return finPred
 		
+	def __extractTrend(self):
+		"""
+		extracts trend based on regression
+		"""
+		expl = DataExplorer()	
+		expl.addListNumericData(tdata, "tdata")
+		sqTerm = False
+		cuTerm = False
+		regrType = self.config.getStringConfig("train.data.regr.type")[0]
+		if regrType == "square" or regrType == "cubic":
+			sqTerm = True
+			if regrType == "cubic":
+				cuTerm = True
+		res = expl.getTrend("tdata", sqTerm=sqTerm, cuTerm=cuTerm)
+		trend = res["trend"]
+		return trend
+	
 		
 
 		
