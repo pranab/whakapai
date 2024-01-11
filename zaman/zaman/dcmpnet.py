@@ -28,6 +28,7 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
 from torvik.tnn import *
+from nntuner import *
 
 """
 Forecasting using simple network with decomposed time series
@@ -58,6 +59,10 @@ class DecmpNetwork(object):
 		defValues["train.data.value.col"] = (1, None)
 		defValues["train.data.split"] = (0.8, None)
 		defValues["train.data.regr.type"] = ("linear", None)
+		defValues["train.auto.tuner"] = (False, None)
+		defValues["train.auto.tuner.ntrials.trend"] = (100, None)
+		defValues["train.auto.tuner.ntrials.rem"] = (100, None)
+		defValues["train.auto.tuner.config.file"] = (None, None)
 		defValues["valid.data.file.trend"] = (None, "missing validation data file")
 		defValues["valid.data.file.remain"] = (None, "missing validation data file")
 		defValues["output.data.precision"] = (3, None)
@@ -192,24 +197,42 @@ class DecmpNetwork(object):
 		"""
 		trcfpath = self.config.getStringConfig("common.trend.config.file")[0]
 		recfpath = self.config.getStringConfig("common.remain.config.file")[0]
+		tcfpath = self.config.getStringConfig("train.auto.tuner.config.file")[0]
 		
 		#traun trend model
 		if self.verbose:
 			print("training trend data model")
-		trmod = FeedForwardNetwork(trcfpath)
-		trmod.buildModel()
-		trmod.fit()
-		yActual, yPred = trmod.getModelValidationData()
-		yp0 = yPred[:0]
-		ya0 = yActual[:0]
+		autoTuner = self.config.getBooleanConfig("train.auto.tuner")[0]
+		
+		if autoTuner:
+			if self.verbose:
+				print("using auto tuner")
+			ntrials = self.config.getIntConfig("train.auto.tuner.ntrials.trend")[0]
+			re = NeuralNetworkTuner.tune(trcfpath, tcfpath, ntrials)
+		else:
+			trmod = FeedForwardNetwork(trcfpath)
+			trmod.buildModel()
+			score = trmod.fit()
+			yActual, yPred = trmod.getModelValidationData()
+			yp0 = yPred[:0]
+			ya0 = yActual[:0]
 		
 		#train remain model
 		if self.verbose:
 			print("training remain data  model")
-		remod = FeedForwardNetwork(recfpath)
-		remod.buildModel()
-		remod.fit()
-		
+			
+		if autoTuner:
+			if self.verbose:
+				print("using auto tuner")
+			ntrials = self.config.getIntConfig("train.auto.tuner.ntrials.rem")[0]
+			re = NeuralNetworkTuner.tune(recfpath, tcfpath, ntrials)
+		else:
+			remod = FeedForwardNetwork(recfpath)
+			remod.buildModel()
+			score = remod.fit()
+	
+		return re if autoTuner else score
+	
 	def validate(self, findex, tibeg, tiend, trVaFpath=None, reVaFpath=None):
 		"""
 		validates models for trend and remaining

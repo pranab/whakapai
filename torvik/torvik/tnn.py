@@ -765,7 +765,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		train with batch data
 		
 		"""
-		FeedForwardNetwork.batchTrain(self)
+		return FeedForwardNetwork.batchTrain(self)
 
 	@staticmethod
 	def errorPlot(model, trErr, vaErr=None):

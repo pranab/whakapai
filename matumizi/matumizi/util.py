@@ -848,6 +848,15 @@ def isFloat(val):
 	r = (valFloat, tVal)
 	return r
 
+def hasMultipleElements(ldata):
+	"""
+	returns True if list has multiple elements
+	
+	Parameters
+		ldata : value
+	"""
+	return ldata is not None and len(ldata) > 1	
+
 def getAllFiles(dirPath):
 	"""
 	get all files recursively
