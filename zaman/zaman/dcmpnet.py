@@ -28,7 +28,7 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
 from torvik.tnn import *
-from nntuner import *
+from torvik.nntuner import *
 
 """
 Forecasting using simple network with decomposed time series

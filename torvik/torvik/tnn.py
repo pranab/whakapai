@@ -740,8 +740,6 @@ class FeedForwardNetwork(torch.nn.Module):
 				print(str(yPred[i]) + "\t" + str(yActual[i]))
 		
 		score = perfMetric(model.accMetric, yActual, yPred)
-		print(yActual)
-		print(yPred)
 		print(formatFloat(3, score, "perf score"))
 		model.yActual = yActual.data.cpu().numpy()
 		model.yPred = yPred

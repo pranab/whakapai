@@ -46,6 +46,7 @@ class NeuralNetworkTuner(object):
 		defValues["common.network.type"] = (None, "missing network type")
 		defValues["common.config.params.direct"] = (None, "missing config parameter liist")
 		defValues["common.config.params.processed"] = (None, None)
+		defValues["common.config.params.control"] = (None, None)
 		defValues["train.num.layers"] = ([2,4], None)
 		defValues["train.num.units"] = (None, "missing range of number of units")
 		defValues["train.activation"] = (["relu"], None)
@@ -57,6 +58,8 @@ class NeuralNetworkTuner(object):
 		defValues["train.opt.learning.rate"] = (None, None)
 		defValues["train.lossFn"] = (None, None) 
 		defValues["train.optimizer"] = (None, None) 
+		defValues["control.common.verbose"] = (None, None) 
+		defValues["control.train.track.error"] = (None, None) 
 	
 		self.config = Configuration(configFile, defValues)
 		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
@@ -148,14 +151,14 @@ class NeuralNetworkTuner(object):
 		else:
 			exitWithMsg("invalid network type")
 		
-		#direct parameters
+		#direct parameters which get mapped one to one
 		dparams =  tConfig.getStringListConfig("common.config.params.direct")[0]
 		for dparam in dparams:
 			items = dparam.split(":")
 			pname = items[0]
 			ptype = items[1]
 				
-			if ptype == "string":
+			if ptype == "string" or ptype == "boolean":
 				pvalues = tConfig.getStringListConfig(pname)[0]
 				if pvalues is not None and len(pvalues) > 1:	
 					selpval = trial.suggest_categorical(pname, pvalues)
@@ -182,6 +185,22 @@ class NeuralNetworkTuner(object):
 					nnModel.setConfigParam(pname, selpvalStr)
 					if tuner.verbose:
 						print(pname + "\t" + selpvalStr)
+			
+			
+		#control parameters always boolean and not part of optimization e.g controlling output
+		dparams =  tConfig.getStringListConfig("common.config.params.control")[0]
+		if dparams is not None:
+			for dparam in dparams:
+				#remove prefix component which is control
+				elems = dparam.split(".")
+				pname = ".".join(elems[1:])
+			
+				pvalue = tConfig.getBooleanConfig(dparam)[0]
+				if pvalue is not None:	
+					spvalue = "True" if pvalue else "False"
+					nnModel.setConfigParam(pname, spvalue)
+					if tuner.verbose:
+						print("control parameter " + pname + "\t" + spvalue)
 					
 
 		#train model
