@@ -1715,13 +1715,13 @@ class DataExplorer:
 		return result
 
 
-	def fitLinearReg(self, dsx, ds, doPlot=False):
+	def fitLinearReg(self, ds, dsx=None, doPlot=False):
 		"""
 		fit  linear regression 
 		
 		Parameters
-			dsx: x data set name or None
 			ds: data set name or list or numpy array
+			dsx: x data set name or None
 			doPlot: true if plotting needed
 		"""
 		self.__printBanner("fitting linear regression", ds)

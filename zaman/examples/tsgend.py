@@ -23,6 +23,8 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
 from zaman.tsgen import *
+from zaman.tsfeat import *
+
 
 """
 driver  for time series data generation
@@ -62,15 +64,19 @@ if __name__ == "__main__":
 	parser.add_argument('--oconfig', type=str, default = "none", help = "overirde config")
 	parser.add_argument('--siparams', type=str, default = "none", help = "sine wave parameters")
 	parser.add_argument('--clabels', type=str, default = "none", help = "class labels")
+	parser.add_argument('--nintervals', type=int, default = 3, help = "num of intervals")
+	parser.add_argument('--intvmin', type=int, default = 100, help = "min interval length")
+	parser.add_argument('--intvmax', type=int, default = 500, help = "max interval length")
 	args = parser.parse_args()
 	op = args.op
 	
-	ovcfpath = None if args.ovcfpath == "none" else args.ovcfpath
-	generator = TimeSeriesGenerator(args.cfpath, ovcfpath)
-	yscale = args.yscale if args.yscale > 0 else None
-	if args.oconfig != "none":
-		parts = args.oconfig.split("=")
-		generator.config.setParam(parts[0], parts[1])
+	if op != "intvfe":
+		ovcfpath = None if args.ovcfpath == "none" else args.ovcfpath
+		generator = TimeSeriesGenerator(args.cfpath, ovcfpath)
+		yscale = args.yscale if args.yscale > 0 else None
+		if args.oconfig != "none":
+			parts = args.oconfig.split("=")
+			generator.config.setParam(parts[0], parts[1])
 	
 	if op == "tsn":
 		""" trend, cycle and noise based generation """
@@ -169,6 +175,7 @@ if __name__ == "__main__":
 			drawLineParts(pdata, args.nplots, yscale)
 			
 	elif op == "plot":
+		""" plot """
 		ts = getFileColumnAsInt(args.dfpath, 0)
 		da = getFileColumnAsFloat(args.dfpath, 1)
 		pdata, nplots = getNumPlot(da, args)
@@ -178,4 +185,13 @@ if __name__ == "__main__":
 			else:
 				pts = ts[args.pbeg:args.pend] if args.pbeg >= 0 and args.pend > 0 else ts
 				drawPlotParts(pts, pdata, args.xlabel, args.ylabel, nplots)
+				
+	elif op == "intvfe":
+		""" interval based feature extraction """
+		intvFeat = IntervalFeatureExtractor()
+		for frec in intvFeat.featGen(args.dfpath, args.nintervals, args.intvmin, args.intvmax, prec=args.prec):
+			print(frec)
+		
+		
+		
 	

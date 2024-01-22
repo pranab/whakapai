@@ -48,6 +48,8 @@ typeString = "string"
 
 msInSec = 1000
 msInMinute = 60 * msInSec
+msInHour = 60 *  60 * msInSec
+msInDay = 24 * msInHour
 
 secInMinute = 60
 secInHour = 60 * 60
