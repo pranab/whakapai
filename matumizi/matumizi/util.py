@@ -46,6 +46,9 @@ typeInt = "int"
 typeFloat = "float"
 typeString = "string"
 
+msInSec = 1000
+msInMinute = 60 * msInSec
+
 secInMinute = 60
 secInHour = 60 * 60
 secInDay = 24 * secInHour
@@ -696,23 +699,28 @@ def toStrFromList(values, precision, delim=","):
 	sValues = list(map(lambda v: toStr(v, precision), values))
 	return delim.join(sValues)
 
-def toIntList(values):
+def toIntList(values, delem=","):
 	"""
 	convert to int list
 	
 	Parameters
 		values : list data
+		delem " delemeter"
 	"""
+	if type(values) == str:
+		values = values.split(delem)
 	return list(map(lambda va: int(va), values))
 		
-def toFloatList(values):
+def toFloatList(values, delem=","):
 	"""
 	convert to float list
 	
 	Parameters
 		values : list data
-
+		delem " delemeter"
 	"""
+	if type(values) == str:
+		values = values.split(delem)
 	return list(map(lambda va: float(va), values))
 
 def toStrList(values, precision=None):

@@ -22,7 +22,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from tsgen import *
+from zaman.tsgen import *
 
 """
 driver  for time series data generation
@@ -60,6 +60,8 @@ if __name__ == "__main__":
 	parser.add_argument('--xlabel', type=str, default = "none", help = "plot x label")
 	parser.add_argument('--ylabel', type=str, default = "none", help = "plot y label")
 	parser.add_argument('--oconfig', type=str, default = "none", help = "overirde config")
+	parser.add_argument('--siparams', type=str, default = "none", help = "sine wave parameters")
+	parser.add_argument('--clabels', type=str, default = "none", help = "class labels")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -119,6 +121,33 @@ if __name__ == "__main__":
 		if nplots > 0:
 			drawLineParts(pdata, nplots, yscale)
 
+	if op == "sineclf":
+		"""multiple sine function based generation for classification """
+		da = list()
+		
+		#num of classes
+		siparams = args.siparams.split(":")
+		ncl = len(siparams) + 1
+		
+		#no of samples per class
+		nsamples = int(generator.config.getIntConfig("output.value.nsamples")[0] / ncl)
+		generator.config.setParam("output.value.nsamples", str(nsamples))
+		
+		clabels = args.clabels.split(",")
+		
+		for c in range(ncl):
+			pcnt = 0
+			if c > 0:
+				generator.config.setParam("si.params", siparams[c-1])
+				
+			for rec in generator.multSineGen():
+				lrec = rec + "," + clabels[c]
+				print(lrec)
+				if args.szplots > 0 and pcnt < 2:
+					pdata = toFloatList(rec)[:args.szplots]
+					drawLine(pdata)
+					pcnt += 1
+					
 	elif op == "insan":
 		""" insert sequence anomaly """
 		da = list()

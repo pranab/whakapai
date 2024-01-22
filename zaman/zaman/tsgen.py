@@ -91,6 +91,7 @@ class TimeSeriesGenerator(object):
 		#start time
 		winSz = self.config.getStringConfig("window.size")[0]
 		items = winSz.split("_")
+		wtunit = items[1]
 		self.curTm, self.pastTm = pastTime(int(items[0]), items[1])
 	
 		#sample interval
@@ -106,6 +107,13 @@ class TimeSeriesGenerator(object):
 				self.sampIntv = ts
 			else:	
 				self.sampIntv = timeToSec(ts, unit)
+			
+			#if sampling interval unit is ms, make window unit also ms
+			if unit == "ms"	and wtunit != "ms":
+				self.curTm *= msInSec
+				self.pastTm *= msInSec
+			
+			
 		elif sampIntvType == "random":
 			assertEqual(len(sampIntv), 2, "invalid number of params for sample interval")
 			siMean = float(sampIntv[0])
