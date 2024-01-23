@@ -54,8 +54,8 @@ class NeuralNetworkTuner(object):
 		defValues["train.dropout.prob"] = ([0.1, 0.6], None)
 		defValues["train.out.num.units"] = (None, "missing number of output units")
 		defValues["train.out.activation"] = (None, None)
-		defValues["train.batch.size"] = (None, None)
-		defValues["train.opt.learning.rate"] = (None, None)
+		defValues["train.batch.size"] = ([20,100], None)
+		defValues["train.opt.learning.rate"] = ([0.0001,0.01], None)
 		defValues["train.lossFn"] = (None, None) 
 		defValues["train.optimizer"] = (None, None) 
 		defValues["control.common.verbose"] = (None, None) 
@@ -140,7 +140,11 @@ class NeuralNetworkTuner(object):
 				maxUnits = nunit
 				
 			#output layer
-			outAct = trial.suggest_categorical("outAct", outActs) if outActs is not None and len(outActs) > 1 else "none"
+			if outActs is not None:
+				outAct = trial.suggest_categorical("outAct", outActs) if len(outActs) > 1 else outActs[0]
+			else:
+				outact = "none"
+				
 			lconfig = [str(outUnits), outAct, "false", "false", "{:.3f}".format(-0.1)]
 			lconfig = sep.join(lconfig)
 			layerConfig = layerConfig + lconfig
