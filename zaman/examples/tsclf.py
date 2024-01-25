@@ -20,7 +20,7 @@ import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from zaman.nntuner import *
+from torvik.nntuner import *
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -34,6 +34,8 @@ if __name__ == "__main__":
 	parser.add_argument('--trdfpath', type=str, default = "none", help = "training data file path")
 	parser.add_argument('--vadfpath', type=str, default = "none", help = "validation data file path")
 	parser.add_argument('--ntrials', type=int, default = 100, help = "num of trails for auto tuner")
+	parser.add_argument('--pmetric', type=str, default = "none", help = "validation performance metric]")
+	parser.add_argument('--mverbose', type=str, default = "False", help = "model verbosity]")
 	
 	args = parser.parse_args()
 	op = args.op
@@ -60,6 +62,7 @@ if __name__ == "__main__":
 	elif op == "train":
 		"""" train """
 		mod = FeedForwardNetwork(args.cfpath)
+		mod.setConfigParam("common.verbose", args.mverbose)
 		mod.buildModel()
 		score = mod.fit()
 				
@@ -67,5 +70,14 @@ if __name__ == "__main__":
 		"""" auto train """
 		re = NeuralNetworkTuner.tune(args.cfpath, args.tcfpath, args,ntrials)
 	
+	elif op == "validate":
+		"""" validate """
+		mod = FeedForwardNetwork(args.cfpath)
+		if args.pmetric != "none":
+			mod.setConfigParam("valid.accuracy.metric", args.pmetric)
+		mod.buildModel()
+		score = mod.validate()
+		print("validation score {:.3f}".format(score[1]))
+		
 	else:
 		exitWithMsg("invalid command")		

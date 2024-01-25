@@ -39,7 +39,7 @@ class IntervalFeatureExtractor(object):
 		"""
 		pass
 		
-	def featGen(self, dfpath, nintervals, intvmin, intvmax, withLabel=True, prec=3):
+	def featGen(self, dfpath, nintervals=None, intvmin=None, intvmax=None, intervals=None, ifpath=None, overlap=False, withLabel=True, prec=3):
 		"""
 		extracts mean, std dev and slope for multiple intervals
 		
@@ -48,24 +48,43 @@ class IntervalFeatureExtractor(object):
 			nintervals : num of intervals
 			intvmin : interval min size
 			intvmax : interval max size
+			intervals : list of intervals
+			ifpath : intervals file path
+			overlap: if inetral overlap allowed then True
 			withLabel : True if each TS sequence is labeled
 			prec : float output precision]
 		"""
-		intervals = None
 		for rec in fileRecGen(dfpath):
 			frec = rec[:-1] if withLabel else rec
 			
 			if intervals is None:
 				rlen = len(frec)
 				intervals = list()
-				for i in range(nintervals):
-					intvlen = randomInt(intvmin, intvmax)
-					stmax = rlen - intvlen - 1
-					st = randomInt(0, stmax)
-					en = st + intvlen
-					intv = (st,en)
-					intervals.append(intv)
-					
+				if overlap:
+					#interval overlap allowed
+					for i in range(nintervals):
+						intvlen = randomInt(intvmin, intvmax)
+						stmax = rlen - intvlen - 1
+						st = randomInt(0, stmax)
+						en = st + intvlen
+						intv = (st,en)
+						intervals.append(intv)
+				else:	
+					#interval overlap not allowed
+					stb = 0
+					remain = rlen
+					for i in range(nintervals):
+						remintv = nintervals - i
+						ste = stb + int((remain - remintv * intvmax) / remintv)
+						st = randomInt(stb, ste)
+						intvlen = randomInt(intvmin, intvmax)
+						#print("renmain {}  stb {}  ste {}  st {} intvlen {}".format(remain,stb,ste,st,intvlen))
+						en = st + intvlen
+						intv = (st,en)
+						intervals.append(intv)
+						stb = en + 1 
+						remain = rlen - stb
+						
 				
 			#stats based features
 			features = list()
@@ -90,6 +109,12 @@ class IntervalFeatureExtractor(object):
 				features.append(rec[-1])
 			feat = toStrFromList(features, prec)
 			yield feat
+			
+		if ifpath is not None:
+			with open(ifpath, "w") as fintv:
+				for intv in intervals:
+					fintv.write(str(intv[0]) + "," + str(intv[1]) + "\n")
+
 				
 					
 		

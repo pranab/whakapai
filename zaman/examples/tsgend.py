@@ -64,9 +64,11 @@ if __name__ == "__main__":
 	parser.add_argument('--oconfig', type=str, default = "none", help = "overirde config")
 	parser.add_argument('--siparams', type=str, default = "none", help = "sine wave parameters")
 	parser.add_argument('--clabels', type=str, default = "none", help = "class labels")
-	parser.add_argument('--nintervals', type=int, default = 3, help = "num of intervals")
+	parser.add_argument('--nintervals', type=int, default = -1, help = "num of intervals")
 	parser.add_argument('--intvmin', type=int, default = 100, help = "min interval length")
 	parser.add_argument('--intvmax', type=int, default = 500, help = "max interval length")
+	parser.add_argument('--ifpath', type=str, default = "none", help = "intervals file path")
+	parser.add_argument('--overlap', type=str, default = "true", help = "whether intervals overlap allowed")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -189,8 +191,20 @@ if __name__ == "__main__":
 	elif op == "intvfe":
 		""" interval based feature extraction """
 		intvFeat = IntervalFeatureExtractor()
-		for frec in intvFeat.featGen(args.dfpath, args.nintervals, args.intvmin, args.intvmax, prec=args.prec):
-			print(frec)
+		if args.nintervals > 0:
+			ifpath = None if args.ifpath == "none" else args.ifpath
+			overlap = True if args.overlap == "true" else False
+			for frec in intvFeat.featGen(args.dfpath, nintervals=args.nintervals, intvmin=args.intvmin, intvmax=args.intvmax, 
+			ifpath=ifpath, overlap=overlap, prec=args.prec):
+				print(frec)
+		else:
+			intervals = list()
+			for r in fileRecGen(args.ifpath):
+				intv = (int(r[0]), int(r[1]))
+				intervals.append(intv)
+			for frec in intvFeat.featGen(args.dfpath, intervals=intervals, prec=args.prec):
+				print(frec)
+			
 		
 		
 		
