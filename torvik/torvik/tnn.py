@@ -682,8 +682,8 @@ class FeedForwardNetwork(torch.nn.Module):
 
 		# train mode
 		model.train()
- 
-		if model.trackErr != "none":
+		
+		if model.trackErr != "notrack":
 			trErr = list()
 			vaErr = list()
 		#epoch
@@ -750,7 +750,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		if modelSave:
 			FeedForwardNetwork.saveCheckpt(model)
 
-		if model.trackErr != "none":
+		if model.trackErr != "notrack":
 			FeedForwardNetwork.errorPlot(model, trErr, vaErr)
 		
 		if model.config.getBooleanConfig("train.print.weights")[0]:

@@ -103,7 +103,7 @@ train.model.save=True
 If True, trained model is saved
 
 train.track.error=batch
-Tracks error if set to batch or epoch, set to none for no tracking
+Tracks error if set to batch or epoch, set to notrack for no tracking
 
 train.epoch.intv=10
 Epoch interval for tracking error
