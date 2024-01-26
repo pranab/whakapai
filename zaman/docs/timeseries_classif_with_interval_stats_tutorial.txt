@@ -1,0 +1,82 @@
+This tutorial is for classification of time series data with an MLP with a hidden layer. Features are extracted 
+from the TS using interval statistics
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.1.1
+
+Install time series packaage zaman
+pip3 install -i https://test.pypi.org/simple/ zaman==0.0.8
+
+Install no code framework for PyTorch torvik
+pip3 install -i https://test.pypi.org/simple/ torvik==0.0.6
+
+it's recommended that you copy tsgend.py, tsclf.py, tsgen_mach_fault.properties and ynn_mafault.properties to a working directory and work 
+from there. You should create directory called model/tnn under your working directory
+
+Generate time series data
+=========================
+python3 tsgend.py --op sineclf --cfpath tsgen_mach_fault.properties --siparams 1.2,30,1.0,15,0.9,12,0.8,8 --clabels 0,1 > mach_fault_ts.csv
+
+where
+cfpath = TS generator config file path
+siparams = sinusoidal components for time series with class label 1
+clabels = list opf class labels
+
+Generate interval statistics based features
+===========================================
+python3 tsgend.py --op intvfe --dfpath mach_fault_ts.csv --nintervals 3 --intvmin 300 --intvmax 500 --prec 6 --ifpath intv.csv --overlap false > mafault_fe.csv
+
+where
+dfpath = TS data file path
+nintervals = num of intervals
+intvmin = minimum interval length
+intvmax = maximum interval length
+prec = precision for floating point output
+ifpath = path for file where interval data will be saved
+overlap = whether intervals whould overlap
+
+Split data into training and validation set
+===========================================
+python3 tsclf.py --op tvsplit  --dfpath mafault_fe.csv --tvsplit .8 --trdfpath mafault_tr.csv  --vadfpath  mafault_va.csv
+
+where
+dfpath = TS feature data file path
+tvsplit = training validation split ratio
+trdfpath = training data file path
+vadfpath = validation data file path
+
+Training model
+==============
+python3 tsclf.py --op train --cfpath tnn_mafault.properties --mverbose False
+
+where
+cfpath = PyTorch no code framework config file for model
+mverbose = model output verbosity (use only when you want to suppress model output)
+
+Validating model
+================
+tsclf.py --op validate --cfpath tnn_mafault.properties --pmetric acc
+
+where
+cfpath = PyTorch no code framework config file for model
+pmetric = validation performance metric (use only when you want to override the setting in tnn_mafault.properties)
+
+Prediction
+==========
+Generate TS data and extract features as before. Name the output file mafault_pr.csv
+Run
+python3 tsclf.py --op predict --cfpath tnn_mafault.properties
+
+where
+cfpath = PyTorch no code framework config file for model
+
+
+
+
+
+
+
+
+

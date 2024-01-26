@@ -35,7 +35,8 @@ if __name__ == "__main__":
 	parser.add_argument('--vadfpath', type=str, default = "none", help = "validation data file path")
 	parser.add_argument('--ntrials', type=int, default = 100, help = "num of trails for auto tuner")
 	parser.add_argument('--pmetric', type=str, default = "none", help = "validation performance metric]")
-	parser.add_argument('--mverbose', type=str, default = "False", help = "model verbosity]")
+	parser.add_argument('--mverbose', type=str, default = "True", help = "model verbosity]")
+	parser.add_argument('--plsize', type=int, default = 40, help = "plot size")
 	
 	args = parser.parse_args()
 	op = args.op
@@ -78,6 +79,26 @@ if __name__ == "__main__":
 		mod.buildModel()
 		score = mod.validate()
 		print("validation score {:.3f}".format(score[1]))
-		
+	
+	elif op == "predict":
+		"""" predict """
+		mod = FeedForwardNetwork(args.cfpath)
+		mod.buildModel()
+		yp = mod.predict()
+		print("predictions")
+		print(yp)
+
+	elif op == "plot":
+		""" time series plot """
+		cls = ["0","1"]
+		ci = 0
+		for rec in fileRecGen(args.dfpath):
+			if rec[-1] == cls[ci]:
+				data = asFloatList(rec[:args.plsize])
+				drawPlot(None, data, "time", "value")
+				ci += 1
+			if ci == 2:
+				break
+	
 	else:
 		exitWithMsg("invalid command")		
