@@ -97,7 +97,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		defValues["train.opt.betas"] = ([0.9, 0.999], None) 
 		defValues["train.opt.alpha"] = (0.99, None) 
 		defValues["train.save.model"] = (False, None) 
-		defValues["train.track.error"] = (False, None) 
+		defValues["train.track.error"] = ("batch", None) 
 		defValues["train.epoch.intv"] = (5, None) 
 		defValues["train.batch.intv"] = (5, None) 
 		defValues["train.print.weights"] = (False, None) 
@@ -115,7 +115,9 @@ class FeedForwardNetwork(torch.nn.Module):
 		
 		super(FeedForwardNetwork, self).__init__()
     	
-	def setConfigParam(self, name, value):
+	def 
+	
+	self, name, value):
 		"""
 		set config param
 		
@@ -150,7 +152,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		optimizer = self.config.getStringConfig("train.optimizer")[0]
 		self.lossFnStr = self.config.getStringConfig("train.lossFn")[0]
 		self.accMetric = self.config.getStringConfig("valid.accuracy.metric")[0]
-		self.trackErr = self.config.getBooleanConfig("train.track.error")[0]
+		self.trackErr = self.config.getStringConfig("train.track.error")[0]
 		self.batchIntv = self.config.getIntConfig("train.batch.intv")[0]
 		self.restored = False
 		clabels = self.config.getStringConfig("train.output.clabels")[0]
@@ -683,7 +685,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		# train mode
 		model.train()
  
-		if model.trackErr:
+		if model.trackErr != "none":
 			trErr = list()
 			vaErr = list()
 		#epoch
@@ -706,11 +708,12 @@ class FeedForwardNetwork(torch.nn.Module):
 				if model.verbose and t % epochIntv == 0 and b % model.batchIntv == 0:
 					print("epoch {}  batch {}  loss {:.6f}".format(t, b, loss.item()))
 				
-				if model.trackErr and model.batchIntv == 0:
+				#error tracking at epoch level
+				if model.trackErr == "epoch":
 					epochLoss += loss.item()
 				
 				#error tracking at batch level
-				if model.trackErr and model.batchIntv > 0 and b % model.batchIntv == 0:
+				if model.trackErr == "batch" and b % model.batchIntv == 0:
 					trErr.append(loss.item())
 					vloss = FeedForwardNetwork.evaluateModel(model)
 					vaErr.append(vloss)
@@ -722,7 +725,7 @@ class FeedForwardNetwork(torch.nn.Module):
 				b += 1
 			
 			#error tracking at epoch level
-			if model.trackErr and model.batchIntv == 0:
+			if model.trackErr  == "epoch":
 				epochLoss /= len(trainDataLoader)
 				trErr.append(epochLoss)
 				vloss = FeedForwardNetwork.evaluateModel(model)
@@ -749,7 +752,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		if modelSave:
 			FeedForwardNetwork.saveCheckpt(model)
 
-		if model.trackErr:
+		if model.trackErr != "none":
 			FeedForwardNetwork.errorPlot(model, trErr, vaErr)
 		
 		if model.config.getBooleanConfig("train.print.weights")[0]:
