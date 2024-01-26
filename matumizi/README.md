@@ -15,7 +15,7 @@ Data Science utilities including following modules
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple/ matumizi==0.0.8
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.1.1
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory

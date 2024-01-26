@@ -7,13 +7,14 @@ No code framework for various PyTorch Networks with these modules
 * gcn : Graph Convolution Network
 * fftn : Feed Forward Network for cointrastive learning
 * vae : Variational Auto Encoder
+* nntuner : optuna based no code auto tuner
 
 ## Instructions
 
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple torvik==0.0.5
+pip3 install -i https://test.pypi.org/simple torvik==0.0.6
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory

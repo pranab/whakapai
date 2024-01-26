@@ -6,13 +6,14 @@ Everyting time series, EDA, forecasting, classificatio and anomaly detection
 * tseda : varioous utilities and data exploration for time series
 * tsgen : time series generator
 * tsano : time series anomaly detection
+* tsfeat : feature extraction from time series
 
 
 
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple zaman==0.0.6
+pip3 install -i https://test.pypi.org/simple zaman==0.0.8
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory
