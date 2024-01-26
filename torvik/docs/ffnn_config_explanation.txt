@@ -102,8 +102,8 @@ Loss function. Optiona rea ltwo, mse, ce, lone, mae, bce, bcel, sm, mlsm and tri
 train.model.save=True
 If True, trained model is saved
 
-train.track.error=True
-tracks error if True
+train.track.error=batch
+Tracks error if set to batch or epoch, set to none for no tracking
 
 train.epoch.intv=10
 Epoch interval for tracking error
@@ -112,13 +112,13 @@ train.batch.intv=5
 batch interval for tracking error
 
 train.print.weights=_
-prints weights if True
+Prints weights if True
 
 valid.data.file=countfl_va.txt
 Validation data file path
 
 valid.accuracy.metric=mse
-Acciracy metric for validation
+Accuracy metric for validation, choices are rsquare, mae, acc, mlAcc, prec, rec, fone, confm, clarep, bce, ce
 
 predict.data.file=countfl_va.txt
 Validation data file path
@@ -127,7 +127,7 @@ predict.use.saved.model=True
 If True uses saved model for training
 
 predict.output=_
-Prediction output type for classification. Options are prob, class
+Prediction output type for classification. Options are prob, discrete
 
 predict.feat.pad.size=50
 prediction output formatting related
