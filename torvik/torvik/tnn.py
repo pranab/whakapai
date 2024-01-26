@@ -115,9 +115,7 @@ class FeedForwardNetwork(torch.nn.Module):
 		
 		super(FeedForwardNetwork, self).__init__()
     	
-	def 
-	
-	self, name, value):
+	def setConfigParam(self, name, value):
 		"""
 		set config param
 		
