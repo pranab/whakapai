@@ -65,8 +65,18 @@ pmetric = validation performance metric (use only when you want to override the 
 
 Prediction
 ==========
-Generate TS data and extract features as before. Name the output file mafault_pr.csv
-Run
+Generate TS data and extract features as before. Name the output file mafault_pr.csv. During feature extraction same intervals 
+in traing data should be used. It should be done as follows
+
+python3 tsgend.py --op intvfe --dfpath mach_fault_ts.csv  --prec 6 --ifpath intv.csv > mafault_fe.csv
+
+where 
+dfpath = TS data file path
+prec = precision for floating point output
+ifpath = path for file containg interval data, which was created wile extrating features from the training data
+
+
+Now run
 python3 tsclf.py --op predict --cfpath tnn_mafault.properties
 
 where

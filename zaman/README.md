@@ -31,7 +31,8 @@ https://test.pypi.org/project/zaman/0.0.7/
 * [Synthetic Time Series Data Generation](https://pkghosh.wordpress.com/2023/03/29/synthetic-time-series-data-generation/)
 * [Time Series Sequence Anomaly Detection with Markov Chain](https://pkghosh.wordpress.com/2023/06/28/time-series-sequence-anomaly-detection-with-markov-chain/)
 * [Time Series Data Exploration with Wavelet Transform](https://pkghosh.wordpress.com/2023/09/29/time-series-data-exploration-with-wavelet-transform/)
-
+* [Time Series Forecasting with Decomposition and Two Linear Networks](https://pkghosh.wordpress.com/2023/12/28/time-series-forecasting-with-decomposition-and-two-linear-networks/)
+* [Time Series Classification with Neural Network using Random Sub Sequence Statistics as Features](https://pkghosh.wordpress.com/2024/01/26/time-series-classification-with-neural-network-using-random-sub-sequence-statistics-as-features/)
 
 4. Code usage example
 
