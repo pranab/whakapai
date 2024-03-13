@@ -25,14 +25,16 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
 from matumizi.daexp import *
+from matumizi.stats import *
 
 """
 Time series feature extraction
 """
 
-
+"""
+interval statistics based feature extraction
+"""
 class IntervalFeatureExtractor(object):
-
 	def __init__(self):
 		"""
 		Initializer
@@ -52,7 +54,7 @@ class IntervalFeatureExtractor(object):
 			ifpath : intervals file path
 			overlap: if inetral overlap allowed then True
 			withLabel : True if each TS sequence is labeled
-			prec : float output precision]
+			prec : float output precision
 		"""
 		for rec in fileRecGen(dfpath):
 			frec = rec[:-1] if withLabel else rec
@@ -116,5 +118,92 @@ class IntervalFeatureExtractor(object):
 					fintv.write(str(intv[0]) + "," + str(intv[1]) + "\n")
 
 				
-					
+"""
+quantization and gistogram based feature extraction
+"""
+class QuantizedFeatureExtractor(object):
+
+	def __init__(self):
+		"""
+		Initializer
+		"""
+		pass
+
+	def binWidth(self, dfpath,  nbins=10, padding=None, withLabel=True, prec=3):
+		"""
+		finds bin width and min value
 		
+		Parameters
+			dfpath : data file path
+			nbins : number of bins
+			padding : padding at ends to account for extreme values
+			withLabel : True if each TS sequence is labeled
+			prec : float output precision
+		"""
+		#min and max
+		dmaxv = None
+		dminv = None
+		for rec in fileRecGen(dfpath):
+			frec = rec[:-1] if withLabel else rec
+			frec = toFloatList(frec)
+			maxv = max(frec)
+			minv = min(frec)
+			if dmaxv is None:
+				dmaxv = maxv
+			else:
+				dmaxv = maxv if maxv > dmaxv else dmaxv
+			if dminv is None:
+				dminv = minv
+			else:
+				dminv = minv if minv < dminv else dminv
+			
+		
+		#padding and bin width
+		if padding is not None:
+			padsize = (dmaxv - dminv) * padding
+			dminv -= padsize
+			dmaxv += padsize
+		bwidth = (dmaxv - dminv) / nbins
+		
+		re = (dminv, bwidth)
+		return re
+		
+	def featGen(self, dfpath, vmin, bwidth, nbins=10,  histType="uniform", rowWise=True, withLabel=True, prec=3):
+		"""
+		calculates histogram for each record
+		
+		Parameters
+			dfpath : data file path
+			vmin : min value
+			bwidth : bin width list if equal samples histogram
+			nbins : number of bins
+			histType : histogram type eqwidth for equal width bin and eqsample for equal number of samples in each bin
+			rowWise : if True row wise feature generation
+			withLabel : True if each TS sequence is labeled
+			prec : float output precision
+		"""
+		if histType == "uniform":
+			hgram = Histogram.createUninitializedWithNumBins(vmin, bwidth, nbins)
+		else:
+			existWithMsg("equal sample histogram not supported yet")
+		
+		for rec in fileRecGen(dfpath):
+			frec = rec[:-1] if withLabel else rec
+			frec = toFloatList(frec)
+			for d in frec:
+				hgram.add(d)
+			
+			if rowWise:
+				features = hgram.distr()
+				if withLabel:
+					features.append(rec[-1])
+				feat = toStrFromList(features, prec)
+				hgram.initialize()
+				yield feat
+			
+		if not rowWise:
+			features = hgram.distr()
+			feat = toStrFromList(features, prec)
+			yield feat
+		
+			

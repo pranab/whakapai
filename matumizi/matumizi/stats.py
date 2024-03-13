@@ -98,6 +98,21 @@ class Histogram:
 		instance.bins = np.zeros(instance.numBin)
 		return instance
 	
+	@classmethod
+	def createUninitializedWithNumBins(cls, xmin, binWidth, nbins):
+		"""
+    	create histogram instance with no y values using domain min, bin width and num of bins
+    	
+		Parameters
+			xmin : min x			
+			binWidth : bin width
+			nbins : num of bins
+    	"""
+		instance = cls(xmin, binWidth)
+		instance.numBin = nbins
+		instance.bins = np.zeros(instance.numBin)
+		return instance
+
 	def initialize(self):
 		"""
     	set y values to 0
