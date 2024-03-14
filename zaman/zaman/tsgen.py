@@ -760,6 +760,7 @@ class TimeSeriesGenerator(object):
 		anVal = None
 		anValLast = None
 		for rec in fileRecGen(dfpath, self.delim):
+			updt = False
 			if i >= abeg:
 				if i < aend:
 					if atype == "multsine":
@@ -773,21 +774,24 @@ class TimeSeriesGenerator(object):
 					else :
 						anVal = anGenerator.sample(i) 
 					anValLast = anVal
+					updt = True
 				else:
 					if atype == "meanshift":
 						anVal = anValLast
+						updt = True
 				
-				if anIns == "add":	
-					#add	
-					val = float(rec[1]) + anVal
-				else:
-					#replace
-					if i == abeg or i == aend-1:
-						val =  (float(rec[1]) + anVal) / 2
+				if updt:
+					if anIns == "add":	
+						#add	
+						val = float(rec[1]) + anVal
 					else:
-						val = anVal
+						#replace
+						if i == abeg or i == aend-1:
+							val =  (float(rec[1]) + anVal) / 2
+						else:
+							val = anVal
 						
-				rec[1] = formatFloat(prec, val)
+					rec[1] = formatFloat(prec, val)
 			
 			i += 1
 			yield self.delim.join(rec)

@@ -69,6 +69,7 @@ if __name__ == "__main__":
 	parser.add_argument('--intvmax', type=int, default = 500, help = "max interval length")
 	parser.add_argument('--ifpath', type=str, default = "none", help = "intervals file path")
 	parser.add_argument('--overlap', type=str, default = "true", help = "whether intervals overlap allowed")
+	parser.add_argument('--oformat', type=str, default = "short", help = "output format")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -205,6 +206,24 @@ if __name__ == "__main__":
 			for frec in intvFeat.featGen(args.dfpath, intervals=intervals, prec=args.prec):
 				print(frec)
 			
+
+	if op == "sineano":
+		"""multiple sine function based generation for anomaly detection """
+		#no of samples per class
+		generator.config.setParam("output.value.nsamples", str(1))
+		generator.config.setParam("output.value.format", "long")
+		
+		pdata = list()	
+		pdc = 0
+		for rec in generator.multSineGen():
+			print(rec)
+			if args.szplots > 0:
+				if pdc < args.szplots:
+					v = float(rec.split(",")[1])
+					pdata.append(v)
+					pdc += 1 
+		#print(pdata)
+		drawLine(pdata)
 		
 		
 		
