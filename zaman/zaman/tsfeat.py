@@ -168,42 +168,70 @@ class QuantizedFeatureExtractor(object):
 		re = (dminv, bwidth)
 		return re
 		
-	def featGen(self, dfpath, vmin, bwidth, nbins=10,  histType="uniform", rowWise=True, withLabel=True, prec=3):
+	def featGen(self, dfpath, vmin, bwidth, dformat="tabular", nbins=10,  histType="uniform", rowWise=True, withLabel=True, prec=3, wsize=50):
 		"""
 		calculates histogram for each record
 		
 		Parameters
-			dfpath : data file path
+			dfpath : data file path or a list
 			vmin : min value
 			bwidth : bin width list if equal samples histogram
+			dformat : data format tabular or single column of data
 			nbins : number of bins
 			histType : histogram type eqwidth for equal width bin and eqsample for equal number of samples in each bin
 			rowWise : if True row wise feature generation
 			withLabel : True if each TS sequence is labeled
 			prec : float output precision
+			wsize : window size for data is single column
 		"""
 		if histType == "uniform":
 			hgram = Histogram.createUninitializedWithNumBins(vmin, bwidth, nbins)
 		else:
 			existWithMsg("equal sample histogram not supported yet")
 		
-		for rec in fileRecGen(dfpath):
-			frec = rec[:-1] if withLabel else rec
-			frec = toFloatList(frec)
-			for d in frec:
-				hgram.add(d)
+		if dformat == "tabular":
+			# tabluar with multiple values per row
+			for rec in fileRecGen(dfpath):
+				frec = rec[:-1] if withLabel else rec
+				frec = toFloatList(frec)
+				for d in frec:
+					hgram.add(d)
 			
-			if rowWise:
+				if rowWise:
+					features = hgram.distr()
+					if withLabel:
+						features.append(rec[-1])
+					feat = toStrFromList(features, prec)
+					hgram.initialize()
+					yield feat
+			
+			if not rowWise:
+				#all data
 				features = hgram.distr()
-				if withLabel:
-					features.append(rec[-1])
 				feat = toStrFromList(features, prec)
-				hgram.initialize()
 				yield feat
+		else:
+			dvalues = getFileColumnAsFloat(dfpath, vcol)
 			
-		if not rowWise:
-			features = hgram.distr()
-			feat = toStrFromList(features, prec)
-			yield feat
+			#one value per window location
+			if rowwise:
+				#windowed
+				slwin = SlidingWindow(dvalues, wsize)
+				for wdata in slwin.windowGen():
+					for d in wdata:
+						hgram.add(d)
+					features = hgram.distr()
+					feat = toStrFromList(features, prec)
+					hgram.initialize()
+					yield feat
+				
+			else:
+				#all data
+				for d in dvalues:
+					hgram.add(d)
+				features = hgram.distr()
+				feat = toStrFromList(features, prec)
+				yield feat
+
 		
-			
+		

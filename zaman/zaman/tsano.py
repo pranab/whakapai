@@ -28,7 +28,7 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.daexp import *
 from matumizi.stats import *
-
+from .tsfeat import *
 
 """
 time series anomaly detection
@@ -367,3 +367,79 @@ class LookAheadPredictorAnomaly:
 						fi.write(t +  "," + v + '\n')
 		
 		return result
+		
+class FeatureBasedAnomaly:
+	"""
+	feature and distance based anomaly predictor
+	"""
+	def __init__(self,  configFile):
+		"""
+		initilizers
+		
+		Parameters
+			configFile : config file path
+			callback : user defined function
+		"""
+		defValues = dict()
+		defValues["common.verbose"] = (False, None)
+		defValues["train.data.file"] = (None, None)
+		defValues["train.feat.type"] = (None, "feature generator type should be specified")
+		defValues["train.data.field"] = (None, None)
+		defValues["train.hist.vmin"] = (None, None)
+		defValues["train.hist.bwidth"] = (None, None)
+		defValues["train.hist.nbins"] = (None, None)
+		defValues["train.hist.type"] = ("uniform", None)
+		defValues["pred.data.file"] = (None, None)
+		defValues["pred.data.field"] = (None, None)
+		defValues["pred.ts.field"] = (None, None)
+		defValues["pred.window.size"] = (50, None)
+		defValues["pred.ano.threshold"] = (None, "missing threshold")
+		defValues["pred.output.prec"] = (8, None)
+		
+		
+		self.config = Configuration(configFile, defValues)
+		self.verbose = self.config.getBooleanConfig("common.verbose")[0]
+		self.nfeature = None
+		
+	def fit(self):
+		"""
+    	builds normal time series histogram
+    	
+		Parameters
+			tsval : time series value list
+		"""
+		if self.config.getStringConfig("train.feat.type")[0] == "hist":
+			fextractor = QuantizedFeatureExtractor()
+			dfpath = self.config.getStringConfig("train.data.file")[0]
+			vmin = self.config.getFloatConfig("train.hist.vmin")[0]
+			bwidth = self.config.getFloatConfig("train.hist.bwidth")[0]
+			nbins = self.config.getFloatConfig("train.hist.nbins")[0]
+			
+			for f in fextractor.featGen(dfpath=dfpath, vmin=vmin, bwidth=bwidth, dformat="columnar", nbins=nbins,  histType="uniform", rowWise=False, withLabel=False):
+				self.nfeature = f
+			
+		else:
+			exitWithMsg("invalid feature technique")
+
+	def predict(self):
+		"""
+    	predicts anomaly in sub sequence
+    	
+		"""
+		if self.config.getStringConfig("train.feat.type")[0] == "hist":
+			fextractor = QuantizedFeatureExtractor()
+			dfpath = self.config.getStringConfig("pred.data.file")[0]
+			vmin = self.config.getFloatConfig("train.hist.vmin")[0]
+			bwidth = self.config.getFloatConfig("train.hist.bwidth")[0]
+			nbins = self.config.getFloatConfig("train.hist.nbins")[0]
+			wsize = self.config.getIntConfig("pred.window.size")[0]
+			threshold = self.config.getFloatConfig("pred.ano.threshold")[0]
+			tscol = self.config.getIntConfig("pred.ts.field")[0]
+			tsv = getFileColumnAsFloat(dfpath, tscol)
+			
+			i = 0
+			for fe in fextractor.featGen(dfpath=dfpath, vmin=vmin, bwidth=bwidth, dformat="columnar", nbins=nbins,  histType="uniform", withLabel=False, wsize=wsize):
+				dist = euclideanDistance(fe, self.nfeature)
+				ano = 1 if dist > threshold else 0
+				r = [tsv[i], dist, ano]
+				yield r

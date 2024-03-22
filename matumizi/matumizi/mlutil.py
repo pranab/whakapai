@@ -54,6 +54,7 @@ class Configuration:
 		self.defValues = defValues
 		self.verbose = verbose
 
+
 	def override(self, configFile):
 		"""
 		over ride configuration from file
@@ -716,6 +717,38 @@ class SlidingWindowProcessor(metaclass=abc.ABCMeta):
 		return
 		
 
+class SlidingWindow(object):
+	"""
+	sliding window processor
+	"""
+	
+	def __init__(self, ldata, wsize, pstep=1):
+		"""
+		initializer
+		
+		Parameters
+			ldata : list data
+			wsize : window size
+			pstep : processing step size
+		"""
+		self.wsize = wsize
+		self.pstep = pstep
+		self.ldata = ldata
+		self.lsize = len(ldata)
+		self.beg = 0
+		
+	def windowGen(self):
+		"""
+		get window worth of data
+		
+		"""
+		end = self.beg + self.wsize
+		while end <= self.lsize:
+			wdata = self.ldata[self.beg:end]
+			self.beg += self.pstep
+			end = self.beg + self.wsize
+			yield wdata
+		
 def loadDataFile(file, delim, cols, colIndices):
 	"""
 	loads delim separated file and extracts columns
