@@ -129,34 +129,39 @@ class QuantizedFeatureExtractor(object):
 		"""
 		pass
 
-	def binWidth(self, dfpath,  nbins=10, padding=None, withLabel=True, prec=3):
+	def binWidth(self, dfpath,  dformat="tabular", vcol=1, nbins=10, padding=None, withLabel=True):
 		"""
 		finds bin width and min value
 		
 		Parameters
 			dfpath : data file path
+			dformat : data format tabular or single column of data
+			vcol : value column for columnar data
 			nbins : number of bins
 			padding : padding at ends to account for extreme values
-			withLabel : True if each TS sequence is labeled
-			prec : float output precision
+			withLabel : True if each TS sequence is labeled			prec : float output precision
 		"""
 		#min and max
 		dmaxv = None
 		dminv = None
-		for rec in fileRecGen(dfpath):
-			frec = rec[:-1] if withLabel else rec
-			frec = toFloatList(frec)
-			maxv = max(frec)
-			minv = min(frec)
-			if dmaxv is None:
-				dmaxv = maxv
-			else:
-				dmaxv = maxv if maxv > dmaxv else dmaxv
-			if dminv is None:
-				dminv = minv
-			else:
-				dminv = minv if minv < dminv else dminv
-			
+		if dformat == "tabular":
+			for rec in fileRecGen(dfpath):
+				frec = rec[:-1] if withLabel else rec
+				frec = toFloatList(frec)
+				maxv = max(frec)
+				minv = min(frec)
+				if dmaxv is None:
+					dmaxv = maxv
+				else:
+					dmaxv = maxv if maxv > dmaxv else dmaxv
+				if dminv is None:
+					dminv = minv
+				else:
+					dminv = minv if minv < dminv else dminv
+		else:
+			dvalues = getFileColumnAsFloat(dfpath, vcol)	
+			dmaxv = max(dvalues)	
+			dminv = min(dvalues)	
 		
 		#padding and bin width
 		if padding is not None:
@@ -168,7 +173,7 @@ class QuantizedFeatureExtractor(object):
 		re = (dminv, bwidth)
 		return re
 		
-	def featGen(self, dfpath, vmin, bwidth, dformat="tabular", nbins=10,  histType="uniform", rowWise=True, withLabel=True, prec=3, wsize=50):
+	def featGen(self, dfpath, vmin, bwidth, dformat="tabular", vcol=1, nbins=10,  histType="uniform", rowWise=True, withLabel=True, prec=3, wsize=50, retArr=True):
 		"""
 		calculates histogram for each record
 		
@@ -177,12 +182,14 @@ class QuantizedFeatureExtractor(object):
 			vmin : min value
 			bwidth : bin width list if equal samples histogram
 			dformat : data format tabular or single column of data
+			vcol : value column for columnar data
 			nbins : number of bins
 			histType : histogram type eqwidth for equal width bin and eqsample for equal number of samples in each bin
 			rowWise : if True row wise feature generation
 			withLabel : True if each TS sequence is labeled
 			prec : float output precision
 			wsize : window size for data is single column
+			retArr ; If True returns array otherwise delem separated string
 		"""
 		if histType == "uniform":
 			hgram = Histogram.createUninitializedWithNumBins(vmin, bwidth, nbins)
@@ -201,27 +208,27 @@ class QuantizedFeatureExtractor(object):
 					features = hgram.distr()
 					if withLabel:
 						features.append(rec[-1])
-					feat = toStrFromList(features, prec)
+					feat = features if retArr else toStrFromList(features, prec)
 					hgram.initialize()
 					yield feat
 			
 			if not rowWise:
 				#all data
 				features = hgram.distr()
-				feat = toStrFromList(features, prec)
+				feat = features if retArr else toStrFromList(features, prec)
 				yield feat
 		else:
 			dvalues = getFileColumnAsFloat(dfpath, vcol)
 			
 			#one value per window location
-			if rowwise:
+			if rowWise:
 				#windowed
 				slwin = SlidingWindow(dvalues, wsize)
 				for wdata in slwin.windowGen():
 					for d in wdata:
 						hgram.add(d)
 					features = hgram.distr()
-					feat = toStrFromList(features, prec)
+					feat = features if retArr else toStrFromList(features, prec)
 					hgram.initialize()
 					yield feat
 				
@@ -230,7 +237,7 @@ class QuantizedFeatureExtractor(object):
 				for d in dvalues:
 					hgram.add(d)
 				features = hgram.distr()
-				feat = toStrFromList(features, prec)
+				feat = features if retArr else toStrFromList(features, prec)
 				yield feat
 
 		

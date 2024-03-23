@@ -382,18 +382,18 @@ class FeatureBasedAnomaly:
 		"""
 		defValues = dict()
 		defValues["common.verbose"] = (False, None)
+		defValues["common.feat.type"] = (None, "feature generator type should be specified")
 		defValues["train.data.file"] = (None, None)
-		defValues["train.feat.type"] = (None, "feature generator type should be specified")
 		defValues["train.data.field"] = (None, None)
-		defValues["train.hist.vmin"] = (None, None)
-		defValues["train.hist.bwidth"] = (None, None)
-		defValues["train.hist.nbins"] = (None, None)
+		defValues["train.hist.padding"] = (0.1, None)
+		defValues["train.hist.nbins"] = (10, None)
 		defValues["train.hist.type"] = ("uniform", None)
 		defValues["pred.data.file"] = (None, None)
 		defValues["pred.data.field"] = (None, None)
-		defValues["pred.ts.field"] = (None, None)
+		defValues["pred.ts.field"] = (0, None)
 		defValues["pred.window.size"] = (50, None)
 		defValues["pred.ano.threshold"] = (None, "missing threshold")
+		defValues["pred.output.file"] = (None, None)
 		defValues["pred.output.prec"] = (8, None)
 		
 		
@@ -405,18 +405,28 @@ class FeatureBasedAnomaly:
 		"""
     	builds normal time series histogram
     	
-		Parameters
-			tsval : time series value list
 		"""
-		if self.config.getStringConfig("train.feat.type")[0] == "hist":
+		if self.config.getStringConfig("common.feat.type")[0] == "hist":
 			fextractor = QuantizedFeatureExtractor()
 			dfpath = self.config.getStringConfig("train.data.file")[0]
-			vmin = self.config.getFloatConfig("train.hist.vmin")[0]
-			bwidth = self.config.getFloatConfig("train.hist.bwidth")[0]
-			nbins = self.config.getFloatConfig("train.hist.nbins")[0]
+			vcol = self.config.getIntConfig("train.data.field")[0]
+			padding = self.config.getFloatConfig("train.hist.padding")[0]
+			nbins = self.config.getIntConfig("train.hist.nbins")[0]
 			
+			#min value, bin width
+			vmin, bwidth = fextractor.binWidth(dfpath, dformat="columnar", vcol=vcol, nbins=nbins, padding=padding, withLabel=False)
+			self.vmin = vmin
+			self.bwidth = bwidth
+			if self.verbose:
+				print("vmin {:.3f}  bwidth {:.3f}".format(vmin, bwidth))
+			
+
+			#normal data hidstogram
 			for f in fextractor.featGen(dfpath=dfpath, vmin=vmin, bwidth=bwidth, dformat="columnar", nbins=nbins,  histType="uniform", rowWise=False, withLabel=False):
 				self.nfeature = f
+			
+			if self.verbose:
+				print("norm features {}".format(str(self.nfeature)))
 			
 		else:
 			exitWithMsg("invalid feature technique")
@@ -426,20 +436,36 @@ class FeatureBasedAnomaly:
     	predicts anomaly in sub sequence
     	
 		"""
-		if self.config.getStringConfig("train.feat.type")[0] == "hist":
+		result = list()
+		if self.config.getStringConfig("common.feat.type")[0] == "hist":
 			fextractor = QuantizedFeatureExtractor()
 			dfpath = self.config.getStringConfig("pred.data.file")[0]
-			vmin = self.config.getFloatConfig("train.hist.vmin")[0]
-			bwidth = self.config.getFloatConfig("train.hist.bwidth")[0]
-			nbins = self.config.getFloatConfig("train.hist.nbins")[0]
+			vcol = self.config.getIntConfig("pred.data.field")[0]
+			nbins = self.config.getIntConfig("train.hist.nbins")[0]
 			wsize = self.config.getIntConfig("pred.window.size")[0]
 			threshold = self.config.getFloatConfig("pred.ano.threshold")[0]
 			tscol = self.config.getIntConfig("pred.ts.field")[0]
-			tsv = getFileColumnAsFloat(dfpath, tscol)
+			tsv = getFileColumnAsInt(dfpath, tscol)
+			ofpath = self.config.getStringConfig("pred.output.file")[0]
+			oprec = self.config.getIntConfig("pred.output.prec")[0]
 			
+			#anamolous data
 			i = 0
-			for fe in fextractor.featGen(dfpath=dfpath, vmin=vmin, bwidth=bwidth, dformat="columnar", nbins=nbins,  histType="uniform", withLabel=False, wsize=wsize):
+			for fe in fextractor.featGen(dfpath=dfpath, vmin=self.vmin, bwidth=self.bwidth, dformat="columnar", vcol=vcol, nbins=nbins,  histType="uniform", withLabel=False, wsize=wsize):
 				dist = euclideanDistance(fe, self.nfeature)
 				ano = 1 if dist > threshold else 0
 				r = [tsv[i], dist, ano]
-				yield r
+				i += 1
+				result.append(r)
+		else:
+			exitWithMsg("invalid feature technique")
+			
+		if ofpath is not None:
+			with open(ofpath,'w') as fi:
+				for r in result:
+					ascore = formatFloat(oprec, r[1])
+					row = "{},{},{}\n".format(r[0],ascore,r[2])
+					fi.write(row)
+			
+		
+		return result

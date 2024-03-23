@@ -22,7 +22,8 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from zaman.tsano import *
+from tsano import *
+from tsgend import *
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -30,7 +31,11 @@ if __name__ == "__main__":
 	parser.add_argument('--cfpath', type=str, default = "", help = "config file path")
 	parser.add_argument('--dfpath', type=str, default = "", help = "data file path")
 	parser.add_argument('--nplots', type=int, default = -1, help = "num of plots")
+	parser.add_argument('--szplots', type=int, default = -1, help = "size of plots")
+	parser.add_argument('--pbeg', type=int, default = -1, help = "plot begin offset")
+	parser.add_argument('--pend', type=int, default = -1, help = "plot end offset")
 	parser.add_argument('--ylabel', type=str, default = "", help = "plot y label")
+	parser.add_argument('--anvalue', type=int, default = -1, help = "anomaly value column")
 	args = parser.parse_args()
 	op = args.op
 
@@ -42,25 +47,19 @@ if __name__ == "__main__":
 	elif op == "mcp":
 		""" predict using  markov chanin model """
 		ad = MarkovChainAnomaly(args.cfpath)
-		res = ad.predict()
-		for r in res:
-			print(r)
+		ad.predict()
 		
-	if op == "lhm":
-		""" build look ahead predictor model """
-		ad = LookAheadPredictorAnomaly(args.cfpath)
+	elif op == "hfe":
+		""" fit and predict using histogram based feature """
+		ad = FeatureBasedAnomaly(args.cfpath)
 		ad.fit()
-
-	elif op == "lhp":
-		""" predict using look ahead predictor model """
-		ad = LookAheadPredictorAnomaly(args.cfpath)
 		res = ad.predict()
-		for r in res:
-			print(r)
+		
 
 	elif op == "plot":
 		""" plot  """
 		ts = getFileColumnAsInt(args.dfpath, 0)
-		da = getFileColumnAsFloat(args.dfpath, 1)
-		drawPlotParts(ts, da, "Time", args.ylabel, args.nplots)
+		data = getFileColumnAsFloat(args.dfpath, args.anvalue)
+		pdata, nplots = getNumPlot(data, args)
+		drawPlotParts(ts, pdata, "Time", args.ylabel, nplots)
 		
