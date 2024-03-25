@@ -393,6 +393,7 @@ class FeatureBasedAnomaly:
 		defValues["pred.ts.field"] = (0, None)
 		defValues["pred.window.size"] = (50, None)
 		defValues["pred.ano.threshold"] = (None, "missing threshold")
+		defValues["pred.dist.metric"] = ("l1", None)
 		defValues["pred.output.file"] = (None, None)
 		defValues["pred.output.prec"] = (8, None)
 		
@@ -448,11 +449,19 @@ class FeatureBasedAnomaly:
 			tsv = getFileColumnAsInt(dfpath, tscol)
 			ofpath = self.config.getStringConfig("pred.output.file")[0]
 			oprec = self.config.getIntConfig("pred.output.prec")[0]
+			dmetric = self.config.getStringConfig("pred.dist.metric")[0]
 			
 			#anamolous data
 			i = 0
 			for fe in fextractor.featGen(dfpath=dfpath, vmin=self.vmin, bwidth=self.bwidth, dformat="columnar", vcol=vcol, nbins=nbins,  histType="uniform", withLabel=False, wsize=wsize):
-				dist = euclideanDistance(fe, self.nfeature)
+				if dmetric == "l1":
+					dist = manhattanDistance(fe, self.nfeature)
+				elif dmetric == "l2":
+					dist = euclideanDistance(fe, self.nfeature)
+				else:
+					exitWithMsg("invalid distance metric")
+				dist /= wsize
+					
 				ano = 1 if dist > threshold else 0
 				r = [tsv[i], dist, ano]
 				i += 1
