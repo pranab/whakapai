@@ -207,7 +207,7 @@ if __name__ == "__main__":
 				print(frec)
 			
 
-	if op == "sineano":
+	elif op == "sineano":
 		"""multiple sine function based generation for anomaly detection """
 		#no of samples per class
 		generator.config.setParam("output.value.nsamples", str(1))
@@ -224,6 +224,9 @@ if __name__ == "__main__":
 					pdc += 1 
 		#print(pdata)
 		drawLine(pdata)
+		
+	else:
+		exitWithMsg("invalid time series generator command")
 		
 		
 		

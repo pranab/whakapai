@@ -22,7 +22,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from tsano import *
+from zaman.tsano import *
 from tsgend import *
 
 if __name__ == "__main__":
@@ -61,5 +61,10 @@ if __name__ == "__main__":
 		ts = getFileColumnAsInt(args.dfpath, 0)
 		data = getFileColumnAsFloat(args.dfpath, args.anvalue)
 		pdata, nplots = getNumPlot(data, args)
-		drawPlotParts(ts, pdata, "Time", args.ylabel, nplots)
+		tss = ts[args.pbeg:args.pend] if args.pbeg >= 0 and args.pend > 0 else ts
+		drawPlotParts(tss, pdata, "Time", args.ylabel, nplots)
+		
+	else:
+		exitWithMsg("invalid time series anomaly detection command")
+
 		

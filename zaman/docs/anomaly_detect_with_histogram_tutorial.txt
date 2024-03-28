@@ -1,0 +1,46 @@
+This tutorial is for anomaly detection of time series data. Features are extracted 
+from the TS using histogram
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.1.1
+
+Install time series packaage zaman
+pip3 install -i https://test.pypi.org/simple/ zaman==0.0.8
+
+
+it's recommended that you copy tsgend.py, tsanod.py.py, tsgen_mach_fault_gen.properties and tsgen_mach_fault_ano.properties 
+to a working directory and work from there. 
+
+Generate data
+=============
+Normal data
+python3 tsgend.py --op sineano --cfpath tsgen_mach_fault_ano.properties --szplots 50 > ma_fa_norm.csv
+
+cfpath = data generation config file path
+szplots = plot size (skip if not interested in plots)
+
+anomalous data
+python3 tsgend.py --op insan --dfpath ma_fa_norm.csv  --cfpath tsgen_mach_fault_ano.properties --szplots 50
+
+dfpath = normal datra file path (ma_fa_norm.csv)
+cfpath = data generation config file path 
+
+Anomaly detection
+=================
+Generate anomaly score
+python3 ./tsanod.py --op hfe --cfpath tsano_mach_fault.properties 
+
+cfpath = anomaly detection config file path
+
+Plot
+python3 ./tsanod.py --op plot --dfpath ma_fa_anom_out.csv --anvalue 1 --ylabel score --nplots 4 --pbeg 200 --pend 400
+
+dfpath = anomaly output file (generated in the previous step)
+anvalue = column index for anomaly scores
+ylabel = ploy y axes label
+nplots = num of plots
+pbeg = begin index for data
+pend = end index for data
+
