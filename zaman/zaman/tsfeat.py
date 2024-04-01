@@ -256,7 +256,7 @@ class FourierTransformFeatureExtractor(object):
 		"""
 		pass
 
-	def featGen(self, dfpath, cutoff, dformat="tabular", vcol=1, rowWise=True, withLabel=True, prec=3, wsize=50, retArr=True):
+	def featGen(self, dfpath, cutoff=None, dformat="tabular", vcol=1, rowWise=True, withLabel=True, prec=3, wsize=50, retArr=True):
 		"""
 		calculates FFT for each record
 		
@@ -296,21 +296,25 @@ class FourierTransformFeatureExtractor(object):
 			#columnar data
 			dvalues = getFileColumnAsFloat(dfpath, vcol)
 			
-			#one value per window location
-			if rowWise:
-				#windowed
-				slwin = SlidingWindow(dvalues, wsize)
-				for wdata in slwin.windowGen():
-					features = self.__fft(wdata, cutoff)
+			allfeatures = list()
+			slwin = SlidingWindow(dvalues, wsize)
+			for wdata in slwin.windowGen():
+				features = self.__fft(wdata, cutoff)
+				if rowWise:	
+					#windowed
 					feat = features if retArr else toStrFromList(features, prec)
 					yield feat
-			else:
-				#all data
-				features = self.__fft(dvalues, cutoff)
+				else:
+					#all data
+					allfeatures.append(features)
+			
+			if not rowWise:
+				#all data average of all FFT
+				features = np.mean(np.array(allfeatures), axis=0)
 				feat = features if retArr else toStrFromList(features, prec)
 				yield feat
 				
-	def __fft(self, data, cutoff):
+	def __fft(self, data, cutoff=None):
 		"""
 		calculates FFT for each record
 		
@@ -320,6 +324,7 @@ class FourierTransformFeatureExtractor(object):
 		"""
 		ft = fft.rfft(np.array(data))
 		ft =  np.abs(ft)
-		return ft[:cutoff]
+		ft = ft[:cutoff] if cutoff is not None else ft
+		return ft
 		
 

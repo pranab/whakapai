@@ -388,6 +388,7 @@ class FeatureBasedAnomaly:
 		defValues["train.hist.padding"] = (0.1, None)
 		defValues["train.hist.nbins"] = (10, None)
 		defValues["train.hist.type"] = ("uniform", None)
+		defValues["train.fft.cutoff"] = (None, None)
 		defValues["pred.data.file"] = (None, None)
 		defValues["pred.data.field"] = (None, None)
 		defValues["pred.ts.field"] = (0, None)
@@ -407,10 +408,12 @@ class FeatureBasedAnomaly:
     	builds normal time series histogram
     	
 		"""
+		dfpath = self.config.getStringConfig("train.data.file")[0]
+		vcol = self.config.getIntConfig("train.data.field")[0]
+		
 		if self.config.getStringConfig("common.feat.type")[0] == "hist":
+			#histogram
 			fextractor = QuantizedFeatureExtractor()
-			dfpath = self.config.getStringConfig("train.data.file")[0]
-			vcol = self.config.getIntConfig("train.data.field")[0]
 			padding = self.config.getFloatConfig("train.hist.padding")[0]
 			nbins = self.config.getIntConfig("train.hist.nbins")[0]
 			
@@ -428,6 +431,18 @@ class FeatureBasedAnomaly:
 			
 			if self.verbose:
 				print("norm features {}".format(str(self.nfeature)))
+				
+		elif self.config.getStringConfig("common.feat.type")[0] == "fft":
+			#fft
+			fextractor = FourierTransformFeatureExtractor()
+			cutoff = self.config.getIntConfig("train.fft.cutoff")[0]
+			
+			#normal data FFT
+			for f in fextractor.featGen(dfpath, cutoff=cutoff, dformat="columnar", rowWise=False, withLabel=False, wsize=wsize):
+				self.nfeature = f
+			
+			if self.verbose:
+				print("norm features {}".format(str(self.nfeature)))
 			
 		else:
 			exitWithMsg("invalid feature technique")
@@ -437,19 +452,22 @@ class FeatureBasedAnomaly:
     	predicts anomaly in sub sequence
     	
 		"""
+		dfpath = self.config.getStringConfig("pred.data.file")[0]
+		vcol = self.config.getIntConfig("pred.data.field")[0]
+		
+		wsize = self.config.getIntConfig("pred.window.size")[0]
+		threshold = self.config.getFloatConfig("pred.ano.threshold")[0]
+		tscol = self.config.getIntConfig("pred.ts.field")[0]
+		tsv = getFileColumnAsInt(dfpath, tscol)
+		ofpath = self.config.getStringConfig("pred.output.file")[0]
+		oprec = self.config.getIntConfig("pred.output.prec")[0]
+		dmetric = self.config.getStringConfig("pred.dist.metric")[0]
+
 		result = list()
 		if self.config.getStringConfig("common.feat.type")[0] == "hist":
+			#histogram
 			fextractor = QuantizedFeatureExtractor()
-			dfpath = self.config.getStringConfig("pred.data.file")[0]
-			vcol = self.config.getIntConfig("pred.data.field")[0]
 			nbins = self.config.getIntConfig("train.hist.nbins")[0]
-			wsize = self.config.getIntConfig("pred.window.size")[0]
-			threshold = self.config.getFloatConfig("pred.ano.threshold")[0]
-			tscol = self.config.getIntConfig("pred.ts.field")[0]
-			tsv = getFileColumnAsInt(dfpath, tscol)
-			ofpath = self.config.getStringConfig("pred.output.file")[0]
-			oprec = self.config.getIntConfig("pred.output.prec")[0]
-			dmetric = self.config.getStringConfig("pred.dist.metric")[0]
 			
 			#anamolous data
 			i = 0
@@ -466,6 +484,26 @@ class FeatureBasedAnomaly:
 				r = [tsv[i], dist, ano]
 				i += 1
 				result.append(r)
+		
+		elif self.config.getStringConfig("common.feat.type")[0] == "fft":
+			#fft
+			fextractor = FourierTransformFeatureExtractor()
+			cutoff = self.config.getIntConfig("train.fft.cutoff")[0]
+			
+			for fe in fextractor.featGen(dfpath, cutoff=cutoff, dformat="columnar",  withLabel=False, wsize=wsize):
+				if dmetric == "l1":
+					dist = manhattanDistance(fe, self.nfeature)
+				elif dmetric == "l2":
+					dist = euclideanDistance(fe, self.nfeature)
+				else:
+					exitWithMsg("invalid distance metric")
+				dist /= wsize
+
+				ano = 1 if dist > threshold else 0
+				r = [tsv[i], dist, ano]
+				i += 1
+				result.append(r)
+
 		else:
 			exitWithMsg("invalid feature technique")
 			
