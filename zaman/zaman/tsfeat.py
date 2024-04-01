@@ -21,6 +21,8 @@ from random import randint
 import time
 import math
 from datetime import datetime
+import numpy as np
+from scipy import fft
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
@@ -119,7 +121,7 @@ class IntervalFeatureExtractor(object):
 
 				
 """
-quantization and gistogram based feature extraction
+quantization and histogram based feature extraction
 """
 class QuantizedFeatureExtractor(object):
 
@@ -205,6 +207,7 @@ class QuantizedFeatureExtractor(object):
 					hgram.add(d)
 			
 				if rowWise:
+					#features per row
 					features = hgram.distr()
 					if withLabel:
 						features.append(rec[-1])
@@ -242,3 +245,81 @@ class QuantizedFeatureExtractor(object):
 
 		
 		
+"""
+FFT based feature extraction
+"""
+class FourierTransformFeatureExtractor(object):
+
+	def __init__(self):
+		"""
+		Initializer
+		"""
+		pass
+
+	def featGen(self, dfpath, cutoff, dformat="tabular", vcol=1, rowWise=True, withLabel=True, prec=3, wsize=50, retArr=True):
+		"""
+		calculates FFT for each record
+		
+		Parameters
+			dfpath : data file path or a list
+			cutoff : cutoff index
+			dformat : data format tabular or single column of data
+			vcol : value column for columnar data
+			rowWise : if True row wise feature generation
+			withLabel : True if each TS sequence is labeled
+			prec : float output precision
+			wsize : window size for data is single column
+			retArr ; If True returns array otherwise delem separated string
+		"""
+		if dformat == "tabular":
+			# tabluar with multiple values per row
+			allrecs = list()
+			for rec in fileRecGen(dfpath):
+				frec = rec[:-1] if withLabel else rec
+				frec = toFloatList(frec)
+
+				if rowWise:
+					#features per row
+					features = self.__fft(frec, cutoff)
+					feat = features if retArr else toStrFromList(features, prec)
+					yield feat
+				else:
+					allrecs.extend(frec)
+					
+			if not rowWise:
+				#all data
+				features = self.__fft(allrecs, cutoff)
+				feat = features if retArr else toStrFromList(features, prec)
+				yield feat
+
+		else:
+			#columnar data
+			dvalues = getFileColumnAsFloat(dfpath, vcol)
+			
+			#one value per window location
+			if rowWise:
+				#windowed
+				slwin = SlidingWindow(dvalues, wsize)
+				for wdata in slwin.windowGen():
+					features = self.__fft(wdata, cutoff)
+					feat = features if retArr else toStrFromList(features, prec)
+					yield feat
+			else:
+				#all data
+				features = self.__fft(dvalues, cutoff)
+				feat = features if retArr else toStrFromList(features, prec)
+				yield feat
+				
+	def __fft(self, data, cutoff):
+		"""
+		calculates FFT for each record
+		
+		Parameters
+			data : input data list like
+			cutoff : cutoff index
+		"""
+		ft = fft.rfft(np.array(data))
+		ft =  np.abs(ft)
+		return ft[:cutoff]
+		
+
