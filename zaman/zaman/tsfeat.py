@@ -41,14 +41,16 @@ class IntervalFeatureExtractor(object):
 		"""
 		Initializer
 		"""
-		pass
+		self.expl = DataExplorer()
 		
-	def featGen(self, dfpath, nintervals=None, intvmin=None, intvmax=None, intervals=None, ifpath=None, overlap=False, withLabel=True, prec=3):
+	def featGen(self, dfpath, dformat="tabular", rowWise=True, nintervals=None, intvmin=None, intvmax=None, intervals=None, ifpath=None, overlap=False, withLabel=True, prec=3,retArr=True):
 		"""
 		extracts mean, std dev and slope for multiple intervals
 		
 		Parameters
 			dfpath : data file path
+			dformat : data format tabular or single column of data
+			rowWise : True if row wise or window wise processing
 			nintervals : num of intervals
 			intvmin : interval min size
 			intvmax : interval max size
@@ -57,68 +59,131 @@ class IntervalFeatureExtractor(object):
 			overlap: if inetral overlap allowed then True
 			withLabel : True if each TS sequence is labeled
 			prec : float output precision
+			retArr ; If True returns array otherwise delem separated string
 		"""
-		for rec in fileRecGen(dfpath):
-			frec = rec[:-1] if withLabel else rec
+		if dformat == "tabular":
+			#tabluar with multiple values per row
+			allfeatures = list()
+			for rec in fileRecGen(dfpath):
+				frec = rec[:-1] if withLabel else rec
+				frec = toFloatList(frec)
+				
+				if intervals is None:
+					intervals = self.__genIntervals(len(frec), nintervals, intvmin, intvmax,  overlap)
+				
+				#stats based features
+				features = self.__getIntvFeatures(frec, intervals)
 			
+				if rowWise:
+					if withLabel:
+						features.append(rec[-1])
+					feat = features if retArr else toStrFromList(features, prec)
+					yield feat
+				else:
+					#all datra
+					allfeatures.append(features)
+				
+			if not rowWise:
+				#all data
+				features = np.mean(np.array(allfeatures), axis=0)
+				feat = features if retArr else toStrFromList(features, prec)
+				yield feat
+			
+		else:
+			#sequential data from a column
+			dvalues = getFileColumnAsFloat(dfpath, vcol)
 			if intervals is None:
-				rlen = len(frec)
-				intervals = list()
-				if overlap:
-					#interval overlap allowed
-					for i in range(nintervals):
-						intvlen = randomInt(intvmin, intvmax)
-						stmax = rlen - intvlen - 1
-						st = randomInt(0, stmax)
-						en = st + intvlen
-						intv = (st,en)
-						intervals.append(intv)
-				else:	
-					#interval overlap not allowed
-					stb = 0
-					remain = rlen
-					for i in range(nintervals):
-						remintv = nintervals - i
-						ste = stb + int((remain - remintv * intvmax) / remintv)
-						st = randomInt(stb, ste)
-						intvlen = randomInt(intvmin, intvmax)
-						#print("renmain {}  stb {}  ste {}  st {} intvlen {}".format(remain,stb,ste,st,intvlen))
-						en = st + intvlen
-						intv = (st,en)
-						intervals.append(intv)
-						stb = en + 1 
-						remain = rlen - stb
-						
+				intervals = self.__genIntervals(wsize, nintervals, intvmin, intvmax,  overlap)
 				
-			#stats based features
-			features = list()
-			for intv in intervals:
-				intvdata = frec[intv[0]:intv[1]]
-				intvdata = toFloatList(intvdata)
+			#windowed
+			allfeatures = list()
+			slwin = SlidingWindow(dvalues, wsize)
+			for wdata in slwin.windowGen():
+				features = self.__getIntvFeatures(wdata, intervals)
+				if rowWise:
+					#one value per window location
+					feat = features if retArr else toStrFromList(features, prec)
+					yield feat
+				else:
+					#all datra
+					allfeatures.append(features)
 				
-				#mean and std dev
-				mean = statistics.mean(intvdata)
-				sd = statistics.stdev(intvdata, xbar=mean)
-				
-				#slope
-				expl = DataExplorer()
-				expl.setVerbose(False)
-				expl.addListNumericData(intvdata, "mydata")
-				slope = expl.fitLinearReg("mydata")["slope"]
-				features.append(mean)
-				features.append(sd)
-				features.append(slope)
-			
-			if withLabel:
-				features.append(rec[-1])
-			feat = toStrFromList(features, prec)
-			yield feat
+			if not rowWise:
+				#all data
+				features = np.mean(np.array(allfeatures), axis=0)
+				feat = features if retArr else toStrFromList(features, prec)
+				yield feat
 			
 		if ifpath is not None:
 			with open(ifpath, "w") as fintv:
 				for intv in intervals:
 					fintv.write(str(intv[0]) + "," + str(intv[1]) + "\n")
 
+	def __genIntervals(self, rlen, nintervals, intvmin, intvmax,  overlap):
+		"""
+		generate intervals
+		
+		Parameters
+			rlen : data array size
+			nintervals : num of intervals
+			intvmin : interval min size
+			intvmax : interval max size
+			overlap: if inetral overlap allowed then True
+		"""
+		intervals = list()
+		if overlap:
+			#interval overlap allowed
+			for i in range(nintervals):
+				intvlen = randomInt(intvmin, intvmax)
+				stmax = rlen - intvlen - 1
+				st = randomInt(0, stmax)
+				en = st + intvlen
+				intv = (st,en)
+				intervals.append(intv)
+		else:	
+			#interval overlap not allowed
+			stb = 0
+			remain = rlen
+			for i in range(nintervals):
+				remintv = nintervals - i
+				ste = stb + int((remain - remintv * intvmax) / remintv)
+				st = randomInt(stb, ste)
+				intvlen = randomInt(intvmin, intvmax)
+				#print("renmain {}  stb {}  ste {}  st {} intvlen {}".format(remain,stb,ste,st,intvlen))
+				en = st + intvlen
+				intv = (st,en)
+				intervals.append(intv)
+				stb = en + 1 
+				remain = rlen - stb
+		
+		return intervals
+		
+	def __getIntvFeatures(self, data, intervals):
+		"""
+		generate interval features
+		
+		Parameters
+			data : data array
+			intervals : interval indexes
+		"""
+		
+		features = list()
+		for intv in intervals:
+			intvdata = data[intv[0]:intv[1]]
+				
+			#mean and std dev
+			mean = statistics.mean(intvdata)
+			sd = statistics.stdev(intvdata, xbar=mean)
+				
+			#slope
+			self.expl.setVerbose(False)
+			self.expl.addListNumericData(intvdata, "mydata")
+			slope = self.expl.fitLinearReg("mydata")["slope"]
+			features.append(mean)
+			features.append(sd)
+			features.append(slope)
+	
+		return features
 				
 """
 quantization and histogram based feature extraction

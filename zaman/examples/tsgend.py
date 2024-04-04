@@ -195,8 +195,9 @@ if __name__ == "__main__":
 		if args.nintervals > 0:
 			ifpath = None if args.ifpath == "none" else args.ifpath
 			overlap = True if args.overlap == "true" else False
+			
 			for frec in intvFeat.featGen(args.dfpath, nintervals=args.nintervals, intvmin=args.intvmin, intvmax=args.intvmax, 
-			ifpath=ifpath, overlap=overlap, prec=args.prec):
+			ifpath=ifpath, overlap=overlap, prec=args.prec,retArr=False):
 				print(frec)
 		else:
 			intervals = list()

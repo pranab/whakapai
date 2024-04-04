@@ -443,6 +443,22 @@ class FeatureBasedAnomaly:
 			
 			if self.verbose:
 				print("norm features {}".format(str(self.nfeature)))
+		
+		elif self.config.getStringConfig("common.feat.type")[0] == "seqstat":
+			#subsequence statistic
+			fextractor = IntervalFeatureExtractor()
+			nintervals = self.config.getIntConfig("train.seqstat.ninterval")[0]
+			intvmin = self.config.getIntConfig("train.seqstat.intvmin")[0]
+			intvmax = self.config.getIntConfig("train.seqstat.intvmax")[0]
+			ifpath = self.config.getStringConfig("train.seqstat.ifpath")[0]
+			overlap = self.config.getBooleanConfig("train.seqstat.ifpath")[0]
+			
+			for f in fextractor.featGen(dfpath, dformat="columnar", rowWise=False, nintervals=nintervals, intvmin=intvmin, 
+			intvmax=intvmax, ifpath=ifpath, overlap=overlap, withLabel=False):
+				self.nfeature = f
+			
+			if self.verbose:
+				print("norm features {}".format(str(self.nfeature)))
 			
 		else:
 			exitWithMsg("invalid feature technique")
@@ -464,8 +480,9 @@ class FeatureBasedAnomaly:
 		dmetric = self.config.getStringConfig("pred.dist.metric")[0]
 
 		result = list()
+		
+		#histogram
 		if self.config.getStringConfig("common.feat.type")[0] == "hist":
-			#histogram
 			fextractor = QuantizedFeatureExtractor()
 			nbins = self.config.getIntConfig("train.hist.nbins")[0]
 			
@@ -485,8 +502,8 @@ class FeatureBasedAnomaly:
 				i += 1
 				result.append(r)
 		
+		#fft
 		elif self.config.getStringConfig("common.feat.type")[0] == "fft":
-			#fft
 			fextractor = FourierTransformFeatureExtractor()
 			cutoff = self.config.getIntConfig("train.fft.cutoff")[0]
 			
@@ -503,6 +520,30 @@ class FeatureBasedAnomaly:
 				r = [tsv[i], dist, ano]
 				i += 1
 				result.append(r)
+
+		#sub sequence stats
+		elif self.config.getStringConfig("common.feat.type")[0] == "seqstat":
+			fextractor = IntervalFeatureExtractor()
+			ifpath = self.config.getStringConfig("train.seqstat.ifpath")[0]
+			intervals = list()
+			for r in fileRecGen(args.ifpath):
+				intv = (int(r[0]), int(r[1]))
+				intervals.append(intv)
+			
+			for fe in fextractor.featGen(dfpath, dformat="columnar", intervals=intervals,  withLabel=False):
+				if dmetric == "l1":
+					dist = manhattanDistance(fe, self.nfeature)
+				elif dmetric == "l2":
+					dist = euclideanDistance(fe, self.nfeature)
+				else:
+					exitWithMsg("invalid distance metric")
+				dist /= wsize
+
+				ano = 1 if dist > threshold else 0
+				r = [tsv[i], dist, ano]
+				i += 1
+				result.append(r)
+			
 
 		else:
 			exitWithMsg("invalid feature technique")
