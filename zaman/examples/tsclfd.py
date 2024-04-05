@@ -21,6 +21,7 @@ from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
 from torvik.nntuner import *
+from torvik.tnn import *
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
