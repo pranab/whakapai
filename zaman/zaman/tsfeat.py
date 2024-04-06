@@ -43,7 +43,8 @@ class IntervalFeatureExtractor(object):
 		"""
 		self.expl = DataExplorer()
 		
-	def featGen(self, dfpath, dformat="tabular", rowWise=True, nintervals=None, intvmin=None, intvmax=None, intervals=None, ifpath=None, overlap=False, withLabel=True, prec=3,retArr=True):
+	def featGen(self, dfpath, dformat="tabular", rowWise=True, nintervals=None, intvmin=None, intvmax=None, intervals=None, 
+	ifpath=None, overlap=False, withLabel=True, prec=3, wsize=50, pstep=1, retArr=True):
 		"""
 		extracts mean, std dev and slope for multiple intervals
 		
@@ -59,6 +60,8 @@ class IntervalFeatureExtractor(object):
 			overlap: if inetral overlap allowed then True
 			withLabel : True if each TS sequence is labeled
 			prec : float output precision
+			wsize : sliding window size
+			pstep : sliding window processing step
 			retArr ; If True returns array otherwise delem separated string
 		"""
 		if dformat == "tabular":
@@ -97,7 +100,7 @@ class IntervalFeatureExtractor(object):
 				
 			#windowed
 			allfeatures = list()
-			slwin = SlidingWindow(dvalues, wsize)
+			slwin = SlidingWindow(dvalues, wsize, pstep)
 			for wdata in slwin.windowGen():
 				features = self.__getIntvFeatures(wdata, intervals)
 				if rowWise:
@@ -240,7 +243,8 @@ class QuantizedFeatureExtractor(object):
 		re = (dminv, bwidth)
 		return re
 		
-	def featGen(self, dfpath, vmin, bwidth, dformat="tabular", vcol=1, nbins=10,  histType="uniform", rowWise=True, withLabel=True, prec=3, wsize=50, retArr=True):
+	def featGen(self, dfpath, vmin, bwidth, dformat="tabular", vcol=1, nbins=10,  histType="uniform", rowWise=True, 
+	withLabel=True, prec=3, wsize=50, retArr=True):
 		"""
 		calculates histogram for each record
 		

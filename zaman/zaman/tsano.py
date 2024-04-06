@@ -389,10 +389,16 @@ class FeatureBasedAnomaly:
 		defValues["train.hist.nbins"] = (10, None)
 		defValues["train.hist.type"] = ("uniform", None)
 		defValues["train.fft.cutoff"] = (None, None)
+		defValues["train.seqstat.nintervals"] = (3, None)
+		defValues["train.seqstat.intvmin"] = (None, None)
+		defValues["train.seqstat.intvmax"] = (None, None)
+		defValues["train.seqstat.ifpath"] = (None, None)
+		defValues["train.seqstat.overlap"] = (False, None)
 		defValues["pred.data.file"] = (None, None)
 		defValues["pred.data.field"] = (None, None)
 		defValues["pred.ts.field"] = (0, None)
 		defValues["pred.window.size"] = (50, None)
+		defValues["pred.window.pstep"] = (1, None)
 		defValues["pred.ano.threshold"] = (None, "missing threshold")
 		defValues["pred.dist.metric"] = ("l1", None)
 		defValues["pred.output.file"] = (None, None)
@@ -447,11 +453,11 @@ class FeatureBasedAnomaly:
 		elif self.config.getStringConfig("common.feat.type")[0] == "seqstat":
 			#subsequence statistic
 			fextractor = IntervalFeatureExtractor()
-			nintervals = self.config.getIntConfig("train.seqstat.ninterval")[0]
+			nintervals = self.config.getIntConfig("train.seqstat.nintervals")[0]
 			intvmin = self.config.getIntConfig("train.seqstat.intvmin")[0]
 			intvmax = self.config.getIntConfig("train.seqstat.intvmax")[0]
 			ifpath = self.config.getStringConfig("train.seqstat.ifpath")[0]
-			overlap = self.config.getBooleanConfig("train.seqstat.ifpath")[0]
+			overlap = self.config.getBooleanConfig("train.seqstat.overlap")[0]
 			
 			for f in fextractor.featGen(dfpath, dformat="columnar", rowWise=False, nintervals=nintervals, intvmin=intvmin, 
 			intvmax=intvmax, ifpath=ifpath, overlap=overlap, withLabel=False):
@@ -524,13 +530,15 @@ class FeatureBasedAnomaly:
 		#sub sequence stats
 		elif self.config.getStringConfig("common.feat.type")[0] == "seqstat":
 			fextractor = IntervalFeatureExtractor()
+			pstep = self.config.getIntConfig("pred.window.pstep")[0]
+
 			ifpath = self.config.getStringConfig("train.seqstat.ifpath")[0]
 			intervals = list()
 			for r in fileRecGen(args.ifpath):
 				intv = (int(r[0]), int(r[1]))
 				intervals.append(intv)
 			
-			for fe in fextractor.featGen(dfpath, dformat="columnar", intervals=intervals,  withLabel=False):
+			for fe in fextractor.featGen(dfpath, dformat="columnar", intervals=intervals,  withLabel=False, wsize=wsize, pstep=pstep):
 				if dmetric == "l1":
 					dist = manhattanDistance(fe, self.nfeature)
 				elif dmetric == "l2":
