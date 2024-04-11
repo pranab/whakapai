@@ -283,7 +283,8 @@ class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
 	"""
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=None, policy=None, onPolicy=False, logFilePath=None, logLevName=None):
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=None, 
+	policy=None, onPolicy=False, invalidStateActiins=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
 		
@@ -298,6 +299,7 @@ class TempDifferenceControl:
 			qvPath : state action  values file path
 			policy : current policy (optional)
 			onPolicy : True if on policy
+			invalidStateActiins : list of invalid state action tuples
 			logFilePath : log file path
 			logLevName : log level
 		"""
@@ -307,6 +309,14 @@ class TempDifferenceControl:
 			for s in states:
 				avalues = list(map(lambda a : [a, randomFloat(.01, .10)], actions))
 				self.qvalues[s] = avalues
+			
+			#in=valid state actions	
+			for (s,a) in invalidStateActiins:
+				for i in range(len(self.qvalues[s])):
+					if self.qvalues[s][i][0] == a:
+						self.qvalues[s][i][1] = 0
+						break
+				
 		else:
 			self.qvalues = restoreObject(qvPath)
 		
@@ -332,6 +342,8 @@ class TempDifferenceControl:
 		self.state = istate
 		self.action = None
 		self.onPolicy = onPolicy
+		self.visitedStates = [self.state]
+		self.self.stateActions = dict()
 		
 		self.logger = None
 		if logFilePath is not None: 		
@@ -343,6 +355,7 @@ class TempDifferenceControl:
 		get action for current state
 		"""
 		self.action =  self.policy.getAction(self.state)
+		appendKeyedList(self.stateActions, self.state, self.action)
 		return self.action
 
 	def setReward(self, reward, nstate):
@@ -383,6 +396,10 @@ class TempDifferenceControl:
 				a[1] += delta
 				qval = a[1]
 				break
+		
+		#visited states	
+		self.visitedStates.append(nstate)
+
 		self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
 		self.state = nstate
 		
@@ -412,3 +429,102 @@ class TempDifferenceControl:
 			fpath : file path
 		"""
 		saveObject(self.qvalues, fpath)
+		
+class DynaQvalue(TempDifferenceControl):
+	"""
+	Dyna Q
+	"""
+	
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=None, 
+	policy=None, onPolicy=False, invalidStateActiins=None, logFilePath=None, logLevName=None):
+		"""
+		initializer
+		
+		Parameters
+			states : all states
+			actions : all actions
+			banditAlgo : bandit algo (rg, ucb)
+			banditParams : bandit algo params
+			lrate : learning rate
+			dfactor : discount factor
+			istate : initial state
+			qvPath : state action  values file path
+			policy : current policy (optional)
+			onPolicy : True if on policy
+			invalidStateActiins : list of invalid state action tuples
+			logFilePath : log file path
+			logLevName : log level
+		"""
+		super(TempDifferenceControl, self).__init__(states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=qvPath, 
+		invalidStateActiins=invalidStateActiins, logFilePath=logFilePath, logLevName=logLevName)	
+		self.model = dict()
+
+	def setReward(self, reward, nstate):
+		"""
+		sets reward
+		
+		Parameters
+			rwarde : reward
+			nstate : next state
+		"""
+		self.model[(self.state, self.action)] = (nstate, reward)
+		super().setReward(reward, nstate)
+		
+	def simulate(self):
+		"""
+		initializer
+		
+		Parameters
+		
+		"""
+		#some state visited earlier
+		st = selectRandomFromList(self.visitedStates)
+		
+		#some action from that state
+		ac = selectRandomFromList(self.stateActions[s])
+		
+		#next state and reward
+		ns, re = self.model[(s, a)]
+		
+		#current q value
+		cv = None
+		for a in self.qvalues[st]:
+			if a[0] == ac:
+				cv = a[1]
+				break
+
+		#off policy with action for max q value
+		nmv = 0	
+		for a in self.qvalues[ns]:
+			if a[1] > nmv:
+				nmv = a[1]
+		
+		#update
+		delta = self.lrate * (re + self.dfactor * nmv - cv)
+		for a in self.qvalues[st]:
+			if a[0] == ac:
+				a[1] += delta
+				break
+		
+	def train(self, niter, siter, env):	
+		"""
+		train model
+		
+		Parameters
+			niter : num of iterations
+			siter : num of simulation iteration
+			env : environment
+		"""
+		#iteration count for boot strapping
+		biter = int(.1 * niter)
+		
+		for i in range(niter):
+			ac = self.getAction()
+			nst, re = env.getReward(self.state, self.action)
+			self.setReward(re, nst)
+			
+			#model based simulation
+			if i > biter:
+				for j in range(siter):
+					self.simulate()
+			
