@@ -269,13 +269,14 @@ class MultiArmBandit:
 		
 class Policy:
 	"""
-	deterministic policy
+	deterministicor probabilistic policy
 	"""
 	def __init__(self, deterministic,  *stateActions):
 		"""
 		initializer
 		
 		Parameters
+			deterministic : True if policy deterministic
 			stateActions : state and action tuple list
 		"""
 		self.deterministic = deterministic
@@ -302,3 +303,24 @@ class Policy:
 		get all states
 		"""
 		return self.stateActions.keys()
+
+class Environment:
+	"""
+	Environment base class
+	"""
+	def __init__(self):
+		"""
+		initializer
+		
+		"""
+		pass
+		
+	def getReward(self, state, action):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+		"""
+		return None
