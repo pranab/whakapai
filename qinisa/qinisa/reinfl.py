@@ -23,8 +23,8 @@ import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from .rlba import *
-from .mab import *
+from qinisa.rlba import *
+from qinisa.mab import *
 
 class TempDifferenceValue:
 	"""
@@ -283,7 +283,7 @@ class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
 	"""
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=None, 
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate=None, qvPath=None, 
 	policy=None, onPolicy=False, invalidStateActiins=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
@@ -296,6 +296,7 @@ class TempDifferenceControl:
 			lrate : learning rate
 			dfactor : discount factor
 			istate : initial state
+			gstate : goa; state
 			qvPath : state action  values file path
 			policy : current policy (optional)
 			onPolicy : True if on policy
@@ -311,14 +312,18 @@ class TempDifferenceControl:
 				self.qvalues[s] = avalues
 			
 			#in=valid state actions	
-			for (s,a) in invalidStateActiins:
-				for i in range(len(self.qvalues[s])):
-					if self.qvalues[s][i][0] == a:
-						self.qvalues[s][i][1] = 0
-						break
+			if invalidStateActiins is not None:
+				for (s,a) in invalidStateActiins:
+					for i in range(len(self.qvalues[s])):
+						if self.qvalues[s][i][0] == a:
+							self.qvalues[s][i][1] = -sys.float_info.max
+							break
 				
 		else:
 			self.qvalues = restoreObject(qvPath)
+		
+		
+		self.invalidStateActiins = invalidStateActiins
 		
 		if banditAlgo == "rg":
 			#random greedy
@@ -326,7 +331,7 @@ class TempDifferenceControl:
 			pol = policy if policy is not None else None
 			self.policy = RandomGreedyPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, policy=pol, 
 			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"], nonGreedyActions=banditParams["nonGreedyActions"])
-		if banditAlgo == "boltz":
+		elif banditAlgo == "boltz":
 			#boltzman
 			qvalues = self.qvalues 
 			self.policy = BoltzmanPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, 
@@ -335,15 +340,17 @@ class TempDifferenceControl:
 			#ucb
 			self.policy = UpperConfBoundPolicy(qvalues)
 		else:
-			exitWithMsg("invalid bandit algo")
+			exitWithMsg("invalid bandit algo " + banditAlgo)
 			
 		self.lrate = lrate
 		self.dfactor = dfactor
 		self.state = istate
+		self.istate = istate
+		self.gstate = gstate
 		self.action = None
 		self.onPolicy = onPolicy
 		self.visitedStates = [self.state]
-		self.self.stateActions = dict()
+		self.stateActions = dict()
 		
 		self.logger = None
 		if logFilePath is not None: 		
@@ -354,7 +361,18 @@ class TempDifferenceControl:
 		"""
 		get action for current state
 		"""
-		self.action =  self.policy.getAction(self.state)
+		acCnt = 0
+		while True:
+			self.action =  self.policy.getAction(self.state)
+			sa = (self.state, self.action)
+			if self.invalidStateActiins is not None and sa in self.invalidStateActiins:
+				acCnt += 1
+				if acCnt == 100:
+					exitWithMsg("failed to select valid actions after 100 tries")
+				continue
+			else:
+				break
+
 		appendKeyedList(self.stateActions, self.state, self.action)
 		return self.action
 
@@ -384,11 +402,12 @@ class TempDifferenceControl:
 					break
 		else:
 			#off policy with action for max q value
-			nmv = 0	
+			nmv = None
 			for a in self.qvalues[nstate]:
-				if a[1] > nmv:
+				if nmv is None or a[1] > nmv:
 					nmv = a[1]
 
+		#update Q value
 		delta = self.lrate * (reward + self.dfactor * nmv - cv)
 		qval = 0
 		for a in self.qvalues[self.state]:
@@ -400,7 +419,8 @@ class TempDifferenceControl:
 		#visited states	
 		self.visitedStates.append(nstate)
 
-		self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
+		if self.logger is not None:
+			self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
 		self.state = nstate
 		
 	def getPolicy(self):
@@ -410,16 +430,36 @@ class TempDifferenceControl:
 		policy = dict()
 		for st in self.states:
 			actions = self.qvalues[st]
-			self.logger.info("state {}   actions {}".format(st, str(actions)))
-			vmax = 0
+			if self.logger is not None:
+				self.logger.info("state {}   actions {}".format(st, str(actions)))
+			vmax = None
 			sact = None
 			for a in actions:
-				if a[1] > vmax:
+				if vmax is None or a[1] > vmax:
 					sact = a[0]
 					vmax = a[1]
 			policy[st] = sact
 		
 		return policy
+
+	def train(self, niter, env):	
+		"""
+		train model
+		
+		Parameters
+			niter : num of iterations
+			env : environment
+		"""
+		for i in range(niter):
+			ac = self.getAction()
+			nst, re = env.getReward(self.state, self.action)
+			self.setReward(re, nst)
+			
+			#back to intial state if goal state vreached
+			if self.gstate is not None and  nst == self.gstate:
+				self.state = istate
+				if self.logger is not None:
+					self.logger.info("reset to intial state")
 		
 	def save(self, fpath):
 		"""
@@ -435,8 +475,8 @@ class DynaQvalue(TempDifferenceControl):
 	Dyna Q
 	"""
 	
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=None, 
-	policy=None, onPolicy=False, invalidStateActiins=None, logFilePath=None, logLevName=None):
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate=None, qvPath=None, 
+	invalidStateActiins=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
 		
@@ -455,7 +495,7 @@ class DynaQvalue(TempDifferenceControl):
 			logFilePath : log file path
 			logLevName : log level
 		"""
-		super(TempDifferenceControl, self).__init__(states, actions, banditAlgo, banditParams, lrate, dfactor, istate, qvPath=qvPath, 
+		super(DynaQvalue, self).__init__(states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate, qvPath=qvPath, 
 		invalidStateActiins=invalidStateActiins, logFilePath=logFilePath, logLevName=logLevName)	
 		self.model = dict()
 
@@ -479,12 +519,15 @@ class DynaQvalue(TempDifferenceControl):
 		"""
 		#some state visited earlier
 		st = selectRandomFromList(self.visitedStates)
+		if self.gstate is not None:
+			while st == self.gstate:
+				st = selectRandomFromList(self.visitedStates)
 		
 		#some action from that state
-		ac = selectRandomFromList(self.stateActions[s])
+		ac = selectRandomFromList(self.stateActions[st])
 		
 		#next state and reward
-		ns, re = self.model[(s, a)]
+		ns, re = self.model[(st, ac)]
 		
 		#current q value
 		cv = None
@@ -494,9 +537,9 @@ class DynaQvalue(TempDifferenceControl):
 				break
 
 		#off policy with action for max q value
-		nmv = 0	
+		nmv = None	
 		for a in self.qvalues[ns]:
-			if a[1] > nmv:
+			if nmv is None or a[1] > nmv:
 				nmv = a[1]
 		
 		#update
@@ -504,7 +547,11 @@ class DynaQvalue(TempDifferenceControl):
 		for a in self.qvalues[st]:
 			if a[0] == ac:
 				a[1] += delta
+				qval = a[1]
 				break
+		
+		if self.logger is not None:
+			self.logger.info("model simulation state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(st, ac, delta, qval))
 		
 	def train(self, niter, siter, env):	
 		"""
@@ -522,6 +569,13 @@ class DynaQvalue(TempDifferenceControl):
 			ac = self.getAction()
 			nst, re = env.getReward(self.state, self.action)
 			self.setReward(re, nst)
+			
+			#back to intial state if goal state vreached
+			if self.gstate is not None and nst == self.gstate:
+				self.state = self.istate
+				if self.logger is not None:
+					self.logger.info("reset to intial state")
+				
 			
 			#model based simulation
 			if i > biter:

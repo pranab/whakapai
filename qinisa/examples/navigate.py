@@ -36,6 +36,8 @@ class MapEnv(Environment):
 		"""
 		initializer
 		"""
+		self.states = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"]
+		
 		#path distances
 		self.dist = dict()
 		self.dist[("A", "B")] = 1.2
@@ -95,14 +97,27 @@ class MapEnv(Environment):
 		self.stre[("I", "L")] = ["L"]
 		self.stre[("L", "M")] = ["M"]
 		
+		#add reverse paths
+		revstre = dict()
+		for k in self.stre.keys():
+			if k[1] != "G":
+				nk = (k[1], k[0])
+				revstre[nk] = [k[0]]
+		self.stre.update(revstre)
+		
 		#reward
+		print("reward and next state")
 		for k in self.stre.keys():
 			#print(k)
 			cs = k[0]
 			ac = k[1]
+			print(cs, ac)
 			re = self.reward(cs, ac)
 			self.stre[k].append(re)
+			print(self.stre[k])
 			
+		self.findInvalidActions()
+		
 		super(Environment, self).__init__()
 
 	def reward(self, cs, ac):
@@ -121,7 +136,7 @@ class MapEnv(Environment):
 			dns = self.findDist(self.dist, cs, ns)
 			dct = self.findDist(self.sldist, cs, "G")
 			dnt = self.findDist(self.sldist, ns, "G")
-			re = 0.3 * dct / (dns + dnt)
+			re = 0.5 * dct / (dns + dnt)
 		print("cs {}  ns {}  re {:.3f}".format(cs, ns, re))
 		return re
 		
@@ -137,19 +152,72 @@ class MapEnv(Environment):
 		d = distances[(cs,ns)] if (cs,ns) in distances else distances[(ns, cs)]
 		return d
 		
+	def findInvalidActions(self):
+		"""
+		find invalid actions
+		
+		"""
+		self.invalidActions = list()
+		nums = len(self.states)
+		for i in range(nums):
+			for j in range(i, nums, 1):
+				k = (self.states[i], self.states[j])
+				if k not in self.dist:
+					self.invalidActions.append(k)
+					if i != j:
+						self.invalidActions.append((self.states[j], self.states[i]))
+		
+		print("invalid actions")
+		for inv in self.invalidActions:
+			print(inv)	
+				
+	def getReward(self, state, action):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+		"""
+		print(state, action)
+		k = (state, action)
+		return self.stre[k]
+		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--op', type=str, default = "none", help = "operation")
 	parser.add_argument('--niter', type=int, default = 100, help = "num of of iteration")
-	parser.add_argument('--nmiter', type=int, default = 10, help = "num of of model iteration")
+	parser.add_argument('--siter', type=int, default = 10, help = "num of of model simulatiom iteration")
 	parser.add_argument('--cs', type=str, default = "none", help = "current state")
 	parser.add_argument('--ac', type=str, default = "none", help = "action")
+	parser.add_argument('--lrate', type=float, default = 0.1, help = "learning rate")
+	parser.add_argument('--dfactor', type=float, default = 0.9, help = "decay rate")
+	parser.add_argument('--bandit', type=str, default = "rg", help = "bandit algorithm")
+	parser.add_argument('--eps', type=float, default = 0.1, help = "bandit algo epsilon")
+	parser.add_argument('--eprpol', type=str, default = "linear", help = "bandit algo eps reduction policy")
 	args = parser.parse_args()
 	op = args.op
 	
 	menv = MapEnv()
+	
 	if op == "reward":
 		r = menv.reward(args.cs, args.ac)
 		print("reward {:.3f}".format(r))
 		
-	
+	elif op == "train":
+		banditParams = dict()
+		banditParams["epsilon"] = args.eps
+		banditParams["redPolicy"] = args.eprpol
+		banditParams["redParam"] = None
+		banditParams["nonGreedyActions"] = None
+			
+		model = DynaQvalue(menv.states, menv.states, args.bandit, banditParams, args.lrate, args.dfactor, "A", "G",
+		invalidStateActiins = menv.invalidActions)
+		model.train(args.niter, args.siter, menv)
+		policy = model.getPolicy()
+		print("policy")
+		for s in policy.keys():
+			print(s, policy[s])
+		
+	else:
+		exitWithMsg("invalid command")
