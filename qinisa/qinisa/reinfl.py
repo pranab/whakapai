@@ -308,7 +308,7 @@ class TempDifferenceControl:
 		if qvPath is None:
 			self.qvalues = dict()
 			for s in states:
-				avalues = list(map(lambda a : [a, randomFloat(.01, .10)], actions))
+				avalues = list(map(lambda a : [a, randomFloat(.01, .05)], actions))
 				self.qvalues[s] = avalues
 			
 			#in=valid state actions	
@@ -351,6 +351,7 @@ class TempDifferenceControl:
 		self.onPolicy = onPolicy
 		self.visitedStates = [self.state]
 		self.stateActions = dict()
+		self.qvalUpdates = list()
 		
 		self.logger = None
 		if logFilePath is not None: 		
@@ -416,6 +417,9 @@ class TempDifferenceControl:
 				qval = a[1]
 				break
 		
+		#qvalue update history
+		self.qvalUpdates.append(delta)
+		
 		#visited states	
 		self.visitedStates.append(nstate)
 
@@ -423,23 +427,62 @@ class TempDifferenceControl:
 			self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
 		self.state = nstate
 		
-	def getPolicy(self):
+	def getPolicy(self, env):
 		"""
 		get policy from qvaluese
+		
+		Parameters
+			env : environment
 		"""
 		policy = dict()
-		for st in self.states:
-			actions = self.qvalues[st]
-			if self.logger is not None:
-				self.logger.info("state {}   actions {}".format(st, str(actions)))
-			vmax = None
-			sact = None
-			for a in actions:
-				if vmax is None or a[1] > vmax:
-					sact = a[0]
-					vmax = a[1]
-			policy[st] = sact
 		
+		if self.gstate is None:
+			#generic task
+			for st in self.states:
+				actions = self.qvalues[st]
+				if self.logger is not None:
+					self.logger.info("state {}   actions {}".format(st, str(actions)))
+				vmax = None
+				sact = None
+				for a in actions:
+					if vmax is None or a[1] > vmax:
+						sact = a[0]
+						vmax = a[1]
+				policy[st] = sact
+		else:
+			#goal state based task
+			states = list()
+			st = self.istate
+			states.append(st)
+			stcnt = 0
+			while st != self.gstate:
+				actions = self.qvalues[st]
+				sactions = sorted(actions, key=takeSecond, reverse=True)
+				
+				found = False
+				for ac, _ in sactions:
+					sa = (st, ac)
+					if self.invalidStateActiins is not None and sa in self.invalidStateActiins:
+						continue
+				
+					nst, re = env.getReward(st, ac) 
+					if nst in states:
+						continue
+					else:
+						if self.logger is not None:
+							self.logger.info("state {}   action {}".format(st, ac))
+						policy[st] = ac
+						st = nst
+						states.append(st)
+						found = True
+						break
+				if not found:
+					exitWithMsg("failed to find action for state " + st)
+				
+				stcnt += 1
+				if stcnt == 100:
+					exitWithMsg("failed to find policy with goal state defined")
+					
 		return policy
 
 	def train(self, niter, env):	
@@ -461,6 +504,13 @@ class TempDifferenceControl:
 				if self.logger is not None:
 					self.logger.info("reset to intial state")
 		
+	def getQvalUpdates(self):
+		"""
+		return qvalue update history
+		
+		"""
+		return self.qvalUpdates
+	
 	def save(self, fpath):
 		"""
 		saves object

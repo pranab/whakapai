@@ -24,7 +24,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from qinisa.reinfl import *
+from reinfl import *
 from qinisa.rlba import *
 
 """
@@ -75,6 +75,7 @@ class MapEnv(Environment):
 		self.sldist[("L", "G")] = 2.65
 		self.sldist[("M", "G")] = 1.70
 		
+		self.stsldist = self.sldist[("A", "G")]
 		
 		#next state and reward based on state and action
 		self.stre = dict()
@@ -84,6 +85,7 @@ class MapEnv(Environment):
 		self.stre[("B", "D")] = ["D"]
 		self.stre[("B", "F")] = ["F"]
 		self.stre[("C", "D")] = ["D"]
+		self.stre[("C", "E")] = ["E"]
 		self.stre[("C", "L")] = ["L"]
 		self.stre[("D", "E")] = ["E"]
 		self.stre[("D", "G")] = ["G"]
@@ -92,6 +94,7 @@ class MapEnv(Environment):
 		self.stre[("F", "G")] = ["G"]
 		self.stre[("F", "J")] = ["J"]
 		self.stre[("H", "M")] = ["M"]
+		self.stre[("H", "G")] = ["G"]
 		self.stre[("I", "J")] = ["J"]
 		self.stre[("I", "K")] = ["K"]
 		self.stre[("I", "L")] = ["L"]
@@ -133,10 +136,9 @@ class MapEnv(Environment):
 		if ns == "G":
 			re = 1.0
 		else:
-			dns = self.findDist(self.dist, cs, ns)
-			dct = self.findDist(self.sldist, cs, "G")
 			dnt = self.findDist(self.sldist, ns, "G")
-			re = 0.5 * dct / (dns + dnt)
+			re = 0.3 * (self.stsldist - dnt) / self.stsldist
+			
 		print("cs {}  ns {}  re {:.3f}".format(cs, ns, re))
 		return re
 		
@@ -214,10 +216,13 @@ if __name__ == "__main__":
 		model = DynaQvalue(menv.states, menv.states, args.bandit, banditParams, args.lrate, args.dfactor, "A", "G",
 		invalidStateActiins = menv.invalidActions)
 		model.train(args.niter, args.siter, menv)
-		policy = model.getPolicy()
+		policy = model.getPolicy(menv)
 		print("policy")
 		for s in policy.keys():
 			print(s, policy[s])
+			
+		qvs = model.getQvalUpdates()
+		drawPlot(None, qvs, "iteration", "Q Value Update")
 		
 	else:
 		exitWithMsg("invalid command")
