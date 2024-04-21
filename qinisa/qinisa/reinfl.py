@@ -23,8 +23,8 @@ import statistics
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from qinisa.rlba import *
-from qinisa.mab import *
+from .rlba import *
+from .mab import *
 
 class TempDifferenceValue:
 	"""

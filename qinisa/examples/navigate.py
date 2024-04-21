@@ -24,7 +24,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from reinfl import *
+from qinisa.reinfl import *
 from qinisa.rlba import *
 
 """
@@ -121,7 +121,7 @@ class MapEnv(Environment):
 			
 		self.findInvalidActions()
 		
-		super(Environment, self).__init__()
+		super(MapEnv, self).__init__()
 
 	def reward(self, cs, ac):
 		"""
@@ -197,6 +197,11 @@ if __name__ == "__main__":
 	parser.add_argument('--bandit', type=str, default = "rg", help = "bandit algorithm")
 	parser.add_argument('--eps', type=float, default = 0.1, help = "bandit algo epsilon")
 	parser.add_argument('--eprpol', type=str, default = "linear", help = "bandit algo eps reduction policy")
+	parser.add_argument('--eprp', type=float, default = .001, help = "bandit algo epsilon reduction parameter")
+	parser.add_argument('--savefp', type=str, default = "none", help = "model save file")
+	parser.add_argument('--restorefp', type=str, default = "none", help = "model restore file path")
+	parser.add_argument('--logfp', type=str, default = "none", help = "log file path")
+	parser.add_argument('--loglev', type=str, default = "none", help = "log level")
 	args = parser.parse_args()
 	op = args.op
 	
@@ -210,11 +215,12 @@ if __name__ == "__main__":
 		banditParams = dict()
 		banditParams["epsilon"] = args.eps
 		banditParams["redPolicy"] = args.eprpol
-		banditParams["redParam"] = None
+		banditParams["redParam"] = args.eprp if args.eprpol == "stepred" else None
 		banditParams["nonGreedyActions"] = None
-			
+		
+		qvPath = args.restorefp if args.restorefp != "none" else None	
 		model = DynaQvalue(menv.states, menv.states, args.bandit, banditParams, args.lrate, args.dfactor, "A", "G",
-		invalidStateActiins = menv.invalidActions)
+		qvPath=qvPath, invalidStateActiins = menv.invalidActions)
 		model.train(args.niter, args.siter, menv)
 		policy = model.getPolicy(menv)
 		print("policy")
@@ -224,5 +230,8 @@ if __name__ == "__main__":
 		qvs = model.getQvalUpdates()
 		drawPlot(None, qvs, "iteration", "Q Value Update")
 		
+		if args.savefp != "none":
+			model.save(args.savefp)
+
 	else:
 		exitWithMsg("invalid command")

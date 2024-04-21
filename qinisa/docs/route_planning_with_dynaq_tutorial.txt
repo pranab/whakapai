@@ -1,0 +1,49 @@
+This tutorial is for route planning  using DynaQ reinforcement learning algorithm.
+
+
+Setup
+=====
+Install matumizi which is a package for data exploration and various other utilities
+pip3 install -i https://test.pypi.org/simple/ matumizi==0.1.1
+
+Install reinforcement learning package qinisa
+pip3 install -i https://test.pypi.org/simple/ qinisa==0.0.5
+
+It's recommended that you copy navigate.py  to a working directory and work  from there. Make sure the 
+sub directories "model", "log" exist under the working directory
+
+Environment class
+=================
+you need to define a class derived from the base class Environment. In our case it's the MapEnv. It needs to
+implement a method as below to return reward and next state, given current state and action as input
+
+	def getReward(self, state, action):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+		"""
+
+
+Run 
+===
+
+python3 ./navigate.py --op train --niter 300 --siter 10 --lrate 0.1  --dfactor 0.9 --bandit rg --eps 0.2 --eprpol loglinear
+
+where
+
+niter = num of iteration
+siter = num of iterations for model simulation
+lrate = learning rate 
+dfactor = discount factor
+bandit = bandit algo
+eps = epsilon in random greedy bandit
+eprpol = epsilon reduction policy with values stepred, linear, logLinear
+eprp = epsilon step reduction value used only when eprpol = stepred
+savefp = model save file path (not used here)
+restorefp = model restore file path (not used here)
+logfp = log file path (not used here)
+loglev = log level (not used here)
+
