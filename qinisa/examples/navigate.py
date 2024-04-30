@@ -40,19 +40,20 @@ class MapEnv(Environment):
 		
 		#path distances
 		self.dist = dict()
-		self.dist[("A", "B")] = 1.2
-		self.dist[("A", "C")] = 1.4
+		self.dist[("A", "B")] = 1.3
+		self.dist[("A", "C")] = 1.2
 		self.dist[("A", "I")] = 1.4
-		self.dist[("B", "D")] = 1.3
+		self.dist[("B", "D")] = 1.8
 		self.dist[("B", "F")] = 1.6
 		self.dist[("C", "D")] = 1.7
-		self.dist[("C", "L")] = 1.5
+		self.dist[("C", "E")] = 1.5
 		self.dist[("D", "E")] = 1.1
 		self.dist[("D", "G")] = 1.0
 		self.dist[("E", "H")] = 1.7
 		self.dist[("E", "M")] = 0.9
 		self.dist[("F", "G")] = 1.4
 		self.dist[("F", "J")] = 1.9
+		self.dist[("H", "G")] = 1.6
 		self.dist[("H", "M")] = 1.6
 		self.dist[("I", "J")] = 1.6
 		self.dist[("I", "K")] = 1.2
@@ -166,8 +167,10 @@ class MapEnv(Environment):
 				k = (self.states[i], self.states[j])
 				if k not in self.dist:
 					self.invalidActions.append(k)
-					if i != j:
-						self.invalidActions.append((self.states[j], self.states[i]))
+					
+					rk = (self.states[j], self.states[i])
+					if i != j and not(self.states[i] == "G" and rk in self.dist):
+						self.invalidActions.append(rk)
 		
 		print("invalid actions")
 		for inv in self.invalidActions:
@@ -219,7 +222,8 @@ if __name__ == "__main__":
 		banditParams["nonGreedyActions"] = None
 		
 		qvPath = args.restorefp if args.restorefp != "none" else None	
-		model = DynaQvalue(menv.states, menv.states, args.bandit, banditParams, args.lrate, args.dfactor, "A", "G",
+		envModel = DetEnvModel()
+		model = DynaQvalue(menv.states, menv.states, args.bandit, banditParams, args.lrate, args.dfactor, "A", envModel,  "G",
 		qvPath=qvPath, invalidStateActiins = menv.invalidActions)
 		model.train(args.niter, args.siter, menv)
 		policy = model.getPolicy(menv)

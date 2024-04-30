@@ -23,8 +23,8 @@ import random
 import numpy as np
 from scipy import stats
 from random import randint
-from .util import *
-from .stats import Histogram
+from matumizi.util import *
+from matumizi.stats import Histogram
 
 def randomFloat(low, high):
 	"""
@@ -806,7 +806,7 @@ class NonParamRejectSampler:
 		if (len(self.values) == 1):
 			self.values = self.values[0]
 		self.xmin = xmin
-		self.xmax = xmin + binWidth * (len(self.values) - 1)
+		self.xmax = xmin + binWidth * len(self.values)
 		#print(self.xmin, self.xmax, binWidth)
 		self.binWidth = binWidth
 		self.fmax = 0

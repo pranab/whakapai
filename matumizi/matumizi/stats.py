@@ -28,7 +28,7 @@ from .util import *
 histogram class
 """
 class Histogram:
-	def __init__(self, min, binWidth):
+	def __init__(self, vmin, binWidth):
 		"""
     	initializer
     	
@@ -36,9 +36,12 @@ class Histogram:
 			min : min x
 			binWidth : bin width
     	"""
-		self.xmin = min
+		self.xmin = vmin
+		self.xmax = None
 		self.binWidth = binWidth
 		self.normalized = False
+		self.bins = None
+		self.numBin = None
 	
 	@classmethod
 	def createInitialized(cls, xmin, binWidth, values):
@@ -48,37 +51,36 @@ class Histogram:
 		Parameters
 			min : min x
 			binWidth : bin width
-			values : y values
+			values : distribution values (y)
     	"""
 		instance = cls(xmin, binWidth)
-		instance.xmax = xmin + binWidth * (len(values) - 1)
+		instance.xmax = xmin + binWidth * len(values)
 		instance.ymin = 0
 		instance.bins = np.array(values)
-		instance.fmax = 0
-		for v in values:
-			if (v > instance.fmax):
-				instance.fmax = v
+		instance.fmax = max(values)
 		instance.ymin = 0.0
 		instance.ymax = instance.fmax
 		return instance
 
 	@classmethod
-	def createWithNumBins(cls, values, numBins=20):
+	def createWithNumBins(cls, dvalues, numBins=20):
 		"""
     	create histogram instance values and no of bins
     	
 		Parameters
-			values : y values
+			dvalues : data values
 			numBins : no of bins
 		"""
-		xmin = min(values)
-		xmax = max(values)
-		binWidth = (xmax + .01 - (xmin - .01)) / numBins
+		xmin = min(dvalues)
+		xmin = 0.999 * xmin if xmin > 0 else 1.001 * xmin
+		xmax = max(dvalues)
+		xmax = 1.001 * xmax if xmax > 0 else 0.999 * xmax
+		binWidth = (xmax  - xmin) / numBins
 		instance = cls(xmin, binWidth)
 		instance.xmax = xmax
 		instance.numBin = numBins
 		instance.bins = np.zeros(instance.numBin)
-		for v in values:
+		for v in dvalues:
 			instance.add(v)
 		return instance
 	
@@ -94,7 +96,7 @@ class Histogram:
     	"""
 		instance = cls(xmin, binWidth)
 		instance.xmax = xmax
-		instance.numBin = (xmax - xmin) / binWidth + 1
+		instance.numBin = int((xmax - xmin) / binWidth) + 1
 		instance.bins = np.zeros(instance.numBin)
 		return instance
 	
@@ -127,7 +129,7 @@ class Histogram:
 			value : value
     	"""
 		bin = int((value - self.xmin) / self.binWidth)
-		if (bin < 0 or  bin > self.numBin - 1):
+		if (bin < 0 or  bin > self.numBin  - 1):
 			print (bin)
 			raise ValueError("outside histogram range")
 		self.bins[bin] += 1.0
@@ -173,6 +175,18 @@ class Histogram:
 				(percent - self.cbins[i-1]) * self.binWidth / (self.cbins[i] - self.cbins[i-1]) 
 				break
 		return value
+
+	def entropy(self):
+		"""
+    	return entropy
+    	
+    	"""
+		self.normalize()
+		entropy = 0
+		for p in self.bins:
+			if p > 0:
+				entropy += -p * math.log(p)
+		return entropy
 		
 	def max(self):
 		"""
@@ -230,7 +244,13 @@ class Histogram:
 		elif x > self.xmax:
 			x = self.xmax
 		return x
-
+		
+	def getBinWidth(self):
+		"""
+		return bin width
+		"""
+		return self.binWidth
+	
 """
 categorical histogram class
 """

@@ -1343,6 +1343,18 @@ def appendKeyedList(dList, key, elem):
 	curList.append(elem)
 	dList[key] = curList
 
+def toKeyedCount(dList):
+	"""
+	creates keyed counter based on unique elements in a list
+
+	Parameters
+		dList : list of values
+	"""
+	dCounter = dict()
+	for d in dlist:
+		addToKeyedCounter(dCounter, d)
+	return dCounter
+	
 def isNumber(st):
 	"""
 	Returns True is string is a number

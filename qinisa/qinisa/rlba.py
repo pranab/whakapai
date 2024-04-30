@@ -22,6 +22,7 @@ import math
 import numpy as np
 from matumizi.util import *
 from matumizi.mlutil import *
+from matumizi.stats import *
 
 class Action(object):
 	"""
@@ -324,3 +325,166 @@ class Environment:
 			action : action
 		"""
 		return None
+		
+class EnvModel:
+	"""
+	Environment model base class
+	"""
+	def __init__(self):
+		"""
+		initializer
+		
+		"""
+		pass
+		
+	def train(self, state, action, nstate, reward):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+			nstate : next state
+			reward : reward
+		"""
+		pass
+
+	def predict(self, state, action):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+		"""
+		pass
+		
+		
+class DetEnvModel(EnvModel):
+	"""
+	detrministic environment model 
+	"""
+	def __init__(self):
+		"""
+		initializer
+		
+		"""
+		self.model = dict()
+		super(DetEnvModel, self).__init__()
+		
+	def train(self, state, action, nstate, reward):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+			nstate : next state
+			reward : reward
+		"""
+		k = (state,action)
+		if k not in self.model:
+			v = (nstate, reward)
+			self.model[k] = v
+			
+	def predict(self, state, action):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+		"""
+		k = (state,action)
+		return self.model[k]
+
+class StochEnvModel(EnvModel):
+	"""
+	stochastic environment model 
+	"""
+	def __init__(self, sampUn, nbins=None):
+		"""
+		initializer
+		
+		Parameters
+			sampleUn :True if next state and reward to be sampled uniformly
+			nbins : num of bins for distrinution based sampling of reward
+		"""
+		self.smodel = dict()
+		self.rmodel = dict()
+		self.needUpdate = dict()
+		self.uniqueStates = dict()
+		self.rewardRange = dict()
+		self.stateDistr = dict()
+		self.rewardDistr = dict()
+		self.sampUn = sampUn
+		self.nbins = nbins
+		if not sampUn:
+			assertNotNone(nbins, "missing num of bins for distrinution based sampling of reward")
+		super(StochEnvModel, self).__init__()
+		
+	def train(self, state, action, nstate, reward):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+			nstate : next state
+			reward : reward
+		"""
+		k = (state,action)
+		appendKeyedList(self.smodel, k, nstate)
+		appendKeyedList(self.rmodel, k, reward)
+		self.needUpdate[k] = True
+	
+	def predict(self, state, action):
+		"""
+		get next state and reward
+		
+		Parameters
+			state : state
+			action : action
+		"""
+		k = (state,action)
+		if self.sampUn:
+			#uniform sampling
+			if self.needUpdate[k]:
+				#states
+				self.uniqueStates[k] = list(set(self.smodel[k]))
+				
+				#rewards
+				rmin = min(self.rmodel[k])
+				rmax = max(self.rmodel[k])
+				rrange = (rmion, rmax)
+				self.rewardRange[k] = rrange
+				self.needUpdate[k] = False
+			
+			nstate = selectRandomFromList(self.uniqueStates[k])
+			reward = randomFloat(self.rewardRange[k][0], self.rewardRange[k][1])
+			
+		else:
+			#distribution based sampling
+			if self.needUpdate[k]:
+				#states
+				stCounter = toKeyedCount(self.smodel[k])
+				stCounter = list(stCounter.items())
+				stSampler = CategoricalRejectSampler(stCounter)
+				self.stateDistr[k] = stSampler
+				
+				#rewards
+				hgram = Histogram.createWithNumBins(self.rmodel[k], self.nbins)
+				bvalues = hgram.distr()
+				bwidth = hgram.getBinWidth()
+				rmin, rmax = hgram.getMinMax()
+				reSampler = NonParamRejectSampler(rmin, bwidth, bvalues)
+				self.rewardDistr[k] = reSampler
+				self.needUpdate[k] = False
+		
+			nstate = self.stateDistr[k].sample()
+			reward = self.rewardDistr[k].sample()
+			
+		return (nstate, reward)
+		
+		
+

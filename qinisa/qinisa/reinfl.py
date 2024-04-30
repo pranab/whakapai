@@ -525,7 +525,7 @@ class DynaQvalue(TempDifferenceControl):
 	Dyna Q
 	"""
 	
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate=None, qvPath=None, 
+	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, model, gstate=None, qvPath=None, 
 	invalidStateActiins=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
@@ -538,6 +538,7 @@ class DynaQvalue(TempDifferenceControl):
 			lrate : learning rate
 			dfactor : discount factor
 			istate : initial state
+			model : environment model
 			qvPath : state action  values file path
 			policy : current policy (optional)
 			onPolicy : True if on policy
@@ -547,7 +548,7 @@ class DynaQvalue(TempDifferenceControl):
 		"""
 		super(DynaQvalue, self).__init__(states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate, qvPath=qvPath, 
 		invalidStateActiins=invalidStateActiins, logFilePath=logFilePath, logLevName=logLevName)	
-		self.model = dict()
+		self.model = model
 
 	def setReward(self, reward, nstate):
 		"""
@@ -557,7 +558,7 @@ class DynaQvalue(TempDifferenceControl):
 			rwarde : reward
 			nstate : next state
 		"""
-		self.model[(self.state, self.action)] = (nstate, reward)
+		self.model.train(self.state, self.action, nstate, reward)
 		super().setReward(reward, nstate)
 		
 	def simulate(self):
@@ -577,7 +578,7 @@ class DynaQvalue(TempDifferenceControl):
 		ac = selectRandomFromList(self.stateActions[st])
 		
 		#next state and reward
-		ns, re = self.model[(st, ac)]
+		ns, re = self.model.predict(st, ac)
 		
 		#current q value
 		cv = None
