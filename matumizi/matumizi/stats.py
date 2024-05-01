@@ -120,6 +120,7 @@ class Histogram:
     	set y values to 0
     	"""
 		self.bins = np.zeros(self.numBin)
+		self.normalized = False
 		
 	def add(self, value):
 		"""
@@ -182,11 +183,11 @@ class Histogram:
     	
     	"""
 		self.normalize()
-		entropy = 0
+		entr = 0
 		for p in self.bins:
 			if p > 0:
-				entropy += -p * math.log(p)
-		return entropy
+				entr += (-p * math.log(p))
+		return entr
 		
 	def max(self):
 		"""
