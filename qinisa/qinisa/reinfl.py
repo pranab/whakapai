@@ -349,8 +349,6 @@ class TempDifferenceControl:
 		self.gstate = gstate
 		self.action = None
 		self.onPolicy = onPolicy
-		self.visitedStates = [self.state]
-		self.stateActions = dict()
 		self.qvalUpdates = list()
 		
 		self.logger = None
@@ -358,9 +356,12 @@ class TempDifferenceControl:
 			self.logger = createLogger(__name__, logFilePath, logLevName)
 			self.logger.info("******** stating new  session of " + "TempDifferenceControl")
 		
-	def getAction(self):
+	def getAction(self, env):
 		"""
 		get action for current state
+			
+		Parameters
+			env : environment
 		"""
 		acCnt = 0
 		while True:
@@ -374,7 +375,8 @@ class TempDifferenceControl:
 			else:
 				break
 
-		appendKeyedList(self.stateActions, self.state, self.action)
+		#appendKeyedList(self.stateActions, self.state, self.action)
+		env.track(self.state, self.action)
 		return self.action
 
 	def setReward(self, reward, nstate):
@@ -420,9 +422,6 @@ class TempDifferenceControl:
 		#qvalue update history
 		self.qvalUpdates.append(delta)
 		
-		#visited states	
-		self.visitedStates.append(nstate)
-
 		if self.logger is not None:
 			self.logger.info("state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(self.state, self.action, delta, qval))
 		self.state = nstate
@@ -494,7 +493,7 @@ class TempDifferenceControl:
 			env : environment
 		"""
 		for i in range(niter):
-			ac = self.getAction()
+			ac = self.getAction(env)
 			nst, re = env.getReward(self.state, self.action)
 			self.setReward(re, nst)
 			
@@ -561,21 +560,21 @@ class DynaQvalue(TempDifferenceControl):
 		self.model.train(self.state, self.action, nstate, reward)
 		super().setReward(reward, nstate)
 		
-	def simulate(self):
+	def simulate(self, env):
 		"""
 		initializer
 		
 		Parameters
-		
+			env : environment
 		"""
 		#some state visited earlier
-		st = selectRandomFromList(self.visitedStates)
+		st = selectRandomFromList(env.statesVisited())
 		if self.gstate is not None:
 			while st == self.gstate:
-				st = selectRandomFromList(self.visitedStates)
+				st = selectRandomFromList(env.statesVisited())
 		
 		#some action from that state
-		ac = selectRandomFromList(self.stateActions[st])
+		ac = selectRandomFromList(env.actionsForVisitedState(st))
 		
 		#next state and reward
 		ns, re = self.model.predict(st, ac)
@@ -617,7 +616,7 @@ class DynaQvalue(TempDifferenceControl):
 		biter = int(.1 * niter)
 		
 		for i in range(niter):
-			ac = self.getAction()
+			ac = self.getAction(env)
 			nst, re = env.getReward(self.state, self.action)
 			self.setReward(re, nst)
 			
@@ -631,5 +630,5 @@ class DynaQvalue(TempDifferenceControl):
 			#model based simulation
 			if i > biter:
 				for j in range(siter):
-					self.simulate()
+					self.simulate(env)
 			

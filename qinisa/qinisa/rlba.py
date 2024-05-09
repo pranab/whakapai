@@ -309,12 +309,24 @@ class Environment:
 	"""
 	Environment base class
 	"""
-	def __init__(self):
-		"""
+	def __init__(self, trackStates=False, trackActions=False, implReward=None, implRewardFactor=None):
+		"""l
 		initializer
 		
+		Parameters
+			trackStates :True if states vneed tracking
+			trackActions : Tri=ue if actions for each state need tracking
+			implReward : implicit reward, bayesian exploration bonus (beb or beblog), recency(rec) or default (None)
+			implRewardFactor : implicit reward factor
 		"""
-		pass
+		self.trackStates = trackStates
+		self.trackActions = trackActions
+		self.implReward = implReward
+		self.implRewardFactor = implRewardFactor
+		self.visitedStates = list()
+		self.stateActions = dict()
+		self.iterCnt = 0
+		self.stateActionLast = dict()
 		
 	def getReward(self, state, action):
 		"""
@@ -325,6 +337,69 @@ class Environment:
 			action : action
 		"""
 		return None
+	
+	def track(self, state, action):
+		"""
+		track state and action
+		
+		Parameters
+			state : next state
+			action : action
+		"""
+		if self.trackActions:
+			appendKeyedList(self.stateActions, state, action)
+		if self.trackStates:
+			self.visitedStates.append(state)
+		
+		self.iterCnt += 1	
+		
+		
+	def actionsForVisitedState(self, state):	
+		"""
+		returns actions for a state
+		
+		Parameters
+			state : next state
+		"""
+		return self.stateActions[state]  if self.trackActions else None
+		
+	def statesVisited(self):
+		"""
+		returns states visited
+		
+		"""
+		return self.visitedStates if self.trackStates else None
+	
+	def implicitReward(self, state, action):
+		"""
+		returns implicit reward
+		
+		Parameters
+			state : next state
+			action : action
+		"""
+		imptReward = 0
+		if self.implReward is not None:
+			if self.implReward == "beb":
+				acnt = self.stateActions[state].count(action)
+				imptReward =  1 / acnt if acnt > 0 else 1
+			
+			if self.implReward == "beblog":
+				acnt = self.stateActions[state].count(action)
+				imptReward =  1 / (1 + math.log(acnt)) if acnt > 1 else 1
+
+			elif self.implReward == "rec":
+				k = (state,action)
+				lastIt = self.stateActionLast[k] if k in self.stateActionLast  else 0
+				imptReward = math.sqrt(self.iterCnt - lastIt) / math.sqrt(self.iterCnt)
+				self.stateActionLast[k] = self.iterCnt
+			
+			else:
+				exitWithMsg("invalid implicit reward function " + self.implReward)	
+			
+			imptReward *= self.implRewardFactor
+		
+		return imptReward
 		
 class EnvModel:
 	"""

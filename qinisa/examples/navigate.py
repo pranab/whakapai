@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-# avenir-python: Machine Learning
+# qinisa : Machine Learning
 # Author: Pranab Ghosh
 # 
 # Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -24,7 +24,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from qinisa.reinfl import *
+from reinfl import *
 from qinisa.rlba import *
 
 """
@@ -32,9 +32,15 @@ navigation with DynaQ RL
 """
 
 class MapEnv(Environment):
-	def __init__(self):
+	def __init__(self, trackStates=False, trackActions=False, implReward=None, implRewardFactor=None):
 		"""
 		initializer
+
+		Parameters
+			trackStates :True if states vneed tracking
+			trackActions : Tri=ue if actions for each state need tracking
+			implReward : implicit reward, bayesian exploration bonus (beb or beblog), recency(rec) or default (None)
+			implRewardFactor : implicit reward factor
 		"""
 		self.states = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"]
 		
@@ -122,7 +128,7 @@ class MapEnv(Environment):
 			
 		self.findInvalidActions()
 		
-		super(MapEnv, self).__init__()
+		super(MapEnv, self).__init__(trackStates=trackStates, trackActions=trackActions, implReward=implReward, implRewardFactor=implRewardFactor)
 
 	def reward(self, cs, ac):
 		"""
@@ -186,7 +192,9 @@ class MapEnv(Environment):
 		"""
 		print(state, action)
 		k = (state, action)
-		return self.stre[k]
+		reward = self.stre[k][1] + self.implicitReward(state, action)
+		re = (self.stre[k][0], reward)
+		return re
 		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -208,7 +216,7 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	op = args.op
 	
-	menv = MapEnv()
+	menv = MapEnv(trackStates=True, trackActions=True)
 	
 	if op == "reward":
 		r = menv.reward(args.cs, args.ac)
