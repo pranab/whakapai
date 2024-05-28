@@ -39,8 +39,8 @@ def barPlot(px, py, xlab, ylab):
 		xlab : x label
 		ylab : y label
 	"""
-	fig = plt.figure(figsize = (8, 4))
-	plt.bar(px, py, color ='maroon', width = 0.4)
+	fig = plt.figure(figsize = (6, 4))
+	plt.bar(px, py, color ='maroon', width = 0.6)
 	plt.xlabel(xlab)
 	plt.ylabel(ylab)
 	plt.show()
@@ -50,6 +50,10 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--niter', type=int, default = 100, help = "num of of iteration")
 	parser.add_argument('--nsamp', type=int, default = 100, help = "num of of samples")
+	parser.add_argument('--siter', type=int, default = 1, help = "num of of iteration for sampling")
+	parser.add_argument('--cumsamp', action="store_true", help = "cumulative  samples")
+	parser.add_argument('--no-cumsamp', dest="cumsamp", action="store_false")	
+	parser.set_defaults(cumsamp=True)	
 	args = parser.parse_args()
 
 	niter = args.niter
@@ -71,17 +75,29 @@ if __name__ == "__main__":
 	
 	barPlot(px, bvalues, "values", "frequecy")
 	
-	
+	if args.cumsamp:
+		print("cumulative samples")
+		
+	pintv = int(niter / 2)
 	for i in range(niter):
 		sampler = NonParamRejectSampler(xmin, binWidth, bvalues)
 		sampler.sampleAsFloat()
-		samples = list(map(lambda i: sampler.sample(), range(args.nsamp)))
+		if args.cumsamp:
+			for _ in range(args.siter):
+				nsamples = list(map(lambda i: sampler.sample(), range(args.nsamp)))
+				samples.extend(nsamples)
+		else:
+			samples = list()
+			for _ in range(args.siter):
+				nsamples = list(map(lambda i: sampler.sample(), range(args.nsamp)))
+				samples.extend(nsamples)
+		
 		hgram.initialize()
 		for v in samples:
 			hgram.add(v)
 		bvalues = hgram.distr()
 		entropy.append(hgram.entropy())
-		if i > 0 and (i % 50 == 0  or i == niter - 1):
+		if i > 0 and (i % pintv == 0  or i == niter - 1):
 			barPlot(px, bvalues, "values", "frequecy")
 	
 		
