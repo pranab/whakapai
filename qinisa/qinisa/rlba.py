@@ -309,20 +309,33 @@ class Environment:
 	"""
 	Environment base class
 	"""
-	def __init__(self, trackStates=False, trackActions=False, implReward=None, implRewardFactor=None):
+	def __init__(self, states, actions, allStateActions, rewards, defaultReward=-0.1, trackStates=False, trackActions=False, implReward=None, 
+	implRewardFactor=None, statesReach=2):
 		"""l
 		initializer
 		
 		Parameters
+			states : states list
+			actions = actions list
+			allStateActions : dictionary key = state value = dictionary[action, state]
+			rewards : reward key - (state, action)
+			defaultReward : default reward
 			trackStates :True if states vneed tracking
-			trackActions : Tri=ue if actions for each state need tracking
+			trackActions : True if actions for each state need tracking
 			implReward : implicit reward, bayesian exploration bonus (beb or beblog), recency(rec) or default (None)
 			implRewardFactor : implicit reward factor
+			statesReach = reach for neighboring states only when implReward = empow
 		"""
+		self.states = states
+		self.actions = actions
+		self.allStateActions = allStateActions
 		self.trackStates = trackStates
 		self.trackActions = trackActions
 		self.implReward = implReward
 		self.implRewardFactor = implRewardFactor
+		self.statesReach = statesReach
+		self.rewards = rewards
+		self.defaultReward = defaultReward
 		self.visitedStates = list()
 		self.stateActions = dict()
 		self.iterCnt = 0
@@ -336,7 +349,11 @@ class Environment:
 			state : state
 			action : action
 		"""
-		return None
+		print(state, action)
+		sa = (state,action)
+		re = self.rewards.get(sa, self.defaultReward)
+		ns = self.getNextState(state, action)
+		return (ns, re)
 	
 	def track(self, state, action):
 		"""
@@ -393,6 +410,11 @@ class Environment:
 				lastIt = self.stateActionLast[k] if k in self.stateActionLast  else 0
 				imptReward = math.sqrt(self.iterCnt - lastIt) / math.sqrt(self.iterCnt)
 				self.stateActionLast[k] = self.iterCnt
+
+			elif self.implReward == "empow":
+				nst = self.getNextState(state, action)
+				nstates = self.getAdjacentStates(nst, self.statesReach)
+				imptReward = math.log(len(nstates)) / math.log(len(self.getStates()))
 			
 			else:
 				exitWithMsg("invalid implicit reward function " + self.implReward)	
@@ -400,6 +422,81 @@ class Environment:
 			imptReward *= self.implRewardFactor
 		
 		return imptReward
+
+	def getStates(self):
+		"""
+		return state values
+		"""	
+		return self.states
+		
+	def getActions(self):
+		"""
+		return action values
+		"""	
+		return self.actions
+		
+	def getNextState(self, state, action):
+		"""
+		return next state
+		
+		Parameters
+			state : state
+			action : action
+		"""	
+		ns = None
+		if state in self.allStateActions:
+			actState = self.allStateActions[state]
+			if action in actState:
+				ns = actState[action]
+		if ns is None:
+			exitWithMsg("invalid state or action " + state + "  " + action)
+		return ns
+		
+	def getAdjacentStates(self, state, reach):
+		"""
+		return set of adjacent states 
+		
+		Parameters
+			state : state
+			reach : level of reach
+		"""	
+		states = list(state)
+		offset = 0
+		for i in range(reach):
+			statesCnt = len(states)
+			for j in range(offset, statesCnt, 1):
+				st = states[j]
+				nstates = self.getNextStates(st)
+				states.extend(nstates)
+			offset += statesCnt	
+		states = set(states)
+		states.remove(state)
+		return list(states)
+			
+	def getNextStates(self, state):
+		"""
+		return next states list
+		
+		Parameters
+			state : state
+		"""	
+		actState  = self.allStateActions[state]
+		return list(actState.values())
+
+	def getInvalidStateActions(self):
+		"""
+		return invalid state action tuple list
+		
+		"""	
+		invalidStateActiins = list()
+		for st in self.states:
+			for ac in self.actions:
+				acSt = self.allStateActions[st]
+				if ac not in acSt:
+					p = (st,ac)
+					invalidStateActiins.append(p)
+		return invalidStateActiins
+		
 		
 class EnvModel:
 	"""

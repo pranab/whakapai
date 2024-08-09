@@ -47,3 +47,6 @@ restorefp = model restore file path (not used here)
 logfp = log file path (not used here)
 loglev = log level (not used here)
 
+The output will show the final policy derived from the learn Qvalue table. The output will also showa plot of Q value 
+updates as training progresses. Notice the updates converge to zero and Q value table stabilizes.
+

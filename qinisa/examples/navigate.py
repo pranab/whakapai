@@ -24,7 +24,7 @@ import argparse
 from matumizi.util import *
 from matumizi.mlutil import *
 from matumizi.sampler import *
-from reinfl import *
+from qinisa.reinfl import *
 from qinisa.rlba import *
 
 """
@@ -32,7 +32,7 @@ navigation with DynaQ RL
 """
 
 class MapEnv(Environment):
-	def __init__(self, trackStates=False, trackActions=False, implReward=None, implRewardFactor=None):
+	def __init__(self, states, actions, allStateActions, rewards, trackStates=False, trackActions=False):
 		"""
 		initializer
 
@@ -128,7 +128,7 @@ class MapEnv(Environment):
 			
 		self.findInvalidActions()
 		
-		super(MapEnv, self).__init__(trackStates=trackStates, trackActions=trackActions, implReward=implReward, implRewardFactor=implRewardFactor)
+		super(MapEnv, self).__init__(states, actions, allStateActions, rewards, trackStates=trackStates, trackActions=trackActions)
 
 	def reward(self, cs, ac):
 		"""
@@ -195,6 +195,18 @@ class MapEnv(Environment):
 		reward = self.stre[k][1] + self.implicitReward(state, action)
 		re = (self.stre[k][0], reward)
 		return re
+
+class WraehouseEnv(Environment):
+	def __init__(self, states, actions, allStateActions, rewards, defaultReward=-0.1, trackStates=False, 
+	trackActions=False,implReward="beb", implRewardFactor=.5, statesReach=2):
+		"""
+		initializer		
+		
+		"""
+		super(WraehouseEnv, self).__init__(states, actions, allStateActions, rewards, defaultReward=defaultReward, 
+		trackStates=trackStates, trackActions=trackActions, implReward=implReward, implRewardFactor=implRewardFactor, statesReach=statesReach)
+		
+
 		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -216,13 +228,15 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	op = args.op
 	
-	menv = MapEnv(trackStates=True, trackActions=True)
 	
 	if op == "reward":
+		menv = MapEnv(trackStates=True, trackActions=True)
 		r = menv.reward(args.cs, args.ac)
 		print("reward {:.3f}".format(r))
 		
 	elif op == "train":
+		""" train navigation model """
+		menv = MapEnv(None, None, None, None, trackStates=True, trackActions=True)
 		banditParams = dict()
 		banditParams["epsilon"] = args.eps
 		banditParams["redPolicy"] = args.eprpol
@@ -245,5 +259,56 @@ if __name__ == "__main__":
 		if args.savefp != "none":
 			model.save(args.savefp)
 
+	elif op == "whtrain":
+		""" train warehouse navigation model """
+		states = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]
+		actions = list()
+		allStateActions = dict()
+		allStateActions["A"] = {"AB" : "B"}
+		allStateActions["B"] = {"BA" : "A", "BC" : "C"}
+		allStateActions["C"] = {"CB" : "B", "CD" : "D",  "CH" : "H"}
+		allStateActions["D"] = {"DE" : "E", "DC" : "C"}
+		allStateActions["E"] = {"ED" : "D"}
+		allStateActions["F"] = {"FG" : "G"}
+		allStateActions["G"] = {"GF" : "F", "GH" : "H"}
+		allStateActions["H"] = {"HC" : "C", "HG" : "G",  "HI" : "I", "HM" : "M"}
+		allStateActions["I"] = {"IH" : "H", "IJ" : "J"}
+		allStateActions["J"] = {"JI" : "I"}
+		allStateActions["K"] = {"KL" : "L"}
+		allStateActions["L"] = {"LK" : "K", "LM" : "M"}
+		allStateActions["M"] = {"MH" : "H", "ML" : "L",  "MN" : "N"}
+		allStateActions["N"] = {"NM" : "M", "NO" : "O"}
+		allStateActions["O"] = {"ON" : "N"}
+		
+		for acSt in allStateActions.values():
+			actions.extend(list(acSt.keys()))
+		print(actions)	
+		
+		rewards = dict()
+		rewards[("H", "HI")] = 1.0
+		rewards[("J", "JI")] = 1.0
+		
+		wenv = WraehouseEnv(states, actions, allStateActions, rewards, trackStates=True, trackActions=True, implReward="empow")
+		
+		invalidStateActiins = wenv.getInvalidStateActions()
+		banditParams = dict()
+		banditParams["epsilon"] = args.eps
+		banditParams["redPolicy"] = args.eprpol
+		banditParams["redParam"] = args.eprp if args.eprpol == "stepred" else None
+		banditParams["nonGreedyActions"] = None
+		qvPath = args.restorefp if args.restorefp != "none" else None	
+		envModel = DetEnvModel()
+		model = DynaQvalue(states, actions, args.bandit, banditParams, args.lrate, args.dfactor, "I", envModel,  "O",
+		qvPath=qvPath, invalidStateActiins=invalidStateActiins)
+		model.train(args.niter, args.siter, wenv)
+				
+		policy = model.getPolicy(wenv)
+		print("policy")
+		for s in policy.keys():
+			print(s, policy[s])
+		
+		if args.savefp != "none":
+			model.save(args.savefp)
+	
 	else:
 		exitWithMsg("invalid command")
