@@ -198,13 +198,13 @@ class MapEnv(Environment):
 
 class WraehouseEnv(Environment):
 	def __init__(self, states, actions, allStateActions, rewards, defaultReward=-0.1, trackStates=False, 
-	trackActions=False,implReward="beb", implRewardFactor=.5, statesReach=2):
+	trackActions=False,implReward="beb", implRewardFactor=.5):
 		"""
 		initializer		
 		
 		"""
 		super(WraehouseEnv, self).__init__(states, actions, allStateActions, rewards, defaultReward=defaultReward, 
-		trackStates=trackStates, trackActions=trackActions, implReward=implReward, implRewardFactor=implRewardFactor, statesReach=statesReach)
+		trackStates=trackStates, trackActions=trackActions, implReward=implReward, implRewardFactor=implRewardFactor)
 		
 
 		
@@ -221,6 +221,8 @@ if __name__ == "__main__":
 	parser.add_argument('--eps', type=float, default = 0.1, help = "bandit algo epsilon")
 	parser.add_argument('--eprpol', type=str, default = "linear", help = "bandit algo eps reduction policy")
 	parser.add_argument('--eprp', type=float, default = .001, help = "bandit algo epsilon reduction parameter")
+	parser.add_argument('--implrwd', type=str, default = "none", help = "impilcit reward")
+	parser.add_argument('--irfactor', type=float, default = 0.3, help = "implicit reawrd factor")
 	parser.add_argument('--savefp', type=str, default = "none", help = "model save file")
 	parser.add_argument('--restorefp', type=str, default = "none", help = "model restore file path")
 	parser.add_argument('--logfp', type=str, default = "none", help = "log file path")
@@ -245,7 +247,7 @@ if __name__ == "__main__":
 		
 		qvPath = args.restorefp if args.restorefp != "none" else None	
 		envModel = DetEnvModel()
-		model = DynaQvalue(menv.states, menv.states, args.bandit, banditParams, args.lrate, args.dfactor, "A", envModel,  "G",
+		model = DynaQvalue(menv.states, menv.states, menv, args.bandit, banditParams, args.lrate, args.dfactor, "A", envModel,  "G",
 		qvPath=qvPath, invalidStateActiins = menv.invalidActions)
 		model.train(args.niter, args.siter, menv)
 		policy = model.getPolicy(menv)
@@ -285,10 +287,12 @@ if __name__ == "__main__":
 		print(actions)	
 		
 		rewards = dict()
-		rewards[("H", "HI")] = 1.0
-		rewards[("J", "JI")] = 1.0
-		
-		wenv = WraehouseEnv(states, actions, allStateActions, rewards, trackStates=True, trackActions=True, implReward="empow")
+		rewards[("N", "NO")] = 1.0
+		implReward = args.implrwd if args.implrwd != "none" else None
+		wenv = WraehouseEnv(states, actions, allStateActions, rewards, trackStates=True, trackActions=True, implReward=implReward, 
+		implRewardFactor=args.irfactor)
+		if implReward == "empow":
+			wenv.getAdjacentStatesCount(2)
 		
 		invalidStateActiins = wenv.getInvalidStateActions()
 		banditParams = dict()
@@ -298,8 +302,8 @@ if __name__ == "__main__":
 		banditParams["nonGreedyActions"] = None
 		qvPath = args.restorefp if args.restorefp != "none" else None	
 		envModel = DetEnvModel()
-		model = DynaQvalue(states, actions, args.bandit, banditParams, args.lrate, args.dfactor, "I", envModel,  "O",
-		qvPath=qvPath, invalidStateActiins=invalidStateActiins)
+		model = DynaQvalue(states, actions, wenv, args.bandit, banditParams, args.lrate, args.dfactor, "I", envModel,  "O",
+		qvPath=qvPath, invalidStateActiins=invalidStateActiins,logFilePath="./log/wenv.log", logLevName="info")
 		model.train(args.niter, args.siter, wenv)
 				
 		policy = model.getPolicy(wenv)

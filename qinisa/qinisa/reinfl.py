@@ -283,7 +283,7 @@ class TempDifferenceControl:
 	"""
 	temporal difference control Q learning
 	"""
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate=None, qvPath=None, 
+	def __init__(self, states, actions, env, banditAlgo, banditParams, lrate, dfactor, istate, gstate=None, qvPath=None, 
 	policy=None, onPolicy=False, invalidStateActiins=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
@@ -291,6 +291,7 @@ class TempDifferenceControl:
 		Parameters
 			states : all states
 			actions : all actions
+			env : environment
 			banditAlgo : bandit algo (rg, ucb)
 			banditParams : bandit algo params
 			lrate : learning rate
@@ -308,7 +309,7 @@ class TempDifferenceControl:
 		if qvPath is None:
 			self.qvalues = dict()
 			for s in states:
-				avalues = list(map(lambda a : [a, randomFloat(.01, .05)], actions))
+				avalues = list(map(lambda a : [a, randomFloat(.001, .002)], actions))
 				self.qvalues[s] = avalues
 			
 			#in=valid state actions	
@@ -329,7 +330,7 @@ class TempDifferenceControl:
 			#random greedy
 			qvalues = self.qvalues if policy is None else None
 			pol = policy if policy is not None else None
-			self.policy = RandomGreedyPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, policy=pol, 
+			self.policy = RandomGreedyPolicy(states, actions, env, banditParams["epsilon"], qvalues=qvalues, policy=pol, 
 			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"], nonGreedyActions=banditParams["nonGreedyActions"])
 		elif banditAlgo == "boltz":
 			#boltzman
@@ -433,8 +434,17 @@ class TempDifferenceControl:
 		Parameters
 			env : environment
 		"""
+		#log Qtable
+		if self.logger is not None:
+			for st in self.states:
+				self.logger.info("Qtable state {}".format(st))
+				actions = self.qvalues[st]
+				for ac, va in actions:
+					va = 0.0 if va < -1000000 else va
+					self.logger.info("action {} value {:.6f}".format(ac,va))
+				
 		policy = dict()
-		
+		policyPath = list()
 		if self.gstate is None:
 			#generic task
 			for st in self.states:
@@ -454,32 +464,30 @@ class TempDifferenceControl:
 			st = self.istate
 			states.append(st)
 			stcnt = 0
+			
 			while st != self.gstate:
 				actions = self.qvalues[st]
 				sactions = sorted(actions, key=takeSecond, reverse=True)
+				if self.logger is not None:
+					self.logger.info("Qtable state {}".format(st))
+					self.logger.info("sorted action {}  value {:.3f}".format(sactions[0][0], sactions[0][1]))
+					self.logger.info("sorted action {}  value {:.3f}".format(sactions[1][0], sactions[1][1]))
 				
-				found = False
-				for ac, _ in sactions:
-					sa = (st, ac)
-					if self.invalidStateActiins is not None and sa in self.invalidStateActiins:
-						continue
+				ac = sactions[0][0]
+				policy[st] = ac
+				sa = (st, ac)
+				policyPath.append(sa)
 				
-					nst, re = env.getReward(st, ac) 
-					if nst in states:
-						continue
-					else:
-						if self.logger is not None:
-							self.logger.info("state {}   action {}".format(st, ac))
-						policy[st] = ac
-						st = nst
-						states.append(st)
-						found = True
-						break
-				if not found:
-					exitWithMsg("failed to find action for state " + st)
+				if self.logger is not None:
+					self.logger.info("policy state {}  action {}".format(st,ac))
+				st = env.getNextState(st, ac)
 				
 				stcnt += 1
 				if stcnt == 100:
+					if self.logger is not None:
+						self.logger.info("policy:")
+						for sa in policyPath:
+							self.logger.info("state action {}".format(str(sa)))
 					exitWithMsg("failed to find policy with goal state defined")
 					
 		return policy
@@ -524,7 +532,7 @@ class DynaQvalue(TempDifferenceControl):
 	Dyna Q
 	"""
 	
-	def __init__(self, states, actions, banditAlgo, banditParams, lrate, dfactor, istate, model, gstate=None, qvPath=None, 
+	def __init__(self, states, actions, env, banditAlgo, banditParams, lrate, dfactor, istate, model, gstate=None, qvPath=None, 
 	invalidStateActiins=None, logFilePath=None, logLevName=None):
 		"""
 		initializer
@@ -532,6 +540,7 @@ class DynaQvalue(TempDifferenceControl):
 		Parameters
 			states : all states
 			actions : all actions
+			env : environment
 			banditAlgo : bandit algo (rg, ucb)
 			banditParams : bandit algo params
 			lrate : learning rate
@@ -545,7 +554,7 @@ class DynaQvalue(TempDifferenceControl):
 			logFilePath : log file path
 			logLevName : log level
 		"""
-		super(DynaQvalue, self).__init__(states, actions, banditAlgo, banditParams, lrate, dfactor, istate, gstate, qvPath=qvPath, 
+		super(DynaQvalue, self).__init__(states, actions, env, banditAlgo, banditParams, lrate, dfactor, istate, gstate, qvPath=qvPath, 
 		invalidStateActiins=invalidStateActiins, logFilePath=logFilePath, logLevName=logLevName)	
 		self.model = model
 
@@ -600,8 +609,10 @@ class DynaQvalue(TempDifferenceControl):
 				qval = a[1]
 				break
 		
+		"""
 		if self.logger is not None:
 			self.logger.info("model simulation state {}  action {} incr value {:.3f}  cur qvalue {:.3f}".format(st, ac, delta, qval))
+		"""
 		
 	def train(self, niter, siter, env):	
 		"""

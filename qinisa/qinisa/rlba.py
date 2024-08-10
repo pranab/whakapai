@@ -310,7 +310,7 @@ class Environment:
 	Environment base class
 	"""
 	def __init__(self, states, actions, allStateActions, rewards, defaultReward=-0.1, trackStates=False, trackActions=False, implReward=None, 
-	implRewardFactor=None, statesReach=2):
+	implRewardFactor=None):
 		"""l
 		initializer
 		
@@ -324,7 +324,6 @@ class Environment:
 			trackActions : True if actions for each state need tracking
 			implReward : implicit reward, bayesian exploration bonus (beb or beblog), recency(rec) or default (None)
 			implRewardFactor : implicit reward factor
-			statesReach = reach for neighboring states only when implReward = empow
 		"""
 		self.states = states
 		self.actions = actions
@@ -333,13 +332,14 @@ class Environment:
 		self.trackActions = trackActions
 		self.implReward = implReward
 		self.implRewardFactor = implRewardFactor
-		self.statesReach = statesReach
 		self.rewards = rewards
 		self.defaultReward = defaultReward
 		self.visitedStates = list()
 		self.stateActions = dict()
 		self.iterCnt = 0
 		self.stateActionLast = dict()
+		self.stateAdjacencySize = dict()
+		self.maxAdjacency = 0
 		
 	def getReward(self, state, action):
 		"""
@@ -349,10 +349,12 @@ class Environment:
 			state : state
 			action : action
 		"""
-		print(state, action)
 		sa = (state,action)
 		re = self.rewards.get(sa, self.defaultReward)
+		implRe = self.implicitReward(state, action) if self.implReward is not None else 0
+		re += implRe
 		ns = self.getNextState(state, action)
+		print("state {}  action {}  reward {:.3f}".format(state, action, re))
 		return (ns, re)
 	
 	def track(self, state, action):
@@ -413,8 +415,7 @@ class Environment:
 
 			elif self.implReward == "empow":
 				nst = self.getNextState(state, action)
-				nstates = self.getAdjacentStates(nst, self.statesReach)
-				imptReward = math.log(len(nstates)) / math.log(len(self.getStates()))
+				imptReward = math.log(self.stateAdjacencySize[nst]) / math.log(self.maxAdjacency)
 			
 			else:
 				exitWithMsg("invalid implicit reward function " + self.implReward)	
@@ -434,6 +435,19 @@ class Environment:
 		return action values
 		"""	
 		return self.actions
+		
+	def getActionsForState(self, state):
+		"""
+		return action values
+
+		Parameters
+			state : state
+		"""	
+		actions = None
+		if state in self.allStateActions:
+			actState = self.allStateActions[state]
+			actions = list(actState.keys())
+		return actions
 		
 	def getNextState(self, state, action):
 		"""
@@ -472,7 +486,20 @@ class Environment:
 		states = set(states)
 		states.remove(state)
 		return list(states)
-			
+	
+	def getAdjacentStatesCount(self, reach):
+		"""
+		set adjacent states count for all states
+		
+		Parameters
+			reach : level of reach
+		"""	
+		for st in self.states:
+			scnt = len(self.getAdjacentStates(st, reach))
+			if scnt > self.maxAdjacency:
+				self.maxAdjacency = scnt
+			self.stateAdjacencySize[st] = scnt
+		
 	def getNextStates(self, state):
 		"""
 		return next states list
@@ -488,14 +515,14 @@ class Environment:
 		return invalid state action tuple list
 		
 		"""	
-		invalidStateActiins = list()
+		invalidStateActions = list()
 		for st in self.states:
 			for ac in self.actions:
 				acSt = self.allStateActions[st]
 				if ac not in acSt:
 					p = (st,ac)
-					invalidStateActiins.append(p)
-		return invalidStateActiins
+					invalidStateActions.append(p)
+		return invalidStateActions
 		
 		
 class EnvModel:
