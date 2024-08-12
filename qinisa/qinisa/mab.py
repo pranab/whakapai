@@ -442,13 +442,14 @@ class BoltzmanPolicy:
 	"""
 	boltzman multi arm bandit policy (epsilon greedy)
 	"""
-	def __init__(self, states, actions, epsilon, qvalues, redPolicy="linear", redParam=None):
+	def __init__(self, states, actions, env, epsilon, qvalues, redPolicy="linear", redParam=None):
 		"""
 		initializer
 		
 		Parameters
 			states : all states
 			actions : all actions
+			env : environment
 			epsilon : random selection probability 
 			qvalues : q values
 			redPolicy : epsilon reduction policy
@@ -460,6 +461,7 @@ class BoltzmanPolicy:
 		self.qvalues = None
 		self.states = states
 		self.actions = actions
+		self.env = env
 		self.qvalues = qvalues
 		self.totPlays = dict(map(lambda s : (s, 1), self.states))
 		
@@ -486,13 +488,17 @@ class BoltzmanPolicy:
 				exitWithMsg("invalid epsilon reduction strategy")
 			
 		
-		#boltzman distr action
-		actions = self.qvalues[state]
-		sact = None
-		bvalues = list(map(lambda a : math.exp(eps * a[1]),actions))
+		#actions for the state
+		actions = self.env.getActionsForState(state)
+		
+		#values and values distribution
+		actValues = dict(self.qvalues[state])
+		bvalues = list(map(lambda a : actValues[a] ,actions))
+		bvalues = list(map(lambda v : math.exp(eps * v), bvalues))
 		bvalues = norm(bvalues, 1)
-		acts = list(map(lambda a : a[0],actions))
-		sampler = CategoricalRejectSampler(list(zip(acts, bvalues)))
+		
+		#sample action
+		sampler = CategoricalRejectSampler(list(zip(actions, bvalues)))
 		sact = sampler.sample()
 		
 		incrKeyedCounter(self.totPlays, state)		
@@ -502,14 +508,16 @@ class UpperConfBoundPolicy:
 	"""
 	upper confidence bound multi arm bandit policy (ucb)
 	"""
-	def __init__(self, qvalues):
+	def __init__(self, env, qvalues):
 		"""
 		initializer
 		
 		Parameters
+			env : environment
 			qvalues : q values
 		""" 
 		#qvalues
+		self.env = env
 		self.qvalues = qvalues
 		self.states = list(self.qvalues.keys())
 		self.actions = list(map(lambda a : a[0], self.qvalues[self.states[0]]))
@@ -527,13 +535,21 @@ class UpperConfBoundPolicy:
 			state : state
 		"""
 		sact = None
-		vmax = 0
-		actions = self.qvalues[state]	
-		for a in actions:
-			v = a[1] + sqrt(2 * math.log(self.totPlays[state]) / self.actPlays[state][a[0]])
-			if v > vmax:
+		vmax = None
+
+		#actions and action values for the state
+		actions = self.env.getActionsForState(state)
+		actValues = dict(self.qvalues[state])
+		for ac in actions:
+			#if first time
+			if self.actPlays[state][ac] == 0:
+				sact = ac
+				break
+					
+			v = actValues[ac] + sqrt(2 * math.log(self.totPlays[state]) / self.actPlays[state][ac])
+			if vmax is None or v > vmax:
 				vmax = v
-				sact = a[0]
+				sact = ac
 		
 		incrKeyedCounter(self.totPlays, state)
 		incrKeyedCounter(self.actPlays[state], sact)

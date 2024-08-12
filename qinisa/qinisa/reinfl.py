@@ -335,11 +335,12 @@ class TempDifferenceControl:
 		elif banditAlgo == "boltz":
 			#boltzman
 			qvalues = self.qvalues 
-			self.policy = BoltzmanPolicy(states, actions, banditParams["epsilon"], qvalues=qvalues, 
+			self.policy = BoltzmanPolicy(states, actions, env, banditParams["epsilon"], qvalues=qvalues, 
 			redPolicy=banditParams["redPolicy"], redParam=banditParams["redParam"])
 		elif banditAlgo == "ucb":
 			#ucb
-			self.policy = UpperConfBoundPolicy(qvalues)
+			qvalues = self.qvalues 
+			self.policy = UpperConfBoundPolicy(env, qvalues)
 		else:
 			exitWithMsg("invalid bandit algo " + banditAlgo)
 			
