@@ -12,7 +12,7 @@ Reinforcement Learning(RL) and Multi Arm Bandit(MAB)
 1. Install:
 
 Package install
-pip3 install -i https://test.pypi.org/simple qinisa==0.0.5
+pip3 install -i https://test.pypi.org/simple qinisa==0.0.6
 
 Local build and install for the latest
 Clone GirHub repo and run this at the repo root directory

@@ -302,8 +302,11 @@ if __name__ == "__main__":
 		banditParams["nonGreedyActions"] = None
 		qvPath = args.restorefp if args.restorefp != "none" else None	
 		envModel = DetEnvModel()
-		model = DynaQvalue(states, actions, wenv, args.bandit, banditParams, args.lrate, args.dfactor, "I", envModel,  "O",
-		qvPath=qvPath, invalidStateActiins=invalidStateActiins,logFilePath="./log/wenv.log", logLevName="info")
+		logFilePath = args.logfp if args.logfp != "none" else None
+		logLevName = args.loglev if args.loglev != "none" else None
+		
+		model = DynaQvalue(states, actions, wenv, args.bandit, banditParams, args.lrate, args.dfactor, "D", envModel,  "O",
+		qvPath=qvPath, invalidStateActiins=invalidStateActiins,logFilePath=logFilePath, logLevName=logLevName)
 		model.train(args.niter, args.siter, wenv)
 				
 		policy = model.getPolicy(wenv)
