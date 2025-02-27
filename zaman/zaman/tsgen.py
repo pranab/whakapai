@@ -612,7 +612,7 @@ class TimeSeriesGenerator(object):
 					width = wsampler.sample()
 					hwidth = int((width + 1) / 2)
 					isp = 0
-					inPike = True
+					inSpike = True
 					
 			if self.tsValType == "int":
 				curVal = int(curVal)
